@@ -21,7 +21,7 @@ Status: **Done** — commit `a61b3c5`. Evidence: typecheck, lint, format check, 
 
 ## M0.1 — Foundation corrections
 
-Status: **In progress** — implemented; pending owner review. Corrective increment for the M0 QA findings.
+Status: **Done** — commit `e2a8471`. Corrective increment for the M0 QA findings. Evidence: typecheck, lint, format check, 47 unit tests, build, and 6/6 Playwright smoke tests passed.
 
 - [x] M-1: `incompatible-plate` evaluated whenever the plate is known, independent of shape (D-016)
 - [x] L-1: docs and skills describe the per-field contract: at most one issue per field, fixed precedence (D-016)
@@ -35,7 +35,7 @@ Status: Planned. M1.1 runs first; the rest of M1 is **blocked on real product in
 
 ### M1.1 — Catalog integrity (first sub-increment, before real products)
 
-Status: **In progress** — implemented; pending owner review.
+Status: **Done** — commit `a4dbb75`. Evidence: typecheck, lint, format check, 103 unit tests, build, and 6/6 Playwright smoke tests passed; independent QA review verdict: ACCEPT WITH MINOR ISSUES (findings addressed in M1.1.1).
 
 - [x] Recursive `deepFreeze` (no dependency); immutability tested at root, collection, component, compatibility, dimension, and asset levels (D-020)
 - [x] Single catalog entry point `getCatalog()`; raw data in `src/catalog/data.ts` (D-020)
@@ -48,6 +48,17 @@ Status: **In progress** — implemented; pending owner review.
   - [x] `dimensions` and `assets` keys are a subset of the supported shapes;
   - [x] defined dimensions finite and positive; asset `src` non-blank.
 - [x] Catalog test gate: production catalog must pass `validateCatalog` (D-021)
+
+### M1.1.1 — Catalog integrity corrections
+
+Status: **In progress** — implemented; pending owner review. Corrective increment for the M1.1 QA findings.
+
+- [x] L-1: `unreachable-compatibility` for a frame restricted to a plate sharing no shape, per referenced plate (D-022)
+- [x] L-2: reference checks resolve duplicate IDs to the first occurrence
+- [x] L-3: non-string IDs rejected without coercion (D-019)
+- [x] L-4: ESLint `no-restricted-imports` enforces the `getCatalog()` entry point (D-020)
+- [x] L-5: recursive freeze assertion on the production catalog and on the real entry point with nested synthetic data
+- [x] L-6: regression tests for triplicate IDs, malformed-first duplicates, cross-collection references, multiple inconsistencies, partial unreachable compatibility
 
 ### M1 — remaining scope
 

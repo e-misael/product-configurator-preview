@@ -23,6 +23,24 @@ export default defineConfig([
     },
   },
   {
+    // Catalog data is reached only through getCatalog() (D-020).
+    files: ['src/**/*.{ts,tsx}', 'tests/**/*.{ts,tsx}'],
+    ignores: ['src/catalog/**', 'tests/unit/catalog/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['**/catalog/data', '**/catalog/data.ts'],
+              message: 'Import the catalog via getCatalog() from src/catalog.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.js'],
     extends: [js.configs.recommended],
     languageOptions: { ecmaVersion: 2022, sourceType: 'module' },

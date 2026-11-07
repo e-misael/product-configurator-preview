@@ -19,15 +19,34 @@ import type {
 /** Lowercase kebab-case, e.g. `placa-quadrada-01` (D-019). */
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-export function isValidCatalogId(id: string): boolean {
-  return ID_PATTERN.test(id);
+/** Accepts `unknown` so malformed runtime data is rejected, not coerced. */
+export function isValidCatalogId(id: unknown): boolean {
+  return typeof id === 'string' && ID_PATTERN.test(id);
+}
+
+/** Maps each ID to its first occurrence; later duplicates never overwrite it. */
+function indexFirstById<T extends { readonly id: string }>(
+  items: readonly T[],
+  collection: string,
+): Map<string, { item: T; path: string }> {
+  const index = new Map<string, { item: T; path: string }>();
+  items.forEach((item, i) => {
+    if (!index.has(item.id)) index.set(item.id, { item, path: `${collection}[${i}]` });
+  });
+  return index;
 }
 
 export function validateCatalog(catalog: Catalog): CatalogValidationResult {
   const issues: CatalogIssue[] = [];
 
-  function report(code: CatalogIssueCode, path: string, id: string, relatedPath?: string) {
-    issues.push(relatedPath === undefined ? { code, path, id } : { code, path, id, relatedPath });
+  // `id` is typed as string but may be malformed at runtime; only strings are reported (D-019).
+  function report(code: CatalogIssueCode, path: string, id: unknown, relatedPath?: string) {
+    issues.push({
+      code,
+      path,
+      ...(typeof id === 'string' && { id }),
+      ...(relatedPath !== undefined && { relatedPath }),
+    });
   }
 
   function checkList(list: readonly string[], path: string, id: string, required: boolean) {
@@ -98,8 +117,8 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
     }
   }
 
-  const colorsById = new Map(catalog.colors.map((color) => [color.id, color] as const));
-  const plateIds = new Set(catalog.plates.map((plate) => plate.id));
+  const colorsById = indexFirstById(catalog.colors, 'colors');
+  const platesById = indexFirstById(catalog.plates, 'plates');
 
   catalog.colors.forEach((color, i) => {
     const path = `colors[${i}]`;
@@ -115,7 +134,7 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
     checkList(plate.supportedColorIds, `${path}.supportedColorIds`, plate.id, false);
     plate.supportedColorIds.forEach((colorId, j) => {
       const refPath = `${path}.supportedColorIds[${j}]`;
-      const color = colorsById.get(colorId);
+      const color = colorsById.get(colorId)?.item;
       if (color === undefined) {
         report('unknown-reference', refPath, plate.id);
       } else if (!plate.supportedColorCategories.includes(color.category)) {
@@ -139,9 +158,19 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
     if (restrictedTo !== undefined) {
       // Omitted means "no plate restriction"; an empty list would fit no plate (D-018).
       checkList(restrictedTo, `${path}.compatibility.plateIds`, frame.id, true);
+      // Each referenced plate is evaluated independently (D-022).
       restrictedTo.forEach((plateId, j) => {
-        if (!plateIds.has(plateId)) {
-          report('unknown-reference', `${path}.compatibility.plateIds[${j}]`, frame.id);
+        const refPath = `${path}.compatibility.plateIds[${j}]`;
+        const target = platesById.get(plateId);
+        if (target === undefined) {
+          report('unknown-reference', refPath, frame.id);
+        } else if (
+          // Empty lists are already reported as `empty-list`.
+          shapes.length > 0 &&
+          target.item.supportedShapes.length > 0 &&
+          !shapes.some((shape) => target.item.supportedShapes.includes(shape))
+        ) {
+          report('unreachable-compatibility', refPath, frame.id, target.path);
         }
       });
     }

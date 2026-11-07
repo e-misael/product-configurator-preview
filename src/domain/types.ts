@@ -116,6 +116,7 @@ export type CatalogIssueCode =
   | 'duplicate-id'
   | 'duplicate-entry'
   | 'unknown-reference'
+  | 'unreachable-compatibility'
   | 'empty-list'
   | 'unsupported-shape-key'
   | 'color-category-mismatch'

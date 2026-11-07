@@ -391,6 +391,296 @@ describe('validateCatalog', () => {
     });
   });
 
+  describe('duplicate id regressions', () => {
+    it('reports an id appearing three times against the first occurrence', () => {
+      const catalog = buildValidCatalog();
+      const frame = at(catalog.frames, 0);
+
+      expect(
+        validateCatalog({ ...catalog, frames: [frame, frame, at(catalog.frames, 1), frame] }),
+      ).toEqual({
+        status: 'invalid',
+        issues: [
+          {
+            code: 'duplicate-id',
+            path: 'frames[1].id',
+            id: 'test-frame-any',
+            relatedPath: 'frames[0].id',
+          },
+          {
+            code: 'duplicate-id',
+            path: 'frames[3].id',
+            id: 'test-frame-any',
+            relatedPath: 'frames[0].id',
+          },
+        ],
+      });
+    });
+
+    it('reports both malformed copies and the duplicate when the first entry is malformed', () => {
+      const catalog = buildValidCatalog();
+      const color = { ...at(catalog.colors, 1), id: 'Bad_ID' };
+
+      expect(
+        validateCatalog({ ...catalog, colors: [at(catalog.colors, 0), color, color] }),
+      ).toEqual({
+        status: 'invalid',
+        issues: [
+          { code: 'invalid-id', path: 'colors[1].id', id: 'Bad_ID' },
+          { code: 'invalid-id', path: 'colors[2].id', id: 'Bad_ID' },
+          { code: 'duplicate-id', path: 'colors[2].id', id: 'Bad_ID', relatedPath: 'colors[1].id' },
+          { code: 'unknown-reference', path: 'plates[0].supportedColorIds[1]', id: 'test-plate-a' },
+        ],
+      });
+    });
+
+    it('resolves references against the first occurrence of a duplicated color id', () => {
+      const catalog = buildValidCatalog();
+      // colors[0] is nude; the later duplicate is colored and must not overwrite it.
+      const conflicting = { ...at(catalog.colors, 1), id: 'test-color-nude' };
+      const nudeOnlyPlate = { ...at(catalog.plates, 1), supportedColorIds: ['test-color-nude'] };
+
+      expect(
+        validateCatalog({
+          ...catalog,
+          colors: [...catalog.colors, conflicting],
+          plates: [at(catalog.plates, 0), nudeOnlyPlate],
+        }),
+      ).toEqual({
+        status: 'invalid',
+        issues: [
+          {
+            code: 'duplicate-id',
+            path: 'colors[2].id',
+            id: 'test-color-nude',
+            relatedPath: 'colors[0].id',
+          },
+        ],
+      });
+    });
+
+    it('reports a category mismatch against the first occurrence, not a later duplicate', () => {
+      const catalog = buildValidCatalog();
+      // colors[0] becomes colored; the later nude duplicate must not mask the mismatch.
+      const coloredFirst = { ...at(catalog.colors, 0), category: 'colored' as const };
+      const nudeLater = { ...at(catalog.colors, 0) };
+      const nudeOnlyPlate = { ...at(catalog.plates, 1), supportedColorIds: ['test-color-nude'] };
+
+      expect(
+        issuesOf(
+          validateCatalog({
+            ...catalog,
+            colors: [coloredFirst, at(catalog.colors, 1), nudeLater],
+            plates: [at(catalog.plates, 0), nudeOnlyPlate],
+          }),
+        ),
+      ).toContainEqual({
+        code: 'color-category-mismatch',
+        path: 'plates[1].supportedColorIds[0]',
+        id: 'test-plate-b',
+      });
+    });
+  });
+
+  describe('cross-collection references', () => {
+    it('does not resolve a frame id listed as a plate color', () => {
+      expectOnly(withPlate(0, { supportedColorIds: ['test-color-nude', 'test-frame-any'] }), {
+        code: 'unknown-reference',
+        path: 'plates[0].supportedColorIds[1]',
+        id: 'test-plate-a',
+      });
+    });
+
+    it('does not resolve a color id listed as a frame plate restriction', () => {
+      expectOnly(
+        withFrame(1, { compatibility: { shapes: ['square'], plateIds: ['test-color-nude'] } }),
+        {
+          code: 'unknown-reference',
+          path: 'frames[1].compatibility.plateIds[0]',
+          id: 'test-frame-plate-a',
+        },
+      );
+    });
+  });
+
+  describe('malformed runtime ids', () => {
+    it.each([
+      ['undefined', undefined],
+      ['null', null],
+      ['number', 5],
+      ['object', { id: 'test-x' }],
+    ])('rejects a %s id without coercing it', (_label, value) => {
+      expect(isValidCatalogId(value)).toBe(false);
+
+      const catalog = buildValidCatalog();
+      // Deliberately bypass the types to simulate malformed runtime data.
+      Reflect.set(at(catalog.frames, 0), 'id', value);
+
+      expect(validateCatalog(catalog)).toEqual({
+        status: 'invalid',
+        issues: [{ code: 'invalid-id', path: 'frames[0].id' }],
+      });
+    });
+
+    it('reports a malformed color id together with the reference it breaks', () => {
+      const catalog = buildValidCatalog();
+      Reflect.set(at(catalog.colors, 1), 'id', 5);
+
+      expect(validateCatalog(catalog)).toEqual({
+        status: 'invalid',
+        issues: [
+          { code: 'invalid-id', path: 'colors[1].id' },
+          { code: 'unknown-reference', path: 'plates[0].supportedColorIds[1]', id: 'test-plate-a' },
+        ],
+      });
+    });
+  });
+
+  describe('unreachable compatibility', () => {
+    it('reports a frame restricted to a plate with no shape in common', () => {
+      // Frame supports only rectangle; plate B supports only square.
+      expectOnly(
+        withFrame(1, { compatibility: { shapes: ['rectangle'], plateIds: ['test-plate-b'] } }),
+        {
+          code: 'unreachable-compatibility',
+          path: 'frames[1].compatibility.plateIds[0]',
+          id: 'test-frame-plate-a',
+          relatedPath: 'plates[1]',
+        },
+      );
+    });
+
+    it('reports only the unreachable plate among several references', () => {
+      // Plate A supports rectangle; plate B does not.
+      expectOnly(
+        withFrame(1, {
+          compatibility: { shapes: ['rectangle'], plateIds: ['test-plate-a', 'test-plate-b'] },
+        }),
+        {
+          code: 'unreachable-compatibility',
+          path: 'frames[1].compatibility.plateIds[1]',
+          id: 'test-frame-plate-a',
+          relatedPath: 'plates[1]',
+        },
+      );
+    });
+
+    it('accepts a restriction sharing at least one shape', () => {
+      const catalog = withFrame(1, {
+        compatibility: {
+          shapes: ['square', 'rectangle'],
+          plateIds: ['test-plate-a', 'test-plate-b'],
+        },
+      });
+      expect(validateCatalog(catalog)).toEqual({ status: 'valid' });
+    });
+
+    it('keeps unknown-reference handling for missing plates', () => {
+      expect(
+        issuesOf(
+          validateCatalog(
+            withFrame(1, {
+              compatibility: {
+                shapes: ['rectangle'],
+                plateIds: ['test-plate-missing', 'test-plate-b'],
+              },
+            }),
+          ),
+        ),
+      ).toEqual([
+        {
+          code: 'unknown-reference',
+          path: 'frames[1].compatibility.plateIds[0]',
+          id: 'test-frame-plate-a',
+        },
+        {
+          code: 'unreachable-compatibility',
+          path: 'frames[1].compatibility.plateIds[1]',
+          id: 'test-frame-plate-a',
+          relatedPath: 'plates[1]',
+        },
+      ]);
+    });
+
+    it('does not repeat a cause already reported as an empty list', () => {
+      const emptyFrameShapes = withFrame(1, {
+        compatibility: { shapes: [], plateIds: ['test-plate-a'] },
+      });
+      expect(issuesOf(validateCatalog(emptyFrameShapes)).map((issue) => issue.code)).toEqual([
+        'empty-list',
+      ]);
+
+      const base = buildValidCatalog();
+      const emptyPlateShapes: Catalog = {
+        ...base,
+        plates: [
+          { ...at(base.plates, 0), supportedShapes: [], dimensions: {}, assets: {} },
+          at(base.plates, 1),
+        ],
+      };
+      expect(issuesOf(validateCatalog(emptyPlateShapes)).map((issue) => issue.code)).toEqual([
+        'empty-list',
+      ]);
+    });
+
+    it('evaluates repeated plate references independently', () => {
+      expect(
+        issuesOf(
+          validateCatalog(
+            withFrame(1, {
+              compatibility: { shapes: ['rectangle'], plateIds: ['test-plate-b', 'test-plate-b'] },
+            }),
+          ),
+        ).map((issue) => `${issue.code} ${issue.path}`),
+      ).toEqual([
+        'duplicate-entry frames[1].compatibility.plateIds[1]',
+        'unreachable-compatibility frames[1].compatibility.plateIds[0]',
+        'unreachable-compatibility frames[1].compatibility.plateIds[1]',
+      ]);
+    });
+  });
+
+  describe('multiple independent inconsistencies including new rules', () => {
+    it('reports every issue across collections in deterministic order', () => {
+      const base = buildValidCatalog();
+      const catalog: Catalog = {
+        colors: [at(base.colors, 0), { ...at(base.colors, 1), id: 'test-color-nude' }],
+        plates: [
+          { ...at(base.plates, 0), supportedColorIds: ['test-frame-any'] },
+          { ...at(base.plates, 1), assets: { square: { src: '' } } },
+        ],
+        frames: [
+          { ...at(base.frames, 0), id: 'Frame' },
+          {
+            ...at(base.frames, 1),
+            compatibility: { shapes: ['rectangle'], plateIds: ['test-plate-b'] },
+          },
+        ],
+      };
+
+      expect(validateCatalog(catalog)).toEqual({
+        status: 'invalid',
+        issues: [
+          {
+            code: 'duplicate-id',
+            path: 'colors[1].id',
+            id: 'test-color-nude',
+            relatedPath: 'colors[0].id',
+          },
+          { code: 'unknown-reference', path: 'plates[0].supportedColorIds[0]', id: 'test-plate-a' },
+          { code: 'invalid-asset', path: 'plates[1].assets.square.src', id: 'test-plate-b' },
+          { code: 'invalid-id', path: 'frames[0].id', id: 'Frame' },
+          {
+            code: 'unreachable-compatibility',
+            path: 'frames[1].compatibility.plateIds[0]',
+            id: 'test-frame-plate-a',
+            relatedPath: 'plates[1]',
+          },
+        ],
+      });
+    });
+  });
+
   describe('no repair', () => {
     it('does not modify an invalid catalog', () => {
       const catalog = withPlate(0, {

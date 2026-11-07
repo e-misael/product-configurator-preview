@@ -13,6 +13,7 @@ Code of record: `src/domain/types.ts`, `src/domain/validation.ts`, `src/domain/c
 - The catalog is deep-frozen. UI code must never mutate it or keep modified copies.
 - Every catalog change must keep `validateCatalog(getCatalog())` valid (test gate, D-021). Fix the data; never weaken or bypass the check.
 - IDs are lowercase kebab-case and unique across colors, plates, and frames (D-019).
+- A frame's `plateIds` may list only plates that share at least one shape with the frame (`unreachable-compatibility`, D-022).
 - Configuration (`Configuration`) stores **IDs and raw user input only** — never copies of catalog objects.
 
 ## Never invent product information

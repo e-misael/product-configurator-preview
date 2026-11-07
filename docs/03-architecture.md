@@ -44,7 +44,7 @@ Rules:
 ```text
 src/
 ├── App.tsx, main.tsx, index.css
-├── domain/           # types, validation (M0)
+├── domain/           # types, configuration validation, catalog validation
 ├── catalog/          # data.ts, deep-freeze.ts, index.ts (getCatalog)
 ├── components/
 │   ├── configurator/ # form controls (M2)
@@ -77,7 +77,7 @@ Directories are created only when their increment needs them.
 - **Immutability** (D-020): `getCatalog()` returns the catalog deep-frozen at module load. Collections, components, compatibility lists, dimension and asset objects all reject mutation at runtime, in addition to the `readonly` types.
 - **When validation runs** (D-021): as a **test gate**. `tests/unit/catalog/catalog.test.ts` asserts `validateCatalog(getCatalog())` is `valid`; it runs in `npm test`, `npm run check`, and CI, so an invalid catalog cannot pass CI. `getCatalog()` does not validate at runtime, so a catalog defect never crashes the customer page.
 - **Separation:** catalog validation checks the catalog against itself; configuration validation checks a user selection against a catalog assumed to have passed the gate. Configuration validation is unchanged by M1.1.
-- Later increments (M1.2+) must obtain catalog data only through `getCatalog()`.
+- Later increments (M1.2+) must obtain catalog data only through `getCatalog()`. ESLint `no-restricted-imports` blocks imports of `catalog/data` outside `src/catalog/**` and `tests/unit/catalog/**` (D-020).
 
 ## Configuration state
 

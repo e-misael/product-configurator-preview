@@ -145,21 +145,28 @@ interface CatalogIssue {
 
 Unlike configuration validation, **every** issue is reported. Order is deterministic: `colors`, then `plates`, then `frames`; within a component, fields in definition order. Array indices in paths are diagnostic only. Data is never repaired or filtered.
 
-| Code                      | Rule violated                                                                                           | Paths                                                                                                                |
-| ------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
-| `invalid-id`              | ID must match `^[a-z0-9]+(?:-[a-z0-9]+)*$` (non-empty, lowercase kebab-case)                            | `<collection>[i].id`                                                                                                 |
-| `duplicate-id`            | IDs unique across colors, plates, and frames; reported at each repeat, `relatedPath` = first occurrence | `<collection>[i].id`                                                                                                 |
-| `duplicate-entry`         | No repeated value in a list; `relatedPath` = first occurrence                                           | `supportedShapes`, `supportedColorCategories`, `supportedColorIds`, `compatibility.shapes`, `compatibility.plateIds` |
-| `unknown-reference`       | Referenced ID exists in the right collection                                                            | `plates[i].supportedColorIds[j]` → colors; `frames[i].compatibility.plateIds[j]` → plates                            |
-| `empty-list`              | Required list is non-empty; `plateIds`, when present, is non-empty (omit it for "no restriction")       | `supportedShapes`, `supportedColorCategories`, `compatibility.shapes`, `compatibility.plateIds`                      |
-| `unsupported-shape-key`   | `dimensions`/`assets` keys ⊆ plate `supportedShapes`; frame `assets` keys ⊆ `compatibility.shapes`      | `plates[i].dimensions.<shape>`, `plates[i].assets.<shape>`, `frames[i].assets.<shape>`                               |
-| `color-category-mismatch` | A referenced color's category is in the plate's `supportedColorCategories`                              | `plates[i].supportedColorIds[j]`                                                                                     |
-| `invalid-dimension`       | Defined `widthMm` and `heightMm` are finite and > 0 (each reported separately)                          | `plates[i].dimensions.<shape>.widthMm` / `.heightMm`                                                                 |
-| `invalid-asset`           | `src` is not empty or whitespace-only                                                                   | `plates[i].assets.<shape>.src`, `frames[i].assets.<shape>.src`, `colors[i].swatch.src`                               |
+| Code                        | Rule violated                                                                                                                           | Paths                                                                                                                |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `invalid-id`                | ID must match `^[a-z0-9]+(?:-[a-z0-9]+)*$` (non-empty, lowercase kebab-case)                                                            | `<collection>[i].id`                                                                                                 |
+| `duplicate-id`              | IDs unique across colors, plates, and frames; reported at each repeat, `relatedPath` = first occurrence                                 | `<collection>[i].id`                                                                                                 |
+| `duplicate-entry`           | No repeated value in a list; `relatedPath` = first occurrence                                                                           | `supportedShapes`, `supportedColorCategories`, `supportedColorIds`, `compatibility.shapes`, `compatibility.plateIds` |
+| `unknown-reference`         | Referenced ID exists in the right collection                                                                                            | `plates[i].supportedColorIds[j]` → colors; `frames[i].compatibility.plateIds[j]` → plates                            |
+| `unreachable-compatibility` | Each plate in a frame's `plateIds` shares at least one shape with the frame's `compatibility.shapes`; `relatedPath` = the plate (D-022) | `frames[i].compatibility.plateIds[j]`                                                                                |
+| `empty-list`                | Required list is non-empty; `plateIds`, when present, is non-empty (omit it for "no restriction")                                       | `supportedShapes`, `supportedColorCategories`, `compatibility.shapes`, `compatibility.plateIds`                      |
+| `unsupported-shape-key`     | `dimensions`/`assets` keys ⊆ plate `supportedShapes`; frame `assets` keys ⊆ `compatibility.shapes`                                      | `plates[i].dimensions.<shape>`, `plates[i].assets.<shape>`, `frames[i].assets.<shape>`                               |
+| `color-category-mismatch`   | A referenced color's category is in the plate's `supportedColorCategories`                                                              | `plates[i].supportedColorIds[j]`                                                                                     |
+| `invalid-dimension`         | Defined `widthMm` and `heightMm` are finite and > 0 (each reported separately)                                                          | `plates[i].dimensions.<shape>.widthMm` / `.heightMm`                                                                 |
+| `invalid-asset`             | `src` is not empty or whitespace-only                                                                                                   | `plates[i].assets.<shape>.src`, `frames[i].assets.<shape>.src`, `colors[i].swatch.src`                               |
 
 Allowed (not issues): an empty catalog; `pending` dimensions; a supported shape without a `dimensions` entry; empty `supportedColorIds` (colors pending); omitted `compatibility.plateIds`.
 
 A component whose ID is renamed or removed also produces `unknown-reference` at every place that referenced it.
+
+Additional semantics:
+
+- **Duplicates resolve to the first occurrence.** Reference checks (`unknown-reference`, `color-category-mismatch`, `unreachable-compatibility`) use the first component with a given ID, matching `relatedPath` and configuration lookups. Later duplicates never overwrite it.
+- **Non-string IDs** (possible only when data bypasses the types) are reported as `invalid-id` without coercion; such issues omit `id`.
+- **`unreachable-compatibility`** evaluates each `plateIds` entry independently (repeated entries are each reported). It is skipped when the frame's `compatibility.shapes` or the plate's `supportedShapes` is empty, since `empty-list` already reports the cause. A shared shape is still only a necessary condition, not proof of physical fit (D-014). Unrestricted frames are not checked against the plates that exist.
 
 ## Compatibility considerations
 

@@ -1,5 +1,6 @@
 import { getCatalog } from '../../../src/catalog';
 import { validateCatalog } from '../../../src/domain';
+import { expectDeeplyFrozen } from './expect-deeply-frozen';
 
 /**
  * Catalog test gate (D-021): the production catalog must pass integrity
@@ -18,9 +19,11 @@ describe('production catalog', () => {
     const catalog = getCatalog();
 
     expect(getCatalog()).toBe(catalog);
-    expect(Object.isFrozen(catalog)).toBe(true);
-    expect(Object.isFrozen(catalog.plates)).toBe(true);
-    expect(Object.isFrozen(catalog.frames)).toBe(true);
-    expect(Object.isFrozen(catalog.colors)).toBe(true);
+    expectDeeplyFrozen(catalog);
+  });
+
+  it('has a freeze assertion that detects unfrozen nested objects', () => {
+    const partlyFrozen = Object.freeze({ plates: Object.freeze([{ supportedShapes: [] }]) });
+    expect(() => expectDeeplyFrozen(partlyFrozen)).toThrow();
   });
 });

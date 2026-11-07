@@ -113,7 +113,7 @@ Status values:
 ### D-018 — Catalog integrity validation contract
 
 - **Context:** M1.1; catalog definitions must be checked before real products are added (M0 review L-2, L-3).
-- **Decision:** A pure `validateCatalog(catalog)` returns `valid` or `invalid` with **all** issues, each with an explicit code (`invalid-id`, `duplicate-id`, `duplicate-entry`, `unknown-reference`, `empty-list`, `unsupported-shape-key`, `color-category-mismatch`, `invalid-dimension`, `invalid-asset`), a path, the owning component ID, and an optional related path. Deterministic order. It never repairs or filters data. A present-but-empty `compatibility.plateIds` is an error (it would fit no plate); omitting it means "no restriction".
+- **Decision:** A pure `validateCatalog(catalog)` returns `valid` or `invalid` with **all** issues, each with an explicit code (`invalid-id`, `duplicate-id`, `duplicate-entry`, `unknown-reference`, `unreachable-compatibility` (D-022), `empty-list`, `unsupported-shape-key`, `color-category-mismatch`, `invalid-dimension`, `invalid-asset`), a path, the owning component ID, and an optional related path. Deterministic order. It never repairs or filters data. A present-but-empty `compatibility.plateIds` is an error (it would fit no plate); omitting it means "no restriction".
 - **Rationale:** Catalog validation is a diagnostic tool for maintainers, so complete reporting beats one-issue-per-field (contrast D-016).
 - **Alternatives:** Runtime schema library (e.g. Zod) — unnecessary dependency for typed local data; fail-fast on first error.
 - **Status:** Approved.
@@ -121,7 +121,7 @@ Status values:
 
 ### D-019 — Catalog ID format and uniqueness
 
-- **Decision:** IDs match `^[a-z0-9]+(?:-[a-z0-9]+)*$` (lowercase kebab-case, e.g. `placa-quadrada-01`) and are unique across colors, plates, and frames.
+- **Decision:** IDs match `^[a-z0-9]+(?:-[a-z0-9]+)*$` (lowercase kebab-case, e.g. `placa-quadrada-01`) and are unique across colors, plates, and frames. Non-string IDs are rejected with an explicit type check, never coerced by the regular expression (M1.1.1). Reference checks resolve duplicated IDs to their first occurrence.
 - **Rationale:** Stable, URL- and filename-safe, unambiguous in logs, exports, and future store links.
 - **Alternatives:** Only reject empty/whitespace IDs; uniqueness per collection only.
 - **Status:** Approved.
@@ -129,7 +129,7 @@ Status values:
 
 ### D-020 — Deep-frozen catalog behind a single entry point
 
-- **Decision:** Raw definitions live in `src/catalog/data.ts`; `src/catalog/index.ts` deep-freezes them once with a local `deepFreeze` helper and exposes `getCatalog()` (synchronous, same instance). Supersedes the M0 shallow freeze.
+- **Decision:** Raw definitions live in `src/catalog/data.ts`; `src/catalog/index.ts` deep-freezes them once with a local `deepFreeze` helper and exposes `getCatalog()` (synchronous, same instance). Supersedes the M0 shallow freeze. Since M1.1.1, ESLint `no-restricted-imports` blocks importing `catalog/data` outside `src/catalog/**` and `tests/unit/catalog/**`.
 - **Rationale:** Runtime immutability at every nesting level, no dependency, no async or network abstraction.
 - **Alternatives:** Shallow freeze (insufficient); `readonly` types only (bypassable by casts); an immutability library.
 - **Status:** Approved.
@@ -140,6 +140,15 @@ Status values:
 - **Decision:** `tests/unit/catalog/catalog.test.ts` asserts `validateCatalog(getCatalog())` is `valid`. It runs in `npm test`, `npm run check`, and CI. No runtime validation in `getCatalog()`.
 - **Rationale:** Invalid catalogs are blocked before deploy; customers never see a crash caused by catalog data.
 - **Alternatives:** Also throw at module load in development mode (revisit if catalog editing moves outside code review).
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-022 — Unreachable frame compatibility
+
+- **Context:** M1.1 review (L-1): a frame restricted to a plate it shares no shape with passed validation but could never be selected.
+- **Decision:** For each entry in a frame's `compatibility.plateIds` that resolves to a plate, report `unreachable-compatibility` (path `frames[i].compatibility.plateIds[j]`, `relatedPath` = the plate) when the frame's `compatibility.shapes` and the plate's `supportedShapes` share no shape. Entries are evaluated independently; skipped when either shape list is empty (already `empty-list`). Unrestricted frames are not checked against existing plates.
+- **Rationale:** Same reasoning as rejecting an empty `plateIds`: a declared restriction that can never apply is a definition error. No dimensions are required; a shared shape remains a necessary, not sufficient, condition (D-014).
+- **Alternatives:** Report once per frame; also flag unrestricted frames matching no existing plate (depends on catalog contents, deferred).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
