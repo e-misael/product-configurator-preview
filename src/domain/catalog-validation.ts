@@ -6,6 +6,7 @@
  * See docs/04-data-model.md and D-018.
  */
 
+import { FRAMELESS_SHAPES } from './types';
 import type {
   AssetRef,
   Catalog,
@@ -61,34 +62,24 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
     });
   }
 
-  function checkShapeKeys(
-    record: Readonly<Partial<Record<PlateShape, unknown>>>,
-    supported: readonly PlateShape[],
-    path: string,
-    id: string,
-  ) {
-    for (const key of Object.keys(record)) {
-      if (!supported.some((shape) => shape === key)) {
-        report('unsupported-shape-key', `${path}.${key}`, id);
-      }
-    }
-  }
-
   function checkAsset(asset: AssetRef, path: string, id: string) {
     if (asset.src.trim().length === 0) {
       report('invalid-asset', `${path}.src`, id);
     }
   }
 
-  function checkAssets(
+  /** Frame assets are keyed by shape; keys must be among the frame's shapes. */
+  function checkFrameAssets(
     assets: Readonly<Partial<Record<PlateShape, AssetRef>>> | undefined,
     supported: readonly PlateShape[],
     path: string,
     id: string,
   ) {
     if (assets === undefined) return;
-    checkShapeKeys(assets, supported, path, id);
     for (const [shape, asset] of Object.entries(assets)) {
+      if (!supported.some((candidate) => candidate === shape)) {
+        report('unsupported-shape-key', `${path}.${shape}`, id);
+      }
       if (asset !== undefined) checkAsset(asset, `${path}.${shape}`, id);
     }
   }
@@ -129,7 +120,9 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
   catalog.plates.forEach((plate, i) => {
     const path = `plates[${i}]`;
     checkId(plate.id, path);
-    checkList(plate.supportedShapes, `${path}.supportedShapes`, plate.id, true);
+    if (plate.supportsFrame && FRAMELESS_SHAPES.includes(plate.shape)) {
+      report('frame-capability-conflict', `${path}.supportsFrame`, plate.id);
+    }
     checkList(plate.supportedColorCategories, `${path}.supportedColorCategories`, plate.id, true);
     checkList(plate.supportedColorIds, `${path}.supportedColorIds`, plate.id, false);
     plate.supportedColorIds.forEach((colorId, j) => {
@@ -141,13 +134,8 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
         report('color-category-mismatch', refPath, plate.id);
       }
     });
-    checkShapeKeys(plate.dimensions, plate.supportedShapes, `${path}.dimensions`, plate.id);
-    for (const [shape, dimensions] of Object.entries(plate.dimensions)) {
-      if (dimensions !== undefined) {
-        checkDimensions(dimensions, `${path}.dimensions.${shape}`, plate.id);
-      }
-    }
-    checkAssets(plate.assets, plate.supportedShapes, `${path}.assets`, plate.id);
+    checkDimensions(plate.dimensions, `${path}.dimensions`, plate.id);
+    if (plate.asset !== undefined) checkAsset(plate.asset, `${path}.asset`, plate.id);
   });
 
   catalog.frames.forEach((frame, i) => {
@@ -155,6 +143,11 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
     const { shapes, plateIds: restrictedTo } = frame.compatibility;
     checkId(frame.id, path);
     checkList(shapes, `${path}.compatibility.shapes`, frame.id, true);
+    shapes.forEach((shape, j) => {
+      if (FRAMELESS_SHAPES.includes(shape)) {
+        report('unsupported-frame-shape', `${path}.compatibility.shapes[${j}]`, frame.id);
+      }
+    });
     if (restrictedTo !== undefined) {
       // Omitted means "no plate restriction"; an empty list would fit no plate (D-018).
       checkList(restrictedTo, `${path}.compatibility.plateIds`, frame.id, true);
@@ -165,16 +158,15 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
         if (target === undefined) {
           report('unknown-reference', refPath, frame.id);
         } else if (
-          // Empty lists are already reported as `empty-list`.
-          shapes.length > 0 &&
-          target.item.supportedShapes.length > 0 &&
-          !shapes.some((shape) => target.item.supportedShapes.includes(shape))
+          !target.item.supportsFrame ||
+          // An empty shape list is already reported as `empty-list`.
+          (shapes.length > 0 && !shapes.includes(target.item.shape))
         ) {
           report('unreachable-compatibility', refPath, frame.id, target.path);
         }
       });
     }
-    checkAssets(frame.assets, shapes, `${path}.assets`, frame.id);
+    checkFrameAssets(frame.assets, shapes, `${path}.assets`, frame.id);
   });
 
   return issues.length === 0 ? { status: 'valid' } : { status: 'invalid', issues };

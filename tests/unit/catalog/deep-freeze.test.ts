@@ -53,7 +53,8 @@ describe('deepFreeze', () => {
     const plate = at(catalog.plates, 0);
     const { compatibility } = at(catalog.frames, 1);
 
-    expectPushRejected(plate.supportedShapes, 'square');
+    expectAssignmentRejected(plate, 'shape', 'circle');
+    expectAssignmentRejected(plate, 'supportsFrame', false);
     expectPushRejected(plate.supportedColorCategories, 'nude');
     expectPushRejected(plate.supportedColorIds, 'test-color-x');
     expect(Object.isFrozen(compatibility)).toBe(true);
@@ -65,14 +66,15 @@ describe('deepFreeze', () => {
   it('freezes dimension and asset objects', () => {
     const catalog = deepFreeze(buildValidCatalog());
     const plate = at(catalog.plates, 0);
-    const square = defined(plate.dimensions.square);
-    const squareAsset = defined(plate.assets?.square);
+    const frameAssets = defined(at(catalog.frames, 0).assets);
     const swatch = defined(at(catalog.colors, 0).swatch);
 
-    expectAssignmentRejected(plate.dimensions, 'rectangle', { status: 'pending' });
-    expectAssignmentRejected(square, 'widthMm', 1);
-    expectAssignmentRejected(defined(plate.assets), 'rectangle', { src: 'x' });
-    expectAssignmentRejected(squareAsset, 'src', '');
+    expect(Object.isFrozen(plate.dimensions)).toBe(true);
+    expectAssignmentRejected(plate.dimensions, 'widthMm', 1);
+    expectAssignmentRejected(plate, 'dimensions', { status: 'pending' });
+    expectAssignmentRejected(defined(plate.asset), 'src', '');
+    expectAssignmentRejected(frameAssets, 'square', { src: 'x' });
+    expectAssignmentRejected(defined(frameAssets.rectangle), 'src', '');
     expectAssignmentRejected(swatch, 'src', '');
   });
 

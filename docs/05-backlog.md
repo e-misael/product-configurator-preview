@@ -31,7 +31,7 @@ Status: **Done** — commit `e2a8471`. Corrective increment for the M0 QA findin
 
 ## M1 — Component catalog
 
-Status: Planned. M1.1 runs first; the rest of M1 is **blocked on real product information from the store.**
+Status: In progress. M1.1, M1.1.1, and M1.2 need no real data; M1.3 is **blocked on real product information from the store.**
 
 ### M1.1 — Catalog integrity (first sub-increment, before real products)
 
@@ -51,7 +51,7 @@ Status: **Done** — commit `a4dbb75`. Evidence: typecheck, lint, format check, 
 
 ### M1.1.1 — Catalog integrity corrections
 
-Status: **In progress** — implemented; pending owner review. Corrective increment for the M1.1 QA findings.
+Status: **Done** — commit `b369edb` (committed with the message intended for M1.2; content is M1.1.1). Corrective increment for the M1.1 QA findings. Evidence: typecheck, lint, format check, 126 unit tests, build, and 6/6 Playwright smoke tests passed.
 
 - [x] L-1: `unreachable-compatibility` for a frame restricted to a plate sharing no shape, per referenced plate (D-022)
 - [x] L-2: reference checks resolve duplicate IDs to the first occurrence
@@ -60,11 +60,24 @@ Status: **In progress** — implemented; pending owner review. Corrective increm
 - [x] L-5: recursive freeze assertion on the production catalog and on the real entry point with nested synthetic data
 - [x] L-6: regression tests for triplicate IDs, malformed-first duplicates, cross-collection references, multiple inconsistencies, partial unreachable compatibility
 
-### M1 — remaining scope
+### M1.2 — Plate models with fixed shape and frame capability
 
-- Real plate, frame, and color definitions (names, supported shapes/colors, compatibility).
+Status: **In progress** — implemented; pending owner review.
+
+- [x] `PlateShape` extended with `circle` (D-025)
+- [x] Each plate model has one fixed `shape`; `dimensions` and `asset` are no longer keyed by shape (D-023)
+- [x] `Configuration.shape` removed; shape derived via `getPlateShape` (D-023)
+- [x] Required `Plate.supportsFrame`; circle plates never support frames (D-024)
+- [x] Configuration validation: `frame-not-supported`; frame rules evaluated against the plate's shape (D-016)
+- [x] Catalog integrity: `frame-capability-conflict`, `unsupported-frame-shape`; `unreachable-compatibility` covers frameless plates (D-022, D-024)
+- [x] Pure `selectPlate` (explicitly clears an unsupported frame, reports `cleared`) and `getFrameOptions` (D-026)
+
+### M1.3 — Real catalog data
+
+Status: Planned. **Blocked on real product information from the store.**
+
+- Real plate, frame, and color definitions (names, shapes, frame support, colors, compatibility).
 - Asset files under `public/catalog/placas` and `public/catalog/quadros`.
-- Selectors for available components (e.g. frames compatible with a plate + shape).
 - Missing-asset handling.
 
 ## M2 — Configuration interface
@@ -72,7 +85,8 @@ Status: **In progress** — implemented; pending owner review. Corrective increm
 Status: Planned.
 
 - `useConfiguration` hook (React state).
-- Plate, frame (incl. "Sem quadro"), color category, shape, and text controls.
+- Plate, frame (incl. "Sem quadro"), color category, and text controls; plate shape displayed, not selected.
+- Frame control limited to `getFrameOptions`; for plates without frame support show "Sem quadro" with an explanation; announce a frame cleared by `selectPlate`.
 - Accessible, touch-friendly, mobile-first form.
 - Display of incomplete/invalid states without auto-replacing selections.
 

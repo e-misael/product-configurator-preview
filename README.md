@@ -1,6 +1,6 @@
 # Taavi Configurator
 
-Visual configurator for Taavi's handmade ceramic plates. Customers choose a plate (Placa), an optional frame (Quadro), color, shape, and custom text, see a live preview, and export an image.
+Visual configurator for Taavi's handmade ceramic plates. Customers choose a plate (Placa; square, rectangular, or circular), an optional frame (Quadro), color, and custom text, see a live preview, and export an image.
 
 > **Status:** M0 — Foundation. The app shell, tooling, domain model, and validation exist. The product catalog is intentionally empty until real product data is provided. See [docs/05-backlog.md](docs/05-backlog.md).
 

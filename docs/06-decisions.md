@@ -70,7 +70,7 @@ Status values:
 ### D-012 — Shape and color as plate-constrained selections
 
 - **Decision:** Shape and color are user selections, constrained by the selected plate's `supportedShapes`, `supportedColorCategories`, and `supportedColorIds`. Configuration stores `colorCategory` and an optional `colorId`; when `colorId` is present it must exist, belong to the category, and be supported by the plate. The model must stay extensible for variant-level availability.
-- **Status:** Approved.
+- **Status:** Approved. **Partially superseded by D-023**: shape is no longer a user selection. The color rules remain in force.
 - **Date:** 2026-11-07.
 
 ### D-013 — Text validation
@@ -83,7 +83,7 @@ Status values:
 
 - **Decision:** Every frame declares compatible shapes and may restrict plate IDs. There is no implicit "fits all".
 - **Caveat:** Matching shapes is not proof of physical compatibility. Actual dimensions and mounting constraints are required before production use.
-- **Status:** Approved.
+- **Status:** Approved. Amended by D-024: a frame also requires the plate to declare `supportsFrame: true`.
 - **Date:** 2026-11-07.
 
 ### D-015 — Browser test coverage
@@ -95,7 +95,7 @@ Status values:
 ### D-016 — At most one validation issue per field
 
 - **Context:** M0 review (L-1) found the docs claimed "all issues are reported" while the code reports only the first failing rule per field.
-- **Decision:** Every field is evaluated and reports at most one issue, chosen by a fixed, documented precedence (docs/04-data-model.md). For frames, `incompatible-shape` precedes `incompatible-plate`; `incompatible-plate` is evaluated whenever the plate is known, independently of shape selection.
+- **Decision:** Every field is evaluated and reports at most one issue, chosen by a fixed, documented precedence (docs/04-data-model.md). For frames, `incompatible-shape` precedes `incompatible-plate`; `incompatible-plate` is evaluated whenever the plate is known, independently of shape selection. Since M1.2 (D-023, D-024) the frame order is: `unknown-reference` → `unavailable` → `frame-not-supported` → `incompatible-shape` (plate's shape) → `incompatible-plate`, with the last three requiring a known plate.
 - **Rationale:** One actionable message per field suits the UI; deterministic order makes results testable.
 - **Alternatives:** Report every failing rule per field (deferred; not needed by any current consumer).
 - **Status:** Approved.
@@ -146,9 +146,40 @@ Status values:
 ### D-022 — Unreachable frame compatibility
 
 - **Context:** M1.1 review (L-1): a frame restricted to a plate it shares no shape with passed validation but could never be selected.
-- **Decision:** For each entry in a frame's `compatibility.plateIds` that resolves to a plate, report `unreachable-compatibility` (path `frames[i].compatibility.plateIds[j]`, `relatedPath` = the plate) when the frame's `compatibility.shapes` and the plate's `supportedShapes` share no shape. Entries are evaluated independently; skipped when either shape list is empty (already `empty-list`). Unrestricted frames are not checked against existing plates.
+- **Decision:** For each entry in a frame's `compatibility.plateIds` that resolves to a plate, report `unreachable-compatibility` (path `frames[i].compatibility.plateIds[j]`, `relatedPath` = the plate) when the frame's `compatibility.shapes` and the plate's `supportedShapes` share no shape. Entries are evaluated independently; skipped when either shape list is empty (already `empty-list`). Since M1.2: reported when the plate has `supportsFrame: false` or its single `shape` is not among the frame's shapes; the shape comparison is skipped only when the frame's shape list is empty. Unrestricted frames are not checked against existing plates.
 - **Rationale:** Same reasoning as rejecting an empty `plateIds`: a declared restriction that can never apply is a definition error. No dimensions are required; a shared shape remains a necessary, not sufficient, condition (D-014).
 - **Alternatives:** Report once per frame; also flag unrestricted frames matching no existing plate (depends on catalog contents, deferred).
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-023 — Plate models with one fixed shape; shape not stored in the configuration
+
+- **Context:** Product decision: square, rectangular, and circular plates are separate physical models with independent catalog IDs.
+- **Decision:** `Plate.shape` is a single fixed `PlateShape`; `dimensions` and `asset` describe that one shape. `Configuration` has no `shape` field; the shape is derived from the selected plate (`getPlateShape`). Removes the `shape` missing/unsupported rules and `supportedShapes`. Partially supersedes D-012.
+- **Rationale:** Storing a value that is fully determined by the plate would allow inconsistent configurations. No configurations are persisted yet, so there is no migration.
+- **Alternatives:** Keep `shape` as a stored, validated copy (redundant; reintroduces inconsistency).
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-024 — Explicit `supportsFrame` capability
+
+- **Decision:** Every plate declares a required `supportsFrame` boolean. Circular plates never support frames; square and rectangular plates may, subject to frame compatibility. Application code checks `supportsFrame`, never the shape. The circle rule is enforced once, by catalog integrity via `FRAMELESS_SHAPES`: `frame-capability-conflict` (circle plate with `supportsFrame: true`) and `unsupported-frame-shape` (`circle` in a frame's shapes). Configuration validation reports `frame-not-supported` for a frame on a frameless plate.
+- **Rationale:** One explicit capability instead of scattered shape checks; keeps future frameless square/rectangle models possible.
+- **Alternatives:** Derive frame support from `shape === 'circle'` at each use site.
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-025 — `circle` plate shape
+
+- **Decision:** `PlateShape` is `square | rectangle | circle`. No dimensions, aspect ratios, or equal-side constraints are assumed; dimension consistency checks wait for real measurements.
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-026 — Explicit frame clearing on plate selection
+
+- **Context:** Product decision: switching to a plate that does not support frames must clear a previously selected frame.
+- **Decision:** Pure `selectPlate(config, plateId, catalog)` sets the plate and, only when the new plate has `supportsFrame: false`, clears `frameId` and returns `cleared: ['frameId']` so the UI must announce it. An incompatible frame on a plate that supports frames, or an unknown plate, is not cleared; validation reports it. `getFrameOptions` lists frames offerable for a plate. This is the explicit, visible exception to "never auto-replace a selection" (D-005).
+- **Alternatives:** Also clear any frame that becomes incompatible (not approved); implement only in the UI (untestable without components).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 

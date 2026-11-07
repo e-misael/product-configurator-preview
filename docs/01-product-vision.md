@@ -23,15 +23,15 @@ Customers cannot currently see what their personalized plate will look like befo
 
 ## MVP scope
 
-| Option                         | Required |
-| ------------------------------ | -------- |
-| Plate (Placa)                  | Yes      |
-| Frame (Quadro)                 | Optional |
-| Plate color (Cor da placa)     | Yes      |
-| Plate shape (Formato da placa) | Yes      |
-| Custom text (Texto)            | Yes      |
-| Real-time preview              | —        |
-| Image export                   | —        |
+| Option                         | Required                                             |
+| ------------------------------ | ---------------------------------------------------- |
+| Plate (Placa)                  | Yes                                                  |
+| Frame (Quadro)                 | Optional                                             |
+| Plate color (Cor da placa)     | Yes                                                  |
+| Plate shape (Formato da placa) | Derived from the plate model (not a separate choice) |
+| Custom text (Texto)            | Yes                                                  |
+| Real-time preview              | —                                                    |
+| Image export                   | —                                                    |
 
 Details and acceptance criteria: [02-requirements.md](02-requirements.md).
 

@@ -1,6 +1,6 @@
 # Taavi Configurator
 
-Visual configurator for Taavi's handmade ceramic plates: the customer picks a plate (Placa), optional frame (Quadro), color, shape, and text; sees a real-time preview; exports an image. Static client-side app, independent from Nuvemshop. Internal business tool, **not** SaaS.
+Visual configurator for Taavi's handmade ceramic plates: the customer picks a plate (Placa, whose model fixes the shape), optional frame (Quadro), color, and text; sees a real-time preview; exports an image. Static client-side app, independent from Nuvemshop. Internal business tool, **not** SaaS.
 
 ## Read first
 
@@ -15,7 +15,7 @@ Visual configurator for Taavi's handmade ceramic plates: the customer picks a pl
 
 ## MVP boundaries
 
-In scope: plate, frame (optional), color category/color, shape, text, live preview, image export.
+In scope: plate (fixed shape: square, rectangle, circle), frame (optional; only on plates with `supportsFrame`), color category/color, text, live preview, image export.
 Out of scope: Nuvemshop integration, cart, checkout, orders, payments, accounts, auth, database, backend, cloud storage, inventory, pricing, AI previews, 3D, admin, analytics. Do not add these or abstractions for them.
 
 ## Stack
@@ -43,7 +43,7 @@ Future folders (`components/configurator`, `components/preview`, `hooks`, `servi
 - Catalog is deep-frozen and must pass `validateCatalog` (test gate); configuration stores only IDs and raw user input.
 - Validation reports `valid` / `incomplete` / `invalid`; it never replaces a selection.
 - Text is stored exactly as typed.
-- Frame compatibility is declared explicitly; matching shape ≠ physical fit.
+- Frame compatibility is declared explicitly; matching shape ≠ physical fit. Frame support is the plate's `supportsFrame` capability, never a shape check.
 - Preview and export must represent the same configuration.
 
 ## Architecture principles

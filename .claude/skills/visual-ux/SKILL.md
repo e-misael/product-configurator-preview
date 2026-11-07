@@ -25,6 +25,9 @@ Visual accuracy is a functional requirement: the preview must show exactly what 
 ## Form controls (pt-BR)
 
 - Labels: "Placa", "Quadro", "Cor da placa", "Formato da placa", "Texto". "Sem quadro" for no frame.
+- "Formato da placa" is displayed for the selected plate, not chosen (D-023). Plates may be grouped by shape.
+- "Quadro" offers only `getFrameOptions(...)`. For a plate without frame support, show "Sem quadro" with a short explanation (e.g. "Esta placa não aceita quadro") instead of an empty or silently missing control.
+- When `selectPlate` reports `cleared: ['frameId']`, announce it visibly and via `aria-live="polite"` (e.g. "O quadro foi removido porque a placa escolhida não aceita quadro.").
 - Use native elements: `<fieldset>`/`<legend>` + radio inputs for choice groups, `<textarea>` for text.
 - Every control has a visible, associated label.
 - Touch targets ≥ 44×44 px.

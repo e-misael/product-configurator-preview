@@ -13,7 +13,8 @@ Code of record: `src/domain/types.ts`, `src/domain/validation.ts`, `src/domain/c
 - The catalog is deep-frozen. UI code must never mutate it or keep modified copies.
 - Every catalog change must keep `validateCatalog(getCatalog())` valid (test gate, D-021). Fix the data; never weaken or bypass the check.
 - IDs are lowercase kebab-case and unique across colors, plates, and frames (D-019).
-- A frame's `plateIds` may list only plates that share at least one shape with the frame (`unreachable-compatibility`, D-022).
+- A frame's `plateIds` may list only plates that support frames and whose shape is in the frame's shapes (`unreachable-compatibility`, D-022).
+- Each plate model has one fixed `shape` (D-023). Frame support is the explicit `supportsFrame` capability (D-024): never test `shape === 'circle'` outside catalog integrity.
 - Configuration (`Configuration`) stores **IDs and raw user input only** — never copies of catalog objects.
 
 ## Never invent product information
@@ -32,27 +33,27 @@ Before adding any value, ask: "Did the store provide this?" If not, do not add i
 
 ## Required vs optional selections
 
-| Selection      | Rule                                                                                                            |
-| -------------- | --------------------------------------------------------------------------------------------------------------- |
-| Plate          | Required; must exist and be available.                                                                          |
-| Shape          | Required; must be in the plate's `supportedShapes`.                                                             |
-| Color category | Required; must be in the plate's `supportedColorCategories`.                                                    |
-| Specific color | Optional; if set: must exist, be available, match the category, be in `supportedColorIds`.                      |
-| Frame          | Optional; `null` = "no frame" (valid). If set: must exist, be available, and be compatible.                     |
-| Text           | Required; `''` → incomplete; only whitespace/invisible characters → invalid (`blank`); stored exactly as typed. |
+| Selection      | Rule                                                                                                                                      |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Plate          | Required; must exist and be available.                                                                                                    |
+| Shape          | Not a selection: derived from the selected plate (`getPlateShape`, D-023).                                                                |
+| Color category | Required; must be in the plate's `supportedColorCategories`.                                                                              |
+| Specific color | Optional; if set: must exist, be available, match the category, be in `supportedColorIds`.                                                |
+| Frame          | Optional; `null` = "no frame" (valid). If set: must exist, be available, the plate must support frames, and the frame must be compatible. |
+| Text           | Required; `''` → incomplete; only whitespace/invisible characters → invalid (`blank`); stored exactly as typed.                           |
 
 ## Validation results
 
 - `valid`, `incomplete` (only missing fields), `invalid` (any conflict; takes precedence).
 - Every field is evaluated; each field reports **at most one issue**, using the fixed precedence in `docs/04-data-model.md` (D-016). Keep that order when adding rules, and update the doc and tests.
-- Plate-dependent rules run whenever the plate is known, even if other selections (e.g. shape) are still missing.
-- **Never auto-replace a selection.** If a later feature needs to clear or adjust a selection (e.g. frame becomes incompatible after a shape change), that behavior must be explicit, visible to the user, tested, and recorded in `docs/06-decisions.md`.
+- Plate-dependent rules run whenever the plate is known, even if other selections are still missing.
+- **Never auto-replace a selection.** If a later feature needs to clear or adjust a selection (e.g. frame becomes incompatible after a shape change), that behavior must be explicit, visible to the user, tested, and recorded in `docs/06-decisions.md`. The only such behavior today is `selectPlate` clearing a frame on a frameless plate (D-026); use it rather than clearing frames elsewhere.
 
 ## Compatibility
 
 - Every frame declares `compatibility.shapes`; `plateIds` optionally restricts plates. No implicit "fits all".
 - Declared compatibility is necessary, not sufficient: physical fit needs real dimensions and mounting data (pending). Do not claim production compatibility from shape alone.
-- Variant-level availability (shape × color per plate) is anticipated; extend `Plate` with an optional field rather than changing `Configuration`.
+- Variant-level availability (e.g. colors per plate model) is anticipated; extend `Plate` with an optional field rather than changing `Configuration`.
 
 ## Preview/export consistency
 

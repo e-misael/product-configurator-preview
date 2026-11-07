@@ -5,8 +5,14 @@
  * `Configuration` describes what the user selected. See docs/04-data-model.md.
  */
 
-export const PLATE_SHAPES = ['square', 'rectangle'] as const;
+export const PLATE_SHAPES = ['square', 'rectangle', 'circle'] as const;
 export type PlateShape = (typeof PLATE_SHAPES)[number];
+
+/**
+ * Shapes that can never take a frame (D-024). Used only by catalog integrity
+ * checks; everything else relies on `Plate.supportsFrame`.
+ */
+export const FRAMELESS_SHAPES: readonly PlateShape[] = ['circle'];
 
 /** Color categories. These are categories, not physical color values. */
 export const COLOR_CATEGORIES = ['nude', 'colored'] as const;
@@ -41,14 +47,17 @@ export interface PlateColor extends CatalogComponentBase {
   readonly swatch?: AssetRef;
 }
 
+/** A physical plate model. Each model has one fixed shape (D-023). */
 export interface Plate extends CatalogComponentBase {
   readonly type: 'plate';
-  readonly supportedShapes: readonly PlateShape[];
+  readonly shape: PlateShape;
+  /** Explicit capability; never inferred from shape at use sites (D-024). */
+  readonly supportsFrame: boolean;
   readonly supportedColorCategories: readonly ColorCategory[];
   /** Specific colors this plate can be made in. May be empty while colors are pending. */
   readonly supportedColorIds: readonly string[];
-  readonly dimensions: Readonly<Partial<Record<PlateShape, Dimensions>>>;
-  readonly assets?: Readonly<Partial<Record<PlateShape, AssetRef>>>;
+  readonly dimensions: Dimensions;
+  readonly asset?: AssetRef;
 }
 
 /**
@@ -79,13 +88,13 @@ export interface Catalog {
 /**
  * The user's current selection. Serializable (plain JSON) and independent
  * of UI details. `null` means "not selected"; for `frameId` it means "no frame".
+ * The shape is not stored: it is derived from the selected plate (D-023).
  */
 export interface Configuration {
   readonly plateId: string | null;
   readonly frameId: string | null;
   readonly colorCategory: ColorCategory | null;
   readonly colorId: string | null;
-  readonly shape: PlateShape | null;
   /** Raw user text, preserved exactly as entered. */
   readonly text: string;
 }
@@ -97,6 +106,7 @@ export type InvalidCode =
   | 'unavailable'
   | 'unsupported-by-plate'
   | 'category-mismatch'
+  | 'frame-not-supported'
   | 'incompatible-shape'
   | 'incompatible-plate'
   | 'blank';
@@ -119,13 +129,15 @@ export type CatalogIssueCode =
   | 'unreachable-compatibility'
   | 'empty-list'
   | 'unsupported-shape-key'
+  | 'frame-capability-conflict'
+  | 'unsupported-frame-shape'
   | 'color-category-mismatch'
   | 'invalid-dimension'
   | 'invalid-asset';
 
 /**
  * A catalog integrity problem. `path` locates the offending value
- * (e.g. `plates[2].dimensions.rectangle.widthMm`); indices are for
+ * (e.g. `plates[2].dimensions.widthMm`); indices are for
  * diagnostics only and never identify components.
  */
 export interface CatalogIssue {

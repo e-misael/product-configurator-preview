@@ -17,6 +17,7 @@ Acceptance criteria:
 3. A configuration without a plate is _incomplete_.
 4. A configuration referencing an unknown or unavailable plate is _invalid_.
 5. An empty catalog is a supported state; no plate data is invented.
+6. Square, rectangular, and circular plates are separate plate models with their own IDs; each model has exactly one fixed shape (D-023).
 
 Status: Foundation.
 
@@ -28,11 +29,13 @@ Acceptance criteria:
 
 1. "No frame" is a valid choice.
 2. A selected frame must exist in the catalog and be available.
-3. Each frame declares compatible shapes and may restrict compatible plates.
-4. A frame incompatible with the selected shape or plate makes the configuration _invalid_.
-5. Declared compatibility is not proof of physical fit; real dimensions and mounting constraints are required before production use.
+3. Each plate declares `supportsFrame`. Circular plates never support frames; square and rectangular plates may, subject to catalog compatibility (D-024).
+4. A frame on a plate without frame support makes the configuration _invalid_ (`frame-not-supported`).
+5. Each frame declares compatible shapes and may restrict compatible plates. A frame incompatible with the plate's shape or not allowed for the plate makes the configuration _invalid_.
+6. Selecting a plate without frame support clears a previously selected frame, and the UI tells the user it was removed (D-026). Other incompatibilities are not cleared automatically; they are reported by validation.
+7. Declared compatibility is not proof of physical fit; real dimensions and mounting constraints are required before production use.
 
-Status: Foundation.
+Status: Foundation (domain, selection transition; no UI).
 
 ### FR-03 — Plate color (Cor da placa)
 
@@ -49,12 +52,12 @@ Status: Foundation.
 
 ### FR-04 — Plate shape (Formato da placa)
 
-Required. Shapes: **Square**, **Rectangle**.
+Shapes: **Square**, **Rectangle**, **Circle**. The shape is a fixed property of the plate model, not a separate user selection (D-023).
 
 Acceptance criteria:
 
-1. A configuration without a shape is _incomplete_.
-2. The shape must be supported by the selected plate.
+1. The configuration does not store a shape; it is derived from the selected plate.
+2. The UI displays the shape of the selected plate (it may group plates by shape, but grouping is not stored).
 3. Dimensions and aspect ratios come from catalog data, not rendering code; unknown values are marked `pending`.
 
 Status: Foundation.
@@ -79,7 +82,7 @@ Status: Foundation (validation only).
 
 Acceptance criteria:
 
-1. The preview reflects plate, color, shape, optional frame, and text.
+1. The preview reflects plate (including its shape), color, optional frame, and text.
 2. The preview updates on every relevant change.
 3. The preview never silently shows a configuration different from the user's selection.
 4. Missing assets are handled gracefully and visibly.
@@ -109,5 +112,5 @@ Status: Pending (M4).
 ## Future ideas (not MVP)
 
 - Typography and text positioning controls.
-- Variant-level availability (e.g. a specific shape × color combination unavailable for a plate).
+- Variant-level availability (e.g. a specific color unavailable for one plate model).
 - Nuvemshop integration, pricing, and order workflows.

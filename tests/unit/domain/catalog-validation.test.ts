@@ -58,13 +58,16 @@ describe('validateCatalog', () => {
       expect(validateCatalog(testCatalog)).toEqual({ status: 'valid' });
     });
 
-    it('accepts pending dimensions, omitted dimensions, and empty supportedColorIds', () => {
-      const catalog = withPlate(1, {
-        supportedShapes: ['square', 'rectangle'],
-        supportedColorIds: [],
-        dimensions: { square: { status: 'pending' } },
-      });
+    it('accepts pending dimensions, no asset, and empty supportedColorIds', () => {
+      const catalog = withPlate(0, { supportedColorIds: [], dimensions: { status: 'pending' } });
+      Reflect.deleteProperty(at(catalog.plates, 0), 'asset');
+
+      expect(at(catalog.plates, 0)).not.toHaveProperty('asset');
       expect(validateCatalog(catalog)).toEqual({ status: 'valid' });
+    });
+
+    it('accepts a rectangular plate without frame support', () => {
+      expect(validateCatalog(withPlate(1, { supportsFrame: false }))).toEqual({ status: 'valid' });
     });
   });
 
@@ -128,14 +131,11 @@ describe('validateCatalog', () => {
   });
 
   describe('lists', () => {
-    it.each([
-      ['supportedShapes', { supportedShapes: [] }],
-      ['supportedColorCategories', { supportedColorCategories: [] }],
-    ] as const)('reports empty %s', (field, patch) => {
-      const issues = issuesOf(validateCatalog(withPlate(1, patch)));
+    it('reports empty supportedColorCategories', () => {
+      const issues = issuesOf(validateCatalog(withPlate(1, { supportedColorCategories: [] })));
       expect(issues).toContainEqual({
         code: 'empty-list',
-        path: `plates[1].${field}`,
+        path: 'plates[1].supportedColorCategories',
         id: 'test-plate-b',
       });
     });
@@ -161,7 +161,6 @@ describe('validateCatalog', () => {
     });
 
     it.each([
-      ['supportedShapes', { supportedShapes: ['square', 'rectangle', 'square'] }, 2, 0],
       [
         'supportedColorCategories',
         { supportedColorCategories: ['nude', 'colored', 'colored'] },
@@ -247,23 +246,25 @@ describe('validateCatalog', () => {
     });
   });
 
-  describe('shape keys', () => {
-    it('reports dimensions for an unsupported shape', () => {
-      expectOnly(withPlate(1, { dimensions: { rectangle: { status: 'pending' } } }), {
-        code: 'unsupported-shape-key',
-        path: 'plates[1].dimensions.rectangle',
-        id: 'test-plate-b',
+  describe('frame capability', () => {
+    it('reports a circular plate declared as supporting frames', () => {
+      expectOnly(withPlate(2, { supportsFrame: true }), {
+        code: 'frame-capability-conflict',
+        path: 'plates[2].supportsFrame',
+        id: 'test-plate-c',
       });
     });
 
-    it('reports plate assets for an unsupported shape', () => {
-      expectOnly(withPlate(1, { assets: { rectangle: { src: '/catalog/test/b.png' } } }), {
-        code: 'unsupported-shape-key',
-        path: 'plates[1].assets.rectangle',
-        id: 'test-plate-b',
+    it('reports circle in a frame compatibility list', () => {
+      expectOnly(withFrame(0, { compatibility: { shapes: ['square', 'rectangle', 'circle'] } }), {
+        code: 'unsupported-frame-shape',
+        path: 'frames[0].compatibility.shapes[2]',
+        id: 'test-frame-any',
       });
     });
+  });
 
+  describe('frame asset keys', () => {
     it('reports frame assets for a shape outside its compatibility', () => {
       expectOnly(withFrame(1, { assets: { rectangle: { src: '/catalog/test/f.png' } } }), {
         code: 'unsupported-shape-key',
@@ -280,42 +281,27 @@ describe('validateCatalog', () => {
       ['NaN', Number.NaN],
       ['Infinity', Number.POSITIVE_INFINITY],
     ])('reports %s width', (_label, widthMm) => {
-      expectOnly(
-        withPlate(0, {
-          dimensions: { square: { status: 'defined', widthMm, heightMm: 100 } },
-        }),
-        {
-          code: 'invalid-dimension',
-          path: 'plates[0].dimensions.square.widthMm',
-          id: 'test-plate-a',
-        },
-      );
+      expectOnly(withPlate(0, { dimensions: { status: 'defined', widthMm, heightMm: 100 } }), {
+        code: 'invalid-dimension',
+        path: 'plates[0].dimensions.widthMm',
+        id: 'test-plate-a',
+      });
     });
 
     it('reports width and height independently', () => {
-      const catalog = withPlate(0, {
-        dimensions: { rectangle: { status: 'defined', widthMm: 0, heightMm: -1 } },
-      });
+      const catalog = withPlate(0, { dimensions: { status: 'defined', widthMm: 0, heightMm: -1 } });
       expect(issuesOf(validateCatalog(catalog))).toEqual([
-        {
-          code: 'invalid-dimension',
-          path: 'plates[0].dimensions.rectangle.widthMm',
-          id: 'test-plate-a',
-        },
-        {
-          code: 'invalid-dimension',
-          path: 'plates[0].dimensions.rectangle.heightMm',
-          id: 'test-plate-a',
-        },
+        { code: 'invalid-dimension', path: 'plates[0].dimensions.widthMm', id: 'test-plate-a' },
+        { code: 'invalid-dimension', path: 'plates[0].dimensions.heightMm', id: 'test-plate-a' },
       ]);
     });
   });
 
   describe('assets', () => {
     it.each(['', '   '])('reports plate asset src %j', (src) => {
-      expectOnly(withPlate(0, { assets: { square: { src } } }), {
+      expectOnly(withPlate(0, { asset: { src } }), {
         code: 'invalid-asset',
-        path: 'plates[0].assets.square.src',
+        path: 'plates[0].asset.src',
         id: 'test-plate-a',
       });
     });
@@ -347,9 +333,10 @@ describe('validateCatalog', () => {
             ...at(base.plates, 0),
             id: 'test-plate-b',
             supportedColorIds: ['test-color-missing'],
-            dimensions: { square: { status: 'defined', widthMm: -1, heightMm: 100 } },
+            dimensions: { status: 'defined', widthMm: -1, heightMm: 100 },
           },
-          { ...at(base.plates, 1), supportedShapes: [] },
+          at(base.plates, 1),
+          { ...at(base.plates, 2), supportsFrame: true },
         ],
         frames: [
           at(base.frames, 0),
@@ -369,18 +356,18 @@ describe('validateCatalog', () => {
             path: 'plates[0].supportedColorIds[0]',
             id: 'test-plate-b',
           },
-          {
-            code: 'invalid-dimension',
-            path: 'plates[0].dimensions.square.widthMm',
-            id: 'test-plate-b',
-          },
+          { code: 'invalid-dimension', path: 'plates[0].dimensions.widthMm', id: 'test-plate-b' },
           {
             code: 'duplicate-id',
             path: 'plates[1].id',
             id: 'test-plate-b',
             relatedPath: 'plates[0].id',
           },
-          { code: 'empty-list', path: 'plates[1].supportedShapes', id: 'test-plate-b' },
+          {
+            code: 'frame-capability-conflict',
+            path: 'plates[2].supportsFrame',
+            id: 'test-plate-c',
+          },
           {
             code: 'unknown-reference',
             path: 'frames[1].compatibility.plateIds[0]',
@@ -537,35 +524,48 @@ describe('validateCatalog', () => {
   });
 
   describe('unreachable compatibility', () => {
-    it('reports a frame restricted to a plate with no shape in common', () => {
-      // Frame supports only rectangle; plate B supports only square.
+    const unreachable = (j: number, relatedPath: string) => ({
+      code: 'unreachable-compatibility' as const,
+      path: `frames[1].compatibility.plateIds[${j}]`,
+      id: 'test-frame-plate-a',
+      relatedPath,
+    });
+
+    it('reports a frame restricted to a plate of another shape', () => {
+      // Frame supports only square; plate B is rectangular.
       expectOnly(
-        withFrame(1, { compatibility: { shapes: ['rectangle'], plateIds: ['test-plate-b'] } }),
-        {
-          code: 'unreachable-compatibility',
-          path: 'frames[1].compatibility.plateIds[0]',
-          id: 'test-frame-plate-a',
-          relatedPath: 'plates[1]',
-        },
+        withFrame(1, { compatibility: { shapes: ['square'], plateIds: ['test-plate-b'] } }),
+        unreachable(0, 'plates[1]'),
       );
+    });
+
+    it('reports a frame restricted to a plate without frame support', () => {
+      // Plate C is circular and frameless.
+      expectOnly(
+        withFrame(1, { compatibility: { shapes: ['square'], plateIds: ['test-plate-c'] } }),
+        unreachable(0, 'plates[2]'),
+      );
+    });
+
+    it('uses the capability, not the shape, for a frameless square plate', () => {
+      const base = buildValidCatalog();
+      const catalog: Catalog = {
+        ...base,
+        plates: [{ ...at(base.plates, 0), supportsFrame: false }, ...base.plates.slice(1)],
+      };
+      expectOnly(catalog, unreachable(0, 'plates[0]'));
     });
 
     it('reports only the unreachable plate among several references', () => {
-      // Plate A supports rectangle; plate B does not.
       expectOnly(
         withFrame(1, {
-          compatibility: { shapes: ['rectangle'], plateIds: ['test-plate-a', 'test-plate-b'] },
+          compatibility: { shapes: ['square'], plateIds: ['test-plate-a', 'test-plate-b'] },
         }),
-        {
-          code: 'unreachable-compatibility',
-          path: 'frames[1].compatibility.plateIds[1]',
-          id: 'test-frame-plate-a',
-          relatedPath: 'plates[1]',
-        },
+        unreachable(1, 'plates[1]'),
       );
     });
 
-    it('accepts a restriction sharing at least one shape', () => {
+    it('accepts a restriction sharing the plate shape', () => {
       const catalog = withFrame(1, {
         compatibility: {
           shapes: ['square', 'rectangle'],
@@ -581,7 +581,7 @@ describe('validateCatalog', () => {
           validateCatalog(
             withFrame(1, {
               compatibility: {
-                shapes: ['rectangle'],
+                shapes: ['square'],
                 plateIds: ['test-plate-missing', 'test-plate-b'],
               },
             }),
@@ -593,33 +593,20 @@ describe('validateCatalog', () => {
           path: 'frames[1].compatibility.plateIds[0]',
           id: 'test-frame-plate-a',
         },
-        {
-          code: 'unreachable-compatibility',
-          path: 'frames[1].compatibility.plateIds[1]',
-          id: 'test-frame-plate-a',
-          relatedPath: 'plates[1]',
-        },
+        unreachable(1, 'plates[1]'),
       ]);
     });
 
-    it('does not repeat a cause already reported as an empty list', () => {
-      const emptyFrameShapes = withFrame(1, {
-        compatibility: { shapes: [], plateIds: ['test-plate-a'] },
-      });
-      expect(issuesOf(validateCatalog(emptyFrameShapes)).map((issue) => issue.code)).toEqual([
-        'empty-list',
-      ]);
+    it('does not repeat an empty frame shape list as a shape mismatch', () => {
+      const catalog = withFrame(1, { compatibility: { shapes: [], plateIds: ['test-plate-a'] } });
+      expect(issuesOf(validateCatalog(catalog)).map((issue) => issue.code)).toEqual(['empty-list']);
+    });
 
-      const base = buildValidCatalog();
-      const emptyPlateShapes: Catalog = {
-        ...base,
-        plates: [
-          { ...at(base.plates, 0), supportedShapes: [], dimensions: {}, assets: {} },
-          at(base.plates, 1),
-        ],
-      };
-      expect(issuesOf(validateCatalog(emptyPlateShapes)).map((issue) => issue.code)).toEqual([
+    it('still reports a frameless plate when the frame shape list is empty', () => {
+      const catalog = withFrame(1, { compatibility: { shapes: [], plateIds: ['test-plate-c'] } });
+      expect(issuesOf(validateCatalog(catalog)).map((issue) => issue.code)).toEqual([
         'empty-list',
+        'unreachable-compatibility',
       ]);
     });
 
@@ -628,7 +615,7 @@ describe('validateCatalog', () => {
         issuesOf(
           validateCatalog(
             withFrame(1, {
-              compatibility: { shapes: ['rectangle'], plateIds: ['test-plate-b', 'test-plate-b'] },
+              compatibility: { shapes: ['square'], plateIds: ['test-plate-b', 'test-plate-b'] },
             }),
           ),
         ).map((issue) => `${issue.code} ${issue.path}`),
@@ -647,13 +634,13 @@ describe('validateCatalog', () => {
         colors: [at(base.colors, 0), { ...at(base.colors, 1), id: 'test-color-nude' }],
         plates: [
           { ...at(base.plates, 0), supportedColorIds: ['test-frame-any'] },
-          { ...at(base.plates, 1), assets: { square: { src: '' } } },
+          { ...at(base.plates, 1), asset: { src: '' } },
         ],
         frames: [
           { ...at(base.frames, 0), id: 'Frame' },
           {
             ...at(base.frames, 1),
-            compatibility: { shapes: ['rectangle'], plateIds: ['test-plate-b'] },
+            compatibility: { shapes: ['square'], plateIds: ['test-plate-b'] },
           },
         ],
       };
@@ -668,7 +655,7 @@ describe('validateCatalog', () => {
             relatedPath: 'colors[0].id',
           },
           { code: 'unknown-reference', path: 'plates[0].supportedColorIds[0]', id: 'test-plate-a' },
-          { code: 'invalid-asset', path: 'plates[1].assets.square.src', id: 'test-plate-b' },
+          { code: 'invalid-asset', path: 'plates[1].asset.src', id: 'test-plate-b' },
           { code: 'invalid-id', path: 'frames[0].id', id: 'Frame' },
           {
             code: 'unreachable-compatibility',
@@ -684,8 +671,9 @@ describe('validateCatalog', () => {
   describe('no repair', () => {
     it('does not modify an invalid catalog', () => {
       const catalog = withPlate(0, {
-        supportedShapes: ['square', 'square'],
+        supportedColorCategories: ['nude', 'nude'],
         supportedColorIds: ['test-color-missing'],
+        supportsFrame: true,
       });
       const snapshot = structuredClone(catalog);
 

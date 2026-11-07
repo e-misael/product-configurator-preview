@@ -23,7 +23,7 @@ describe('production catalog', () => {
   });
 
   it('has a freeze assertion that detects unfrozen nested objects', () => {
-    const partlyFrozen = Object.freeze({ plates: Object.freeze([{ supportedShapes: [] }]) });
+    const partlyFrozen = Object.freeze({ plates: Object.freeze([{ supportedColorIds: [] }]) });
     expect(() => expectDeeplyFrozen(partlyFrozen)).toThrow();
   });
 });

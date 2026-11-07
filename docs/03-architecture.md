@@ -76,12 +76,14 @@ Directories are created only when their increment needs them.
 - **Integrity** (D-018): `validateCatalog` reports every definition problem with an explicit code and path. It never repairs, filters, or reorders data. Rules: [04-data-model.md](04-data-model.md#catalog-integrity-rules).
 - **Immutability** (D-020): `getCatalog()` returns the catalog deep-frozen at module load. Collections, components, compatibility lists, dimension and asset objects all reject mutation at runtime, in addition to the `readonly` types.
 - **When validation runs** (D-021): as a **test gate**. `tests/unit/catalog/catalog.test.ts` asserts `validateCatalog(getCatalog())` is `valid`; it runs in `npm test`, `npm run check`, and CI, so an invalid catalog cannot pass CI. `getCatalog()` does not validate at runtime, so a catalog defect never crashes the customer page.
-- **Separation:** catalog validation checks the catalog against itself; configuration validation checks a user selection against a catalog assumed to have passed the gate. Configuration validation is unchanged by M1.1.
+- **Separation:** catalog validation checks the catalog against itself; configuration validation checks a user selection against a catalog assumed to have passed the gate.
 - Later increments (M1.2+) must obtain catalog data only through `getCatalog()`. ESLint `no-restricted-imports` blocks imports of `catalog/data` outside `src/catalog/**` and `tests/unit/catalog/**` (D-020).
 
 ## Configuration state
 
-- Plain serializable object (`Configuration`), all selections nullable, text stored raw.
+- Plain serializable object (`Configuration`), all selections nullable, text stored raw. No shape field: the shape is derived from the selected plate (`getPlateShape`, D-023).
+- Selection transitions are pure domain functions in `src/domain/selection.ts`. `selectPlate` explicitly clears a frame when the new plate does not support frames and returns `cleared` so the UI can announce it (D-026). `getFrameOptions` lists the frames that can be offered for a plate.
+- Frame support is an explicit plate capability (`supportsFrame`, D-024). Application code never tests `shape === 'circle'`; the circle rule is enforced once, by catalog integrity.
 - Planned for M2: a single `useConfiguration` hook with React state. No global state library unless proven necessary (D-003).
 
 ## Domain validation
@@ -119,7 +121,7 @@ Nuvemshop integration is out of scope. The serializable `Configuration` plus an 
 
 ## Assumptions
 
-- A1: Shape and color are user selections constrained by the selected plate (confirmed).
+- A1: Shape is a fixed property of each plate model (D-023); color is a user selection constrained by the selected plate (confirmed).
 - A2: The app can be fully static and client-side for the MVP.
 - A3: Frame–plate compatibility can be expressed declaratively in catalog data; physical fit requires real dimensions and mounting data (pending).
-- A4: Variant-level availability (specific shape × color per plate) may be needed later; the plate-level lists can be extended with a variant list without changing `Configuration`.
+- A4: Variant-level availability (e.g. specific colors per plate model) may be needed later; the plate-level lists can be extended without changing `Configuration`.
