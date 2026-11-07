@@ -110,3 +110,33 @@ export type ValidationResult =
   | { readonly status: 'valid' }
   | { readonly status: 'incomplete'; readonly issues: readonly ValidationIssue[] }
   | { readonly status: 'invalid'; readonly issues: readonly ValidationIssue[] };
+
+export type CatalogIssueCode =
+  | 'invalid-id'
+  | 'duplicate-id'
+  | 'duplicate-entry'
+  | 'unknown-reference'
+  | 'empty-list'
+  | 'unsupported-shape-key'
+  | 'color-category-mismatch'
+  | 'invalid-dimension'
+  | 'invalid-asset';
+
+/**
+ * A catalog integrity problem. `path` locates the offending value
+ * (e.g. `plates[2].dimensions.rectangle.widthMm`); indices are for
+ * diagnostics only and never identify components.
+ */
+export interface CatalogIssue {
+  readonly code: CatalogIssueCode;
+  readonly path: string;
+  /** ID of the component that owns the offending value, when known. */
+  readonly id?: string;
+  /** Another location involved in the issue, e.g. a duplicate's first occurrence. */
+  readonly relatedPath?: string;
+}
+
+/** Unlike configuration validation, every catalog issue is reported. */
+export type CatalogValidationResult =
+  | { readonly status: 'valid' }
+  | { readonly status: 'invalid'; readonly issues: readonly CatalogIssue[] };

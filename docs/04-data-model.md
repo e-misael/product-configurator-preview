@@ -32,7 +32,7 @@ Assets may be missing at runtime; consumers must handle that gracefully.
 
 | Field         | Required | Notes                                          |
 | ------------- | -------- | ---------------------------------------------- |
-| `id`          | yes      | Stable; never derived from array position.     |
+| `id`          | yes      | Stable kebab-case; unique across the catalog.  |
 | `displayName` | yes      | User-facing (pt-BR).                           |
 | `available`   | no       | Omitted = available; `false` = not selectable. |
 
@@ -71,7 +71,7 @@ Assets may be missing at runtime; consumers must handle that gracefully.
 
 ### `Catalog`
 
-`{ plates, frames, colors }` — readonly arrays, frozen at runtime. The only source of available components.
+`{ plates, frames, colors }` — readonly arrays, deep-frozen at runtime, obtained via `getCatalog()`. The only source of available components. Must pass `validateCatalog` (see [Catalog integrity rules](#catalog-integrity-rules)).
 
 ### `Configuration`
 
@@ -127,8 +127,41 @@ Non-empty text is `blank` (invalid) when every character is either Unicode `Whit
 
 Any invalid issue → `invalid`; otherwise any missing issue → `incomplete`; otherwise `valid`. Issues are listed in field order: `plateId`, `shape`, `colorCategory`, `colorId`, `frameId`, `text`.
 
+## Catalog integrity rules
+
+Implemented in [`src/domain/catalog-validation.ts`](../src/domain/catalog-validation.ts) (D-018, D-019).
+
+```ts
+type CatalogValidationResult =
+  { status: 'valid' } | { status: 'invalid'; issues: readonly CatalogIssue[] };
+
+interface CatalogIssue {
+  code: CatalogIssueCode;
+  path: string; // e.g. "plates[2].dimensions.rectangle.widthMm"
+  id?: string; // owning component ID
+  relatedPath?: string; // e.g. first occurrence of a duplicate
+}
+```
+
+Unlike configuration validation, **every** issue is reported. Order is deterministic: `colors`, then `plates`, then `frames`; within a component, fields in definition order. Array indices in paths are diagnostic only. Data is never repaired or filtered.
+
+| Code                      | Rule violated                                                                                           | Paths                                                                                                                |
+| ------------------------- | ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| `invalid-id`              | ID must match `^[a-z0-9]+(?:-[a-z0-9]+)*$` (non-empty, lowercase kebab-case)                            | `<collection>[i].id`                                                                                                 |
+| `duplicate-id`            | IDs unique across colors, plates, and frames; reported at each repeat, `relatedPath` = first occurrence | `<collection>[i].id`                                                                                                 |
+| `duplicate-entry`         | No repeated value in a list; `relatedPath` = first occurrence                                           | `supportedShapes`, `supportedColorCategories`, `supportedColorIds`, `compatibility.shapes`, `compatibility.plateIds` |
+| `unknown-reference`       | Referenced ID exists in the right collection                                                            | `plates[i].supportedColorIds[j]` → colors; `frames[i].compatibility.plateIds[j]` → plates                            |
+| `empty-list`              | Required list is non-empty; `plateIds`, when present, is non-empty (omit it for "no restriction")       | `supportedShapes`, `supportedColorCategories`, `compatibility.shapes`, `compatibility.plateIds`                      |
+| `unsupported-shape-key`   | `dimensions`/`assets` keys ⊆ plate `supportedShapes`; frame `assets` keys ⊆ `compatibility.shapes`      | `plates[i].dimensions.<shape>`, `plates[i].assets.<shape>`, `frames[i].assets.<shape>`                               |
+| `color-category-mismatch` | A referenced color's category is in the plate's `supportedColorCategories`                              | `plates[i].supportedColorIds[j]`                                                                                     |
+| `invalid-dimension`       | Defined `widthMm` and `heightMm` are finite and > 0 (each reported separately)                          | `plates[i].dimensions.<shape>.widthMm` / `.heightMm`                                                                 |
+| `invalid-asset`           | `src` is not empty or whitespace-only                                                                   | `plates[i].assets.<shape>.src`, `frames[i].assets.<shape>.src`, `colors[i].swatch.src`                               |
+
+Allowed (not issues): an empty catalog; `pending` dimensions; a supported shape without a `dimensions` entry; empty `supportedColorIds` (colors pending); omitted `compatibility.plateIds`.
+
+A component whose ID is renamed or removed also produces `unknown-reference` at every place that referenced it.
+
 ## Compatibility considerations
 
 - **Variant-level availability** (e.g. plate X unavailable in rectangle + colored) is anticipated. It can be added as an optional `variants` list on `Plate` without changing `Configuration` or the validation result shape.
 - **Physical compatibility** will require defined `Dimensions` on both plates and frames plus mounting data; the model will be extended when that data exists.
-- **Catalog integrity** checks (deep freeze, duplicate IDs, dangling references, internal consistency) are planned for M1.1, before real products are added.

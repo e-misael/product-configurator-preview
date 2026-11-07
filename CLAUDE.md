@@ -26,7 +26,7 @@ React 19, TypeScript strict (`~6.0`), Vite 8, ESLint 9 + jsx-a11y, Prettier, Vit
 
 ```text
 src/domain/    pure types + validation (no React/DOM)
-src/catalog/   read-only catalog data — the source of truth
+src/catalog/   catalog data (data.ts) + getCatalog() entry point — deep-frozen source of truth
 src/App.tsx    app shell
 tests/unit/    Vitest (fixtures prefixed `test-`)
 tests/e2e/     Playwright
@@ -40,7 +40,7 @@ Future folders (`components/configurator`, `components/preview`, `hooks`, `servi
 
 - **Never invent product data**: no dimensions, colors, HEX values, typography, or assets. Unknown → `{ status: 'pending' }` or omitted.
 - Stable string IDs; never array positions.
-- Catalog is read-only; configuration stores only IDs and raw user input.
+- Catalog is deep-frozen and must pass `validateCatalog` (test gate); configuration stores only IDs and raw user input.
 - Validation reports `valid` / `incomplete` / `invalid`; it never replaces a selection.
 - Text is stored exactly as typed.
 - Frame compatibility is declared explicitly; matching shape ≠ physical fit.

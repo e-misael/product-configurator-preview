@@ -35,16 +35,19 @@ Status: Planned. M1.1 runs first; the rest of M1 is **blocked on real product in
 
 ### M1.1 — Catalog integrity (first sub-increment, before real products)
 
-Status: Planned.
+Status: **In progress** — implemented; pending owner review.
 
-- Deep-freeze catalog entries and their nested arrays/records; test that every object is frozen.
-- Catalog integrity validation:
-  - unique IDs within each component type;
-  - no dangling references (`supportedColorIds` → colors, `compatibility.plateIds` → plates);
-  - each supported color's category is listed in the plate's `supportedColorCategories`;
-  - no empty `supportedShapes`, `supportedColorCategories`, or `compatibility.shapes`;
-  - `dimensions` and `assets` keys are a subset of the plate's `supportedShapes`.
-- Integrity test suite run against the production catalog.
+- [x] Recursive `deepFreeze` (no dependency); immutability tested at root, collection, component, compatibility, dimension, and asset levels (D-020)
+- [x] Single catalog entry point `getCatalog()`; raw data in `src/catalog/data.ts` (D-020)
+- [x] `validateCatalog` with explicit codes and paths (D-018):
+  - [x] valid kebab-case IDs, unique across the whole catalog (D-019);
+  - [x] no duplicate entries in any supported/compatibility list;
+  - [x] no dangling references (`supportedColorIds` → colors, `compatibility.plateIds` → plates);
+  - [x] each supported color's category is listed in the plate's `supportedColorCategories`;
+  - [x] no empty `supportedShapes`, `supportedColorCategories`, `compatibility.shapes`, or present-but-empty `compatibility.plateIds`;
+  - [x] `dimensions` and `assets` keys are a subset of the supported shapes;
+  - [x] defined dimensions finite and positive; asset `src` non-blank.
+- [x] Catalog test gate: production catalog must pass `validateCatalog` (D-021)
 
 ### M1 — remaining scope
 

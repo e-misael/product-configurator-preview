@@ -34,7 +34,7 @@ catalog data (src/catalog)  ──►  domain (src/domain)  ◄──  configura
 
 Rules:
 
-- **Domain** (`src/domain`) is pure TypeScript: types, validation, and lookup helpers. No React, no DOM.
+- **Domain** (`src/domain`) is pure TypeScript: types, configuration and catalog validation, and lookup helpers. No React, no DOM.
 - **Catalog** (`src/catalog`) is read-only data and the single source of truth for available components. UI never mutates it.
 - **Configuration state** holds only IDs and user input. It never copies catalog data.
 - **Rendering** consumes a composition derived from catalog + configuration and contains no product rules.
@@ -45,7 +45,7 @@ Rules:
 src/
 ├── App.tsx, main.tsx, index.css
 ├── domain/           # types, validation (M0)
-├── catalog/          # local catalog data (M0 empty; M1 real data)
+├── catalog/          # data.ts, deep-freeze.ts, index.ts (getCatalog)
 ├── components/
 │   ├── configurator/ # form controls (M2)
 │   └── preview/      # SVG preview (M3)
@@ -59,11 +59,25 @@ Directories are created only when their increment needs them.
 
 ## Catalog architecture
 
-- A typed `Catalog` object exported from `src/catalog/catalog.ts`, frozen at runtime.
-- Components are referenced by stable string IDs.
+| Module                             | Responsibility                                                                                      |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------- |
+| `src/catalog/data.ts`              | Raw, version-controlled definitions (`catalogData`). Never imported directly by app code.           |
+| `src/catalog/deep-freeze.ts`       | Small recursive freeze (no dependency).                                                             |
+| `src/catalog/index.ts`             | Single entry point: `getCatalog(): Catalog` — synchronous, deeply frozen, same instance every call. |
+| `src/domain/catalog-validation.ts` | Pure `validateCatalog(catalog)` integrity check.                                                    |
+
+- Components are referenced by stable kebab-case string IDs, unique across the whole catalog (D-019).
 - Asset references are paths under `public/catalog/`; a missing asset must degrade gracefully, never crash.
 - Unknown dimensions are `{ status: 'pending' }`.
-- M0 ships an **empty** catalog. Real data arrives in M1 from the store.
+- The catalog is **empty** until the store provides real data.
+
+### Catalog integrity and immutability
+
+- **Integrity** (D-018): `validateCatalog` reports every definition problem with an explicit code and path. It never repairs, filters, or reorders data. Rules: [04-data-model.md](04-data-model.md#catalog-integrity-rules).
+- **Immutability** (D-020): `getCatalog()` returns the catalog deep-frozen at module load. Collections, components, compatibility lists, dimension and asset objects all reject mutation at runtime, in addition to the `readonly` types.
+- **When validation runs** (D-021): as a **test gate**. `tests/unit/catalog/catalog.test.ts` asserts `validateCatalog(getCatalog())` is `valid`; it runs in `npm test`, `npm run check`, and CI, so an invalid catalog cannot pass CI. `getCatalog()` does not validate at runtime, so a catalog defect never crashes the customer page.
+- **Separation:** catalog validation checks the catalog against itself; configuration validation checks a user selection against a catalog assumed to have passed the gate. Configuration validation is unchanged by M1.1.
+- Later increments (M1.2+) must obtain catalog data only through `getCatalog()`.
 
 ## Configuration state
 

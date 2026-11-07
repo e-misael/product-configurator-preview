@@ -5,12 +5,14 @@ description: Taavi Configurator domain rules for plates (Placa), frames (Quadro)
 
 # Product domain rules
 
-Code of record: `src/domain/types.ts`, `src/domain/validation.ts`, `src/catalog/catalog.ts`. Explanation: `docs/04-data-model.md`.
+Code of record: `src/domain/types.ts`, `src/domain/validation.ts`, `src/domain/catalog-validation.ts`, `src/catalog/` (`data.ts` definitions, `index.ts` → `getCatalog()`). Explanation: `docs/04-data-model.md`.
 
 ## The catalog is the source of truth
 
-- Only components present in `src/catalog/catalog.ts` can be selected.
-- The catalog is read-only and frozen. UI code must never mutate it or keep modified copies.
+- Only components present in the catalog can be selected. App code reads it only via `getCatalog()`.
+- The catalog is deep-frozen. UI code must never mutate it or keep modified copies.
+- Every catalog change must keep `validateCatalog(getCatalog())` valid (test gate, D-021). Fix the data; never weaken or bypass the check.
+- IDs are lowercase kebab-case and unique across colors, plates, and frames (D-019).
 - Configuration (`Configuration`) stores **IDs and raw user input only** — never copies of catalog objects.
 
 ## Never invent product information

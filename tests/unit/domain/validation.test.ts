@@ -5,7 +5,7 @@ import {
   type Configuration,
   type ValidationResult,
 } from '../../../src/domain';
-import { catalog } from '../../../src/catalog/catalog';
+import { getCatalog } from '../../../src/catalog';
 import { testCatalog, validConfiguration } from './fixtures';
 
 function issuesOf(result: ValidationResult) {
@@ -248,26 +248,13 @@ describe('validateConfiguration', () => {
     });
 
     it('treats every reference as unknown against the empty production catalog', () => {
-      const result = validateConfiguration(validConfiguration(), catalog);
+      const result = validateConfiguration(validConfiguration(), getCatalog());
       expect(issuesOf(result)).toContainEqual({
         kind: 'invalid',
         field: 'plateId',
         code: 'unknown-reference',
       });
     });
-  });
-});
-
-describe('production catalog', () => {
-  it('contains no invented product data', () => {
-    expect(catalog).toEqual({ plates: [], frames: [], colors: [] });
-  });
-
-  it('is frozen against mutation', () => {
-    expect(Object.isFrozen(catalog)).toBe(true);
-    expect(Object.isFrozen(catalog.plates)).toBe(true);
-    expect(Object.isFrozen(catalog.frames)).toBe(true);
-    expect(Object.isFrozen(catalog.colors)).toBe(true);
   });
 });
 
