@@ -66,7 +66,7 @@ Required.
 Acceptance criteria:
 
 1. Empty text makes the configuration _incomplete_.
-2. Whitespace-only text makes the configuration _invalid_.
+2. Text consisting only of whitespace or invisible formatting characters makes the configuration _invalid_ (`blank`, see D-017). Legitimate Unicode text (accents, combining marks, emoji) is valid.
 3. The text is stored exactly as entered (no trimming or normalization).
 4. Line breaks are preserved.
 5. (Preview, M3) Multi-line, wrapping, alignment, long text, and overflow are handled without silent clipping.

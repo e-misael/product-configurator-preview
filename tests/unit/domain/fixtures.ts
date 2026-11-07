@@ -67,6 +67,12 @@ export const testCatalog: Catalog = {
       compatibility: { shapes: ['square', 'rectangle'], plateIds: ['test-plate-a'] },
     },
     {
+      id: 'test-frame-square-plate-a-only',
+      type: 'frame',
+      displayName: 'Test frame square, plate A only',
+      compatibility: { shapes: ['square'], plateIds: ['test-plate-a'] },
+    },
+    {
       id: 'test-frame-unavailable',
       type: 'frame',
       displayName: 'Test frame unavailable',

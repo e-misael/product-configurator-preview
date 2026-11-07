@@ -99,7 +99,7 @@ export type InvalidCode =
   | 'category-mismatch'
   | 'incompatible-shape'
   | 'incompatible-plate'
-  | 'whitespace-only';
+  | 'blank';
 
 export type ValidationIssue =
   | { readonly kind: 'missing'; readonly field: ConfigurationField }

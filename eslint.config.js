@@ -23,6 +23,11 @@ export default defineConfig([
     },
   },
   {
+    files: ['**/*.js'],
+    extends: [js.configs.recommended],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'module' },
+  },
+  {
     files: ['*.config.{js,ts}', 'tests/e2e/**/*.ts'],
     languageOptions: { globals: globals.node },
   },

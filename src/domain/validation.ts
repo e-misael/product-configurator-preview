@@ -1,6 +1,9 @@
 /**
  * Pure validation for configurations against a catalog.
  *
+ * Every field is evaluated and reports at most one issue: the first failing
+ * rule in a fixed precedence order (see docs/04-data-model.md).
+ *
  * Validation only reports issues. It never replaces or corrects a user's
  * selection; any such behavior must be explicit and live elsewhere.
  */
@@ -52,8 +55,26 @@ export function isShapeSupported(plate: Plate, shape: PlateShape): boolean {
  * until real dimensions and mounting constraints exist.
  */
 export function isFrameCompatible(frame: Frame, plate: Plate, shape: PlateShape): boolean {
-  const { shapes, plateIds } = frame.compatibility;
-  return shapes.includes(shape) && (plateIds === undefined || plateIds.includes(plate.id));
+  return frame.compatibility.shapes.includes(shape) && isFrameAllowedForPlate(frame, plate);
+}
+
+/** Checks only the frame's optional plate restriction; independent of shape. */
+export function isFrameAllowedForPlate(frame: Frame, plate: Plate): boolean {
+  const { plateIds } = frame.compatibility;
+  return plateIds === undefined || plateIds.includes(plate.id);
+}
+
+/**
+ * Whitespace (Unicode `White_Space`, incl. line breaks and no-break spaces)
+ * plus a narrow set of invisible formatting characters: U+200B ZERO WIDTH
+ * SPACE, U+200C ZWNJ, U+200D ZWJ, U+2060 WORD JOINER, U+FEFF BOM.
+ * See D-017.
+ */
+const BLANK_TEXT = /^[\p{White_Space}\u200B-\u200D\u2060\uFEFF]+$/u;
+
+/** True when non-empty text has no visible content. Never modifies the text. */
+export function isBlankText(text: string): boolean {
+  return BLANK_TEXT.test(text);
 }
 
 export function validateConfiguration(config: Configuration, catalog: Catalog): ValidationResult {
@@ -106,19 +127,15 @@ export function validateConfiguration(config: Configuration, catalog: Catalog): 
       issues.push({ kind: 'invalid', field: 'frameId', code: 'unavailable' });
     } else if (config.shape !== null && !frame.compatibility.shapes.includes(config.shape)) {
       issues.push({ kind: 'invalid', field: 'frameId', code: 'incompatible-shape' });
-    } else if (
-      plate !== undefined &&
-      config.shape !== null &&
-      !isFrameCompatible(frame, plate, config.shape)
-    ) {
+    } else if (plate !== undefined && !isFrameAllowedForPlate(frame, plate)) {
       issues.push({ kind: 'invalid', field: 'frameId', code: 'incompatible-plate' });
     }
   }
 
   if (config.text.length === 0) {
     issues.push({ kind: 'missing', field: 'text' });
-  } else if (config.text.trim().length === 0) {
-    issues.push({ kind: 'invalid', field: 'text', code: 'whitespace-only' });
+  } else if (isBlankText(config.text)) {
+    issues.push({ kind: 'invalid', field: 'text', code: 'blank' });
   }
 
   if (issues.some((issue) => issue.kind === 'invalid')) {

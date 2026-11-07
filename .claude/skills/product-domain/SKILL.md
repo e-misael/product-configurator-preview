@@ -29,19 +29,20 @@ Before adding any value, ask: "Did the store provide this?" If not, do not add i
 
 ## Required vs optional selections
 
-| Selection      | Rule                                                                                        |
-| -------------- | ------------------------------------------------------------------------------------------- |
-| Plate          | Required; must exist and be available.                                                      |
-| Shape          | Required; must be in the plate's `supportedShapes`.                                         |
-| Color category | Required; must be in the plate's `supportedColorCategories`.                                |
-| Specific color | Optional; if set: must exist, be available, match the category, be in `supportedColorIds`.  |
-| Frame          | Optional; `null` = "no frame" (valid). If set: must exist, be available, and be compatible. |
-| Text           | Required; `''` → incomplete; whitespace-only → invalid; stored exactly as typed.            |
+| Selection      | Rule                                                                                                            |
+| -------------- | --------------------------------------------------------------------------------------------------------------- |
+| Plate          | Required; must exist and be available.                                                                          |
+| Shape          | Required; must be in the plate's `supportedShapes`.                                                             |
+| Color category | Required; must be in the plate's `supportedColorCategories`.                                                    |
+| Specific color | Optional; if set: must exist, be available, match the category, be in `supportedColorIds`.                      |
+| Frame          | Optional; `null` = "no frame" (valid). If set: must exist, be available, and be compatible.                     |
+| Text           | Required; `''` → incomplete; only whitespace/invisible characters → invalid (`blank`); stored exactly as typed. |
 
 ## Validation results
 
 - `valid`, `incomplete` (only missing fields), `invalid` (any conflict; takes precedence).
-- Report all issues, not just the first.
+- Every field is evaluated; each field reports **at most one issue**, using the fixed precedence in `docs/04-data-model.md` (D-016). Keep that order when adding rules, and update the doc and tests.
+- Plate-dependent rules run whenever the plate is known, even if other selections (e.g. shape) are still missing.
 - **Never auto-replace a selection.** If a later feature needs to clear or adjust a selection (e.g. frame becomes incompatible after a shape change), that behavior must be explicit, visible to the user, tested, and recorded in `docs/06-decisions.md`.
 
 ## Compatibility

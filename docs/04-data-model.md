@@ -98,21 +98,37 @@ Frame.compatibility.plateIds ──► Plate.id     (optional restriction)
 
 ## Validation rules
 
-Implemented in [`src/domain/validation.ts`](../src/domain/validation.ts).
+Implemented in [`src/domain/validation.ts`](../src/domain/validation.ts) (D-005, D-016, D-017).
 
-| Field           | Missing → _incomplete_ | Invalid → _invalid_ (code)                                                                                                                             |
-| --------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `plateId`       | `null`                 | not in catalog (`unknown-reference`); `available: false` (`unavailable`)                                                                               |
-| `shape`         | `null`                 | not in plate's `supportedShapes` (`unsupported-by-plate`)                                                                                              |
-| `colorCategory` | `null`                 | not in plate's `supportedColorCategories` (`unsupported-by-plate`)                                                                                     |
-| `colorId`       | — (optional)           | not in catalog (`unknown-reference`); unavailable; category differs (`category-mismatch`); not in plate's `supportedColorIds` (`unsupported-by-plate`) |
-| `frameId`       | — (optional)           | not in catalog; unavailable; shape not declared (`incompatible-shape`); plate not in `plateIds` (`incompatible-plate`)                                 |
-| `text`          | `''`                   | whitespace only (`whitespace-only`)                                                                                                                    |
+### Per-field contract
 
-Result precedence: any invalid issue → `invalid`; otherwise any missing → `incomplete`; otherwise `valid`. All issues are reported, not only the first. Plate-dependent checks are skipped when the plate is unknown (the plate issue is reported instead).
+Every field is evaluated. Each field reports **at most one issue**: the first failing rule in the order below. Later rules for the same field are not reported until the earlier issue is resolved.
+
+| Field           | Precedence (first failure wins)                                                                                                                                                                                                  |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plateId`       | 1. `null` → missing · 2. not in catalog → `unknown-reference` · 3. `available: false` → `unavailable`                                                                                                                            |
+| `shape`         | 1. `null` → missing · 2. not in plate's `supportedShapes` → `unsupported-by-plate`                                                                                                                                               |
+| `colorCategory` | 1. `null` → missing · 2. not in plate's `supportedColorCategories` → `unsupported-by-plate`                                                                                                                                      |
+| `colorId`       | Optional (`null` is fine). 1. not in catalog → `unknown-reference` · 2. unavailable → `unavailable` · 3. category differs → `category-mismatch` · 4. not in plate's `supportedColorIds` → `unsupported-by-plate`                 |
+| `frameId`       | Optional (`null` = no frame). 1. not in catalog → `unknown-reference` · 2. unavailable → `unavailable` · 3. shape selected and not declared → `incompatible-shape` · 4. plate known and not in `plateIds` → `incompatible-plate` |
+| `text`          | 1. `''` → missing · 2. only whitespace/invisible characters → `blank`                                                                                                                                                            |
+
+Conditional rules:
+
+- Plate-dependent rules (shape, color category, `colorId` step 4, frame step 4) run only when the plate exists in the catalog. An unavailable plate still runs them.
+- `category-mismatch` runs only when a color category is selected.
+- `incompatible-shape` runs only when a shape is selected. `incompatible-plate` does **not** depend on shape: it is reported whenever the plate is known.
+
+### Blank text
+
+Non-empty text is `blank` (invalid) when every character is either Unicode `White_Space` (spaces, tabs, line breaks, no-break spaces such as U+00A0 and U+202F) or one of: U+200B ZERO WIDTH SPACE, U+200C ZERO WIDTH NON-JOINER, U+200D ZERO WIDTH JOINER, U+2060 WORD JOINER, U+FEFF ZERO WIDTH NO-BREAK SPACE (BOM). Any other character (letters, accents, combining marks, emoji, emoji sequences containing U+200D) makes the text non-blank. The check never modifies the stored text.
+
+### Result status
+
+Any invalid issue → `invalid`; otherwise any missing issue → `incomplete`; otherwise `valid`. Issues are listed in field order: `plateId`, `shape`, `colorCategory`, `colorId`, `frameId`, `text`.
 
 ## Compatibility considerations
 
 - **Variant-level availability** (e.g. plate X unavailable in rectangle + colored) is anticipated. It can be added as an optional `variants` list on `Plate` without changing `Configuration` or the validation result shape.
 - **Physical compatibility** will require defined `Dimensions` on both plates and frames plus mounting data; the model will be extended when that data exists.
-- **Catalog integrity** checks (duplicate IDs, dangling references) are planned for M1 with catalog loading.
+- **Catalog integrity** checks (deep freeze, duplicate IDs, dangling references, internal consistency) are planned for M1.1, before real products are added.

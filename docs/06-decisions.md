@@ -44,7 +44,7 @@ Status values:
 
 ### D-005 — Three-state validation without auto-correction
 
-- **Decision:** `validateConfiguration` returns `valid`, `incomplete`, or `invalid` (invalid takes precedence) and lists all issues. It never replaces a user selection.
+- **Decision:** `validateConfiguration` returns `valid`, `incomplete`, or `invalid` (invalid takes precedence) with the list of issues found. It never replaces a user selection. Issue reporting is refined by D-016 (at most one issue per field).
 - **Rationale:** Prevents the preview from silently showing a different configuration.
 - **Status:** Approved.
 - **Date:** 2026-11-07.
@@ -76,7 +76,7 @@ Status values:
 ### D-013 — Text validation
 
 - **Decision:** Empty text → incomplete; whitespace-only → invalid; text stored exactly as entered.
-- **Status:** Approved.
+- **Status:** Approved. Amended by D-017 (blank rule extended to invisible characters; code renamed `whitespace-only` → `blank`).
 - **Date:** 2026-11-07.
 
 ### D-014 — Declared frame compatibility
@@ -89,6 +89,24 @@ Status values:
 ### D-015 — Browser test coverage
 
 - **Decision:** Playwright projects: desktop Chromium, mobile Chromium (Pixel 7), mobile WebKit (iPhone 14) limited to `@smoke` tests.
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-016 — At most one validation issue per field
+
+- **Context:** M0 review (L-1) found the docs claimed "all issues are reported" while the code reports only the first failing rule per field.
+- **Decision:** Every field is evaluated and reports at most one issue, chosen by a fixed, documented precedence (docs/04-data-model.md). For frames, `incompatible-shape` precedes `incompatible-plate`; `incompatible-plate` is evaluated whenever the plate is known, independently of shape selection.
+- **Rationale:** One actionable message per field suits the UI; deterministic order makes results testable.
+- **Alternatives:** Report every failing rule per field (deferred; not needed by any current consumer).
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-017 — Blank text rule
+
+- **Context:** M0 review (L-4): text made only of zero-width characters passed validation because `String.prototype.trim` does not remove them.
+- **Decision:** Non-empty text is invalid (`blank`) when every character is Unicode `White_Space` or one of U+200B, U+200C, U+200D, U+2060, U+FEFF. The check is a pure test; stored text is never trimmed, normalized, or stripped. Empty text remains missing (incomplete).
+- **Rationale:** A narrow, explicit list blocks visually empty text without rejecting legitimate Unicode (accents, combining marks, emoji ZWJ sequences, variation selectors).
+- **Alternatives:** `trim()` only (misses zero-width characters); reject all Unicode format characters `\p{Cf}` (too broad); Unicode normalization (modifies input).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 

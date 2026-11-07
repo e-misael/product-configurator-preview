@@ -115,7 +115,6 @@ describe('validateConfiguration', () => {
         'frameId',
         'incompatible-plate',
       ],
-      ['whitespace-only text', { text: '  \n\t ' }, 'text', 'whitespace-only'],
     ] as const)('rejects %s', (_label, overrides, field, code) => {
       const result = validateConfiguration(validConfiguration(overrides), testCatalog);
 
@@ -134,6 +133,94 @@ describe('validateConfiguration', () => {
         { kind: 'invalid', field: 'plateId', code: 'unknown-reference' },
         { kind: 'missing', field: 'text' },
       ]);
+    });
+  });
+
+  describe('frame compatibility precedence', () => {
+    it('reports incompatible-plate even when shape is not selected', () => {
+      const result = validateConfiguration(
+        validConfiguration({
+          plateId: 'test-plate-square-nude',
+          frameId: 'test-frame-plate-a-only',
+          shape: null,
+        }),
+        testCatalog,
+      );
+
+      expect(result).toEqual({
+        status: 'invalid',
+        issues: [
+          { kind: 'missing', field: 'shape' },
+          { kind: 'invalid', field: 'frameId', code: 'incompatible-plate' },
+        ],
+      });
+    });
+
+    it('stays incomplete for a frame allowed for the plate when shape is not selected', () => {
+      const result = validateConfiguration(
+        validConfiguration({ frameId: 'test-frame-plate-a-only', shape: null }),
+        testCatalog,
+      );
+
+      expect(result).toEqual({
+        status: 'incomplete',
+        issues: [{ kind: 'missing', field: 'shape' }],
+      });
+    });
+
+    it('reports incompatible-shape before incompatible-plate when both apply', () => {
+      const result = validateConfiguration(
+        validConfiguration({
+          plateId: 'test-plate-square-nude',
+          frameId: 'test-frame-square-plate-a-only',
+          shape: 'rectangle',
+        }),
+        testCatalog,
+      );
+
+      expect(issuesOf(result).filter((issue) => issue.field === 'frameId')).toEqual([
+        { kind: 'invalid', field: 'frameId', code: 'incompatible-shape' },
+      ]);
+    });
+  });
+
+  describe('text', () => {
+    it.each([
+      ['spaces', '   '],
+      ['line breaks and tabs', '\n\r\n\t'],
+      ['no-break spaces', '\u00A0\u202F'],
+      ['zero-width space', '\u200B'],
+      ['zero-width joiners', '\u200C\u200D'],
+      ['word joiner and BOM', '\u2060\uFEFF'],
+      ['mixed whitespace and invisible characters', ' \u200B\n\u00A0\uFEFF '],
+    ])('rejects text with only %s as blank', (_label, text) => {
+      expect(validateConfiguration(validConfiguration({ text }), testCatalog)).toEqual({
+        status: 'invalid',
+        issues: [{ kind: 'invalid', field: 'text', code: 'blank' }],
+      });
+    });
+
+    it.each([
+      ['accented characters', 'Ação'],
+      ['combining characters', 'e\u0301'],
+      ['emoji ZWJ sequence', '👩\u200D👩\u200D👧'],
+      ['emoji with variation selector', '❤\uFE0F'],
+      ['zero-width space between words', 'Ana\u200BMaria'],
+      ['visible text surrounded by invisible characters', '\u200B Ana \uFEFF'],
+    ])('accepts %s', (_label, text) => {
+      expect(validateConfiguration(validConfiguration({ text }), testCatalog)).toEqual({
+        status: 'valid',
+      });
+    });
+
+    it('preserves text containing invisible characters exactly', () => {
+      const text = '\u200B Ana\u00A0\n';
+      const config = validConfiguration({ text });
+
+      validateConfiguration(config, testCatalog);
+
+      expect(config.text).toBe(text);
+      expect(config.text.length).toBe(text.length);
     });
   });
 
