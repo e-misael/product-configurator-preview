@@ -44,7 +44,7 @@ Future folders (`components/configurator`, `components/preview`, `hooks`, `servi
 - Validation reports `valid` / `incomplete` / `invalid`; it never replaces a selection.
 - Text is stored exactly as typed.
 - Frame compatibility is declared explicitly; matching shape ≠ physical fit. Frame support is the plate's `supportsFrame` capability, never a shape check.
-- Preview and export must represent the same configuration.
+- Preview and export must represent the same configuration, composed from the same **real product images** (D-027). No CSS tinting of photos to fake ceramic colors; vector/synthetic visuals are demo-only.
 
 ## Architecture principles
 

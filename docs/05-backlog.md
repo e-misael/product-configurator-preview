@@ -77,7 +77,8 @@ Status: **In progress** — implemented; pending owner review.
 Status: Planned. **Blocked on real product information from the store.**
 
 - Real plate, frame, and color definitions (names, shapes, frame support, colors, compatibility).
-- Asset files under `public/catalog/placas` and `public/catalog/quadros`.
+- Real product image files under `public/catalog/placas` and `public/catalog/quadros` (D-027).
+- Catalog model for per-variation images and layer placement metadata, with integrity checks (P-06, P-07).
 - Missing-asset handling.
 
 ## M2 — Configuration interface
@@ -89,13 +90,15 @@ Status: Planned.
 - Frame control limited to `getFrameOptions`; for plates without frame support show "Sem quadro" with an explanation; announce a frame cleared by `selectPlate`.
 - Accessible, touch-friendly, mobile-first form.
 - Display of incomplete/invalid states without auto-replacing selections.
+- Preview slot fed by a composition function; neutral, labeled placeholder only — no vector shapes presented as the real product (D-027).
 
 ## M3 — Live preview
 
 Status: Planned.
 
-- Composition model shared by preview and export.
-- SVG renderer (pending D-007 approval).
+- Composition model shared by preview and export, layering real plate image, frame image, and text from catalog metadata (D-027, FR-08).
+- Renderer choice confirmed (D-007: SVG `<image>` layers vs Canvas 2D).
+- Synthetic demonstration images (non-production) for rendering tests; real images once M1.3 provides them.
 - Responsive sizing; text wrapping, alignment, overflow handling.
 - Preview rendering regression tests.
 

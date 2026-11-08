@@ -25,6 +25,7 @@ Before adding any value, ask: "Did the store provide this?" If not, do not add i
 - No invented plate/frame models, color names, HEX values, textures, finishes, typography, or asset files.
 - Do not choose a rectangle aspect ratio.
 - Test data belongs in `tests/` with `test-`-prefixed IDs, never in `src/catalog`.
+- No generated or invented product photographs. Product imagery is resolved from catalog `AssetRef`s at composition time; `Configuration` stores no image data and validation never depends on image availability (D-027).
 
 ## Stable identifiers
 

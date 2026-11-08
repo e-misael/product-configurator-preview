@@ -86,6 +86,7 @@ Acceptance criteria:
 2. The preview updates on every relevant change.
 3. The preview never silently shows a configuration different from the user's selection.
 4. Missing assets are handled gracefully and visibly.
+5. The final preview is composed from real product images (FR-08); generic vector shapes are acceptable only as temporary, clearly marked demonstration output.
 
 Status: Pending (M3).
 
@@ -98,6 +99,22 @@ Acceptance criteria:
 3. Format (PNG proposed), resolution, transparency, background, and file naming are confirmed during M4 before implementation.
 
 Status: Pending (M4).
+
+### FR-08 — Real product imagery
+
+Approved product requirement (D-027). The final configurator represents plates and frames with **real product image assets** supplied by the store.
+
+Acceptance criteria:
+
+1. Square, rectangular, and circular plates are shown with real images of the selected plate model.
+2. Compatible frames are shown with real frame images, composed with the plate.
+3. Actual color and finish variations are represented with images (or other store-approved visual data) of that variation. A CSS tint, filter, or blend over a photograph is **not** accepted as an accurate representation of a ceramic color.
+4. The composition is layered: plate image, optional frame image, and personalized text, with accurate scaling, alignment, and positioning defined by catalog data, not hard-coded in rendering code.
+5. The live preview and the exported image are produced from the same composition and the same image sources (FR-07.2).
+6. No production product photographs are generated, invented, or substituted. Synthetic demonstration assets may be used temporarily to exercise the workflow; they live outside the production catalog, are labeled as demonstration content, and never ship as product imagery.
+7. Product imagery is independent of configuration state and domain validation: `Configuration` stores no image data, and validation does not depend on whether an image exists.
+
+Status: Pending — interface prepared in M2, rendering in M3, real assets in M1.3.
 
 ## Non-functional requirements
 

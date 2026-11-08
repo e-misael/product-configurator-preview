@@ -183,6 +183,16 @@ Status values:
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
+### D-027 — Real product imagery
+
+- **Context:** Approved product requirement: the final configurator must show actual product images for plates and frames.
+- **Decision:** The preview and exported image are composed in layers from real product image assets supplied by the store: plate model (and color/finish variation), optional frame, and personalized text, with scaling, alignment, and positioning defined by catalog data. Color and finish are represented by images of the real variation; a CSS tint/filter/blend over a photograph is not an accurate representation of a ceramic color. Generic vector representations are temporary demonstration output only. Synthetic demonstration assets may be used for workflow tests but stay out of the production catalog and are labeled as such. Product imagery stays independent of `Configuration` and domain validation. No production photographs are generated or invented. M2 prepares the interface (preview slot, labeled placeholder); M3 implements the renderer; M1.3 adds real assets and the required catalog metadata.
+- **Rationale:** Visual accuracy is a functional requirement; customers must see the physical product they are ordering.
+- **Alternatives:** Vector-only rendering; tinting a single photograph per plate (rejected: misrepresents ceramic color).
+- **Impact:** D-007 (SVG) and D-009 (shared composition) remain proposed; the renderer must support raster layers. Adds pending items P-06–P-08.
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
 ## Proposed
 
 ### D-007 — SVG preview rendering
@@ -213,3 +223,6 @@ Status values:
 - **P-03:** Frame dimensions and mounting constraints.
 - **P-04:** Production typography rules and text limits (max length, lines).
 - **P-05:** Export resolution, transparency, background, file naming.
+- **P-06:** Real product images per plate model, per color/finish variation, and per frame; how variations map to image files.
+- **P-07:** Layer placement metadata: text safe area, frame aperture and offset, scale relative to real dimensions.
+- **P-08:** Source image format, resolution, and consistency requirements (framing, lighting, background).

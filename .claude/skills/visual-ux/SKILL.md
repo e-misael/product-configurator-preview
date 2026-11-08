@@ -14,6 +14,7 @@ Visual accuracy is a functional requirement: the preview must show exactly what 
 - No decorative animation. Transitions only when they clarify a state change, and respect `prefers-reduced-motion`.
 - Use CSS custom properties from `src/index.css`; do not hard-code ad hoc colors.
 - UI chrome colors are not product colors. Never invent product colors to style the preview.
+- The final preview uses **real product images** (D-027). Never tint, filter, or blend a photograph to simulate a ceramic color; show a visible "image unavailable" state instead. Vector shapes and synthetic images are demonstration-only and must be labeled as such.
 
 ## Layout
 
