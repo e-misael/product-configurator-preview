@@ -68,9 +68,11 @@ describe('Preview', () => {
     it('asks for a model and shows no image', () => {
       setup();
 
+      expect(within(preview()).getByText('Selecione um modelo')).toBeVisible();
       expect(
-        within(preview()).getByText('Escolha um modelo para ver a pré-visualização.'),
-      ).toBeVisible();
+        within(preview()).queryByText('Escolha um modelo para ver a pré-visualização.'),
+      ).not.toBeInTheDocument();
+      expect(within(preview()).queryByText('Sem imagem para exibir')).not.toBeInTheDocument();
       expect(canvas()).not.toBeInTheDocument();
       expect(FakeImage.requestedSources).toEqual([]);
     });

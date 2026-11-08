@@ -20,8 +20,54 @@ interface AppProps {
  * The page (D-058): the preview first, so it can stay in view on phones,
  * then the four customization steps. Wide screens show the preview beside
  * the steps, all open; narrow screens show one step at a time.
+ *
+ * "Reiniciar configurações" mounts a fresh configurator, so every choice,
+ * input, and open section returns to its initial state; then the first step
+ * gets focus and the reset is announced.
  */
 export function App({ catalog = getCatalog(), banner, modelGroups = MODEL_GROUPS }: AppProps) {
+  const [run, setRun] = useState(0);
+
+  useEffect(() => {
+    if (run === 0) return;
+    const target =
+      document.querySelector<HTMLElement>('#step-model-heading button') ??
+      document.querySelector<HTMLElement>('#step-model-body input');
+    target?.focus();
+    window.scrollTo?.({ top: 0 });
+  }, [run]);
+
+  return (
+    <main className="app">
+      {banner}
+      <header className="app__header">
+        <h1 className="app__title">Taavi Configurator</h1>
+        <p className="app__note">Personalize sua peça de cerâmica.</p>
+      </header>
+      <p className="visually-hidden" role="status">
+        {run > 0 ? 'Configurações reiniciadas.' : ''}
+      </p>
+      {catalog.plates.length === 0 ? (
+        <p className="app__empty">Nenhum modelo disponível no momento.</p>
+      ) : (
+        <Configurator
+          key={run}
+          catalog={catalog}
+          modelGroups={modelGroups}
+          onRestart={() => setRun((count) => count + 1)}
+        />
+      )}
+    </main>
+  );
+}
+
+interface ConfiguratorProps {
+  readonly catalog: Catalog;
+  readonly modelGroups: readonly ModelGroup[];
+  readonly onRestart: () => void;
+}
+
+function Configurator({ catalog, modelGroups, onRestart }: ConfiguratorProps) {
   const state = useConfiguration(catalog);
   const { plateId } = state.config;
   const plate = plateId === null ? undefined : findPlate(catalog, plateId);
@@ -83,35 +129,25 @@ export function App({ catalog = getCatalog(), banner, modelGroups = MODEL_GROUPS
   }, [openStep, wide]);
 
   return (
-    <main className="app">
-      {banner}
-      <header className="app__header">
-        <h1 className="app__title">Taavi Configurator</h1>
-        <p className="app__note">Personalize sua peça de cerâmica.</p>
-      </header>
-      {catalog.plates.length === 0 ? (
-        <p className="app__empty">Nenhum modelo disponível no momento.</p>
-      ) : (
-        <div className="app__layout">
-          <PreviewPanel
-            scene={scene}
-            active={plate !== undefined || sizePending}
-            sizePending={sizePending}
-            expanded={!wide && openStep === 'position'}
-            reduced={!wide && openStep === 'text'}
-          />
-          <ConfiguratorForm
-            catalog={catalog}
-            plate={plate}
-            state={state}
-            model={model}
-            scene={scene}
-            collapsible={!wide}
-            openStep={openStep}
-            onToggleStep={toggleStep}
-          />
-        </div>
-      )}
-    </main>
+    <div className="app__layout">
+      <PreviewPanel
+        scene={scene}
+        active={plate !== undefined || sizePending}
+        sizePending={sizePending}
+        expanded={!wide && openStep === 'position'}
+        reduced={!wide && openStep === 'text'}
+      />
+      <ConfiguratorForm
+        catalog={catalog}
+        plate={plate}
+        state={state}
+        model={model}
+        scene={scene}
+        collapsible={!wide}
+        openStep={openStep}
+        onToggleStep={toggleStep}
+        onRestart={onRestart}
+      />
+    </div>
   );
 }

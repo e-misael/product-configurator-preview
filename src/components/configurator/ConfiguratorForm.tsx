@@ -45,6 +45,7 @@ interface ConfiguratorFormProps {
   readonly collapsible: boolean;
   readonly openStep: StepId | null;
   readonly onToggleStep: (step: StepId) => void;
+  readonly onRestart: () => void;
 }
 
 /**
@@ -60,6 +61,7 @@ export function ConfiguratorForm({
   collapsible,
   openStep,
   onToggleStep,
+  onRestart,
 }: ConfiguratorFormProps) {
   const { config, validation } = state;
   const [secondaryOpen, setSecondaryOpen] = useState(false);
@@ -226,6 +228,7 @@ export function ConfiguratorForm({
           validation={validation}
           scene={scene}
           onNote={state.setNote}
+          onRestart={onRestart}
         />
       </Step>
     </form>

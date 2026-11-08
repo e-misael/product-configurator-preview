@@ -897,6 +897,17 @@ body {
   margin-top: 0;
 }
 
+/* "Reiniciar configurações", under the summary (its confirmation stays in place). */
+.restart {
+  margin-bottom: 1rem;
+}
+
+.restart__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.75rem;
+}
+
 .disclaimer {
   display: grid;
   gap: 0.5rem;

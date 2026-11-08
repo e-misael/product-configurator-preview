@@ -28,10 +28,14 @@ interface PreviewPanelProps {
 export function PreviewPanel({ scene, active, sizePending, expanded, reduced }: PreviewPanelProps) {
   const block = textBlockOf(scene);
   // Overflow blocks export and needs the customer to act: it is shown as an error (D-063).
-  const notices = [...new Set(scene.notices)].map((code) => ({
-    code,
-    message: noticeMessage(code, block?.excessLines ?? 0, sizePending),
-  }));
+  // With no model chosen the empty stage itself says so; the notice would repeat it.
+  const noModel = scene.notices.includes('plate-not-selected') && !sizePending;
+  const notices = [...new Set(scene.notices)]
+    .filter((code) => !(noModel && code === 'plate-not-selected'))
+    .map((code) => ({
+      code,
+      message: noticeMessage(code, block?.excessLines ?? 0, sizePending),
+    }));
 
   return (
     <section
@@ -51,7 +55,9 @@ export function PreviewPanel({ scene, active, sizePending, expanded, reduced }: 
             describedBy="review-summary"
           />
         ) : (
-          <div className="preview__empty">Sem imagem para exibir</div>
+          <div className="preview__empty">
+            {noModel ? 'Selecione um modelo' : 'Sem imagem para exibir'}
+          </div>
         )}
       </div>
       <div className="preview__notices" id="preview-notices" aria-live="polite">

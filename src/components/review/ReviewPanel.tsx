@@ -11,6 +11,7 @@ import type { Scene } from '../../preview/scene';
 import { ConfigurationStatus } from '../configurator/ConfigurationStatus';
 import { sizeLabel, type ModelGroup } from '../configurator/model-groups';
 import { ExportControls } from '../preview/ExportControls';
+import { RestartControl } from './RestartControl';
 import { ALIGNMENT_LABELS, presetLabel, presetOf } from '../preview/messages';
 
 interface ReviewPanelProps {
@@ -23,6 +24,8 @@ interface ReviewPanelProps {
   readonly validation: ValidationResult;
   readonly scene: Scene;
   readonly onNote: (note: string) => void;
+  /** Starts over with no choices ("Reiniciar configurações"). */
+  readonly onRestart: () => void;
 }
 
 function colorName(catalog: Catalog, id: string | null, none = '—'): string {
@@ -45,6 +48,7 @@ export function ReviewPanel({
   validation,
   scene,
   onNote,
+  onRestart,
 }: ReviewPanelProps) {
   // What the canvas uses: a fixed model's centered default, or the stored placement (D-068).
   const placement = placementFor(config.textLayout, plate);
@@ -85,6 +89,8 @@ export function ReviewPanel({
         {/* As lettered: capitals for "Sem serifa" (D-068). */}
         <dd className="review__text">{text === '' ? '—' : text}</dd>
       </dl>
+      {/* Starting over belongs to the summary; export stays the last action (D-058). */}
+      <RestartControl onRestart={onRestart} />
       <ConfigurationStatus validation={validation} sizePending={sizePending} />
       {/* Approved copy (D-056). */}
       <div className="disclaimer">

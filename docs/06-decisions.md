@@ -544,6 +544,11 @@ Status values:
 - The help line and the "Seleção" indicator come before the chips. "Remover segunda cor da seleção" and the trecho count are replaced by a list of the colored trechos, each with "Remover"; focus stays in the list. "Remover segunda cor" still clears the color and all trechos. The domain is unchanged (one second color, ranges as before).
 - **Status:** Approved (product owner, 2026-11-08). Implementation pending acceptance.
 
+### D-070 — "Reiniciar configurações" (2026-11-08)
+
+- Requested by the product owner (2026-11-08): an option that resets every field and choice. "Reiniciar configurações" sits in "Revisar personalização", under the summary, so "Exportar imagem" stays the last action (D-058). It asks first ("Reiniciar apaga o modelo, o texto, as cores, a posição e a observação. Deseja continuar?", "Sim, reiniciar" / "Cancelar", focus on "Cancelar"). Confirming mounts a fresh configurator: the configuration returns to its initial state (catalog default lettering color, D-064), and the open step, second-color section, size pending, and messages reset too; focus goes to the first step and "Configurações reiniciadas." is announced.
+- **Status:** Approved (product owner, 2026-11-08). Implementation pending acceptance.
+
 ## Proposed
 
 ### D-066 — Lettering font evaluation: Georgia Bold and Century Gothic Bold (2026-11-08)
