@@ -1,6 +1,7 @@
 import {
-  catalogTextAlign,
   findTextColor,
+  letteringText,
+  placementFor,
   type Catalog,
   type Configuration,
   type Plate,
@@ -10,7 +11,7 @@ import type { Scene } from '../../preview/scene';
 import { ConfigurationStatus } from '../configurator/ConfigurationStatus';
 import { sizeLabel, type ModelGroup } from '../configurator/model-groups';
 import { ExportControls } from '../preview/ExportControls';
-import { ALIGNMENT_LABELS } from '../preview/messages';
+import { ALIGNMENT_LABELS, presetLabel, presetOf } from '../preview/messages';
 
 interface ReviewPanelProps {
   readonly catalog: Catalog;
@@ -45,7 +46,10 @@ export function ReviewPanel({
   scene,
   onNote,
 }: ReviewPanelProps) {
-  const align = config.textLayout?.align ?? catalogTextAlign(plate);
+  // What the canvas uses: a fixed model's centered default, or the stored placement (D-068).
+  const placement = placementFor(config.textLayout, plate);
+  const preset = presetOf(placement);
+  const text = letteringText(config.text, config.fontFamily);
   return (
     <div className="review">
       <dl className="review__summary" id="review-summary">
@@ -68,9 +72,18 @@ export function ReviewPanel({
               })`}
         </dd>
         <dt>Alinhamento:</dt>
-        <dd>{ALIGNMENT_LABELS[align]}</dd>
+        <dd>{ALIGNMENT_LABELS[placement.align]}</dd>
+        <dt>Posição:</dt>
+        <dd>
+          {preset
+            ? presetLabel(preset.row, preset.column)
+            : `Personalizada (horizontal ${Math.round(placement.x * 100)}%, vertical ${Math.round(
+                placement.y * 100,
+              )}%)`}
+        </dd>
         <dt>Texto:</dt>
-        <dd className="review__text">{config.text === '' ? '—' : config.text}</dd>
+        {/* As lettered: capitals for "Sem serifa" (D-068). */}
+        <dd className="review__text">{text === '' ? '—' : text}</dd>
       </dl>
       <ConfigurationStatus validation={validation} sizePending={sizePending} />
       {/* Approved copy (D-056). */}

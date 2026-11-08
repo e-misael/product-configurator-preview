@@ -216,7 +216,7 @@ test('exports the assembled Quadro, frame included, at its photograph’s native
   }
 });
 
-test('exports font, both lettering colors, alignment, and manual position as previewed', async ({
+test('exports font, both lettering colors, alignment, and position as previewed', async ({
   page,
 }) => {
   await chooseModel(page, /Placa cerâmica/);
@@ -233,11 +233,7 @@ test('exports font, both lettering colors, alignment, and manual position as pre
   const position = page.getByRole('group', { name: 'Posição do texto' });
   await position.getByRole('radio', { name: 'Alinhar à direita' }).check();
   await position.getByRole('button', { name: 'Inferior à direita', exact: true }).click();
-  await position.getByRole('radio', { name: 'Ajustar manualmente' }).check();
-  await position
-    .getByRole('button', { name: 'Mover para a esquerda' })
-    .click({ modifiers: ['Shift'] });
-  await expect(position).toContainText('Posição personalizada: horizontal 90%, vertical 100%.');
+  await expect(position).toContainText('Posição: Inferior à direita.');
   // Right-aligned lines in the preview: both end at the same edge.
   await openStep(page, 'Revisar personalização');
   await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'false');
@@ -252,10 +248,10 @@ test('exports font, both lettering colors, alignment, and manual position as pre
   expect(blue).toBeGreaterThan(20);
   expect(wine).toBeGreaterThan(20);
   expect(Math.abs(wine / (blue + wine) - shownWine / (shownBlue + shownWine))).toBeLessThan(0.1);
-  // Bottom of the safe area, slightly left of its right edge, same as the preview.
+  // The bottom-right corner of the safe area, same as the preview.
   expect(exported.box).toBeDefined();
   expect(PLATE_AREA.y1 - (exported.box?.bottom ?? 0)).toBeLessThan(0.05);
-  expect(PLATE_AREA.x1 - (exported.box?.right ?? 0)).toBeGreaterThan(0.01);
+  expect(PLATE_AREA.x1 - (exported.box?.right ?? 0)).toBeLessThan(0.05);
   for (const side of ['left', 'right', 'top', 'bottom'] as const) {
     expect(Math.abs((exported.box?.[side] ?? 0) - (shown.box?.[side] ?? 1))).toBeLessThan(0.01);
   }

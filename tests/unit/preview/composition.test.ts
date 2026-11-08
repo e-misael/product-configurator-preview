@@ -14,6 +14,26 @@ describe('preview fixture', () => {
   });
 });
 
+describe('composePreview: letter case (D-068)', () => {
+  it('letters "Sem serifa" in capitals, accents included, at the same offsets', () => {
+    const text = 'Ação é já, coração';
+    const { text: layer } = compose({ fontFamily: 'sans-serif', text });
+    expect(layer?.text).toBe('AÇÃO É JÁ, CORAÇÃO');
+    expect(layer?.text).toHaveLength(text.length);
+  });
+
+  it('keeps "Com serifa" mixed case exactly as typed', () => {
+    expect(compose({ fontFamily: 'serif', text: 'Casa da Ana' }).text?.text).toBe('Casa da Ana');
+  });
+});
+
+describe('composePreview: fixed placement (D-068)', () => {
+  it.each(['test-plate-fixed'])('draws %s centered whatever placement is stored', (plateId) => {
+    const layer = compose({ plateId, textLayout: { align: 'left', x: 0, y: 1 } }).text;
+    expect(layer).toMatchObject({ align: 'center', x: 0.5, y: 0.5 });
+  });
+});
+
 describe('composePreview: note (D-062)', () => {
   it('never draws the note: the composition is identical with or without it', () => {
     expect(compose({ note: 'Entregar até sexta' })).toEqual(compose());
@@ -61,7 +81,7 @@ describe('composePreview: text', () => {
       align: 'center',
       x: 0.5,
       y: 0.5,
-      fontFamily: 'sans-serif',
+      fontFamily: 'serif',
       primaryColor: '#112233',
       secondary: undefined,
     });

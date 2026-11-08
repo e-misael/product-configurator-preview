@@ -341,8 +341,7 @@ body {
 }
 
 /* Visually hidden but still the focusable, native radio (named by aria-label). */
-.alignment__option input,
-.segmented__option input {
+.alignment__option input {
   position: absolute;
   width: 1px;
   height: 1px;
@@ -350,8 +349,7 @@ body {
   opacity: 0;
 }
 
-.alignment__option:has(input:focus-visible),
-.segmented__option:has(input:focus-visible) {
+.alignment__option:has(input:focus-visible) {
   outline: 2px solid var(--color-focus);
   outline-offset: 2px;
 }
@@ -395,49 +393,6 @@ body {
 
 .alignment__glyph--right {
   align-items: flex-end;
-}
-
-/* Two exclusive modes as a segmented control. */
-.segmented {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius);
-  background: var(--color-field);
-  overflow: hidden;
-}
-
-.segmented__option {
-  position: relative;
-  display: grid;
-  place-items: center;
-  min-height: var(--touch-target);
-  padding: 0.25rem 0.5rem;
-  font-size: 0.875rem;
-  text-align: center;
-  cursor: pointer;
-}
-
-.segmented__option + .segmented__option {
-  border-left: 1px solid var(--color-border-strong);
-}
-
-.segmented__option:has(input:checked) {
-  background: var(--color-text);
-  color: var(--color-bg);
-  font-weight: 500;
-}
-
-.position__manual {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.5rem 1rem;
-}
-
-.position__drag {
-  flex: 1 1 10rem;
-  margin: 0;
 }
 
 .position__reset {
@@ -547,53 +502,13 @@ body {
   color: var(--color-bg);
 }
 
-.position__preset:disabled,
-.position__move:disabled {
+.position__preset:disabled {
   opacity: 0.4;
   cursor: default;
 }
 
 .position__current {
   margin: 0;
-}
-
-/* A compact arrow pad beside the presets; full touch targets on touch screens. */
-.position__moves {
-  --move-size: 2.25rem;
-  display: grid;
-  grid-template-areas: '. up .' 'left . right' '. down .';
-  grid-template-columns: repeat(3, var(--move-size));
-  grid-template-rows: repeat(3, var(--move-size));
-  gap: 0.125rem;
-}
-
-@media (pointer: coarse) {
-  .position__moves {
-    --move-size: var(--touch-target);
-  }
-}
-
-.button.position__move {
-  min-width: var(--move-size);
-  min-height: var(--move-size);
-  margin: 0;
-  padding: 0;
-}
-
-.position__move--up {
-  grid-area: up;
-}
-
-.position__move--down {
-  grid-area: down;
-}
-
-.position__move--left {
-  grid-area: left;
-}
-
-.position__move--right {
-  grid-area: right;
 }
 
 .button[aria-pressed='true'] {
@@ -930,6 +845,20 @@ body {
 
 .secondary__panel[hidden] {
   display: none;
+}
+
+.textarea--uppercase {
+  /* "Sem serifa" is lettered in capitals; the stored text keeps its case (D-068). */
+  text-transform: uppercase;
+}
+
+.selection-actions {
+  margin-top: 0.75rem;
+}
+
+.selection-actions__selection {
+  font-weight: 500;
+  color: var(--color-text);
 }
 
 .selection-actions__buttons {

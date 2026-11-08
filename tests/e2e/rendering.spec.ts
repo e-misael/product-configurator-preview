@@ -268,7 +268,8 @@ test.describe('Lettering on the catalog photographs', () => {
   test('keeps the original color in the stroke centers', async ({ page }) => {
     // At the Placa's fixed lettering size (D-055), the size of every text on it;
     // three lines give enough stroke-center pixels to sample.
-    const result = await compare(page, 'Ana\nLuz\nCasa', null, 'default');
+    // Capitals since "Sem serifa" is lettered in upper case (D-068): more letters per line.
+    const result = await compare(page, 'Ana Luz Bia\nCasa Mar\nSol Lua Rio', null, 'default');
     test.info().annotations.push({ type: 'centers', description: JSON.stringify(result) });
 
     expect(result.changedOutside).toBe(0);
@@ -355,7 +356,9 @@ test.describe('Lettering on the catalog photographs', () => {
       // Wrapping, not shrinking: one typed line wider than the area draws as several.
       expect(results[1]?.lines).toBeGreaterThan(1);
       expect(results[0]?.overflow).toBe(false);
-      expect(results[3]).toMatchObject({ lines: 12, overflow: true });
+      // Twelve typed lines; capitals ("Sem serifa", D-068) may wrap some of them further.
+      expect(results[3]?.lines).toBeGreaterThanOrEqual(12);
+      expect(results[3]?.overflow).toBe(true);
     });
   }
 
@@ -483,7 +486,28 @@ test.describe('Lettering on the catalog photographs', () => {
       { plateId, text, align, pixelWidth },
     );
 
-  for (const model of MODELS) {
+  // The Bandejas' lettering is always centered (D-068).
+  const positionable = MODELS.filter((model) => !model.id.startsWith('bandeja-'));
+  for (const model of MODELS.filter((entry) => entry.id.startsWith('bandeja-'))) {
+    test(`always centers the lettering on the ${model.id} photograph (D-068)`, async ({ page }) => {
+      const text = 'O que não cabe\ntransborda.';
+      const [left, center] = await Promise.all(
+        (['left', 'center'] as const).map((align) => inkOf(page, model.id, text, align)),
+      );
+      if (!left || !center) throw new Error('No result');
+      // A stored left alignment is ignored: the same block and the same centered lines.
+      expect(left.bounds).toEqual(center.bounds);
+      expect(left.extents).toEqual(center.extents);
+      const area = center.area ?? { x: 0, width: 0 };
+      const bounds = center.bounds ?? { x: 0, width: 0 };
+      const width = center.pixels ** 0.5;
+      expect(
+        Math.abs(bounds.x + bounds.width / 2 - (area.x + area.width / 2) * width),
+      ).toBeLessThan(1);
+    });
+  }
+
+  for (const model of positionable) {
     test(`aligns the lines inside the unmoved block on the ${model.id} photograph (D-059)`, async ({
       page,
     }) => {

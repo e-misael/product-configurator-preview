@@ -1,12 +1,12 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   catalogTextAlign,
   effectivePlacement,
+  findPlate,
   findTextColor,
   isDefaultPosition,
-  matchesPreset,
-  PRESET_COLUMNS,
-  PRESET_ROWS,
+  isPlacementFixed,
+  letteringText,
   type Catalog,
   type Plate,
 } from '../../domain';
@@ -16,8 +16,8 @@ import { textBlockOf } from '../../preview/placement';
 import { textFrameOf, type Scene } from '../../preview/scene';
 import { addsLineBeyondCapacity, lineCapacity } from '../../preview/text-fit';
 import { Step } from '../layout/Step';
-import { lineLimitMessage, overflowMessage } from '../preview/messages';
-import { TextPositionControls, type PositionMode } from '../preview/TextPositionControls';
+import { lineLimitMessage, overflowMessage, presetOf } from '../preview/messages';
+import { TextPositionControls } from '../preview/TextPositionControls';
 import { ReviewPanel } from '../review/ReviewPanel';
 import { FontField } from './FontField';
 import { FORMATTING_REMOVED_NOTICE } from './messages';
@@ -45,8 +45,6 @@ interface ConfiguratorFormProps {
   readonly collapsible: boolean;
   readonly openStep: StepId | null;
   readonly onToggleStep: (step: StepId) => void;
-  readonly positionMode: PositionMode;
-  readonly onPositionMode: (mode: PositionMode) => void;
 }
 
 /**
@@ -62,34 +60,43 @@ export function ConfiguratorForm({
   collapsible,
   openStep,
   onToggleStep,
-  positionMode,
-  onPositionMode,
 }: ConfiguratorFormProps) {
   const { config, validation } = state;
   const [secondaryOpen, setSecondaryOpen] = useState(false);
+  const textField = useRef<HTMLTextAreaElement>(null);
   const secondaryIssue = issueFor(validation, 'secondaryColorId');
-  // Range actions appear only while a second color is chosen and its options are shown.
-  const showRangeActions =
-    config.secondaryColorId !== null && (secondaryOpen || secondaryIssue?.kind === 'invalid');
+  // As lettered: capitals for "Sem serifa", the stored text unchanged (D-068).
+  const lettered = letteringText(config.text, config.fontFamily);
+  // The Bandejas' lettering is always centered, also while their size is still to be chosen (D-068).
+  const fixedPlacement = isPlacementFixed(
+    plate ??
+      (model.sizePending && model.group?.previewPlateId !== undefined
+        ? findPlate(catalog, model.group.previewPlateId)
+        : undefined),
+  );
   const block = textBlockOf(scene);
   const measure = useMemo(() => createTextMeasurer(config.fontFamily), [config.fontFamily]);
   // Line breaks beyond the model's text area are refused (D-063); wrapping still overflows.
   const frame = textFrameOf(plate, scene);
   const lineLimit = frame && {
     refuses: (next: string) =>
-      addsLineBeyondCapacity(config.text, next, frame.area, frame.fontSize, measure),
+      addsLineBeyondCapacity(
+        lettered,
+        letteringText(next, config.fontFamily),
+        frame.area,
+        frame.fontSize,
+        measure,
+      ),
     message: lineLimitMessage(lineCapacity(frame.area.height, frame.lineHeight)),
   };
   const placement = effectivePlacement(config, catalog);
   const catalogAlign = catalogTextAlign(plate);
-  const preset = PRESET_ROWS.flatMap((row) =>
-    PRESET_COLUMNS.map((column) => ({ row, column })),
-  ).find(({ row, column }) => matchesPreset(placement, row, column));
+  const preset = presetOf(placement);
   const colorName =
     config.textColorId === null
       ? undefined
       : findTextColor(catalog, config.textColorId)?.displayName;
-  const firstLine = config.text.split(/\r\n|\r|\n/)[0] ?? '';
+  const firstLine = lettered.split(/\r\n|\r|\n/)[0] ?? '';
 
   const step = (id: StepId) => ({
     id: `step-${id}`,
@@ -146,16 +153,8 @@ export function ConfiguratorForm({
               : undefined
           }
           lineLimit={lineLimit}
-          secondary={
-            showRangeActions
-              ? {
-                  rangeCount: config.secondaryRanges.length,
-                  issue: issueFor(validation, 'secondaryRanges'),
-                  onApply: state.applySecondaryColor,
-                  onRemove: state.unapplySecondaryColor,
-                }
-              : undefined
-          }
+          fieldRef={textField}
+          uppercase={config.fontFamily === 'sans-serif'}
         />
         {/* Always rendered so assistive technology announces changes. */}
         <p className="status__notice" role="status">
@@ -174,9 +173,14 @@ export function ConfiguratorForm({
           primaryColorId={config.textColorId}
           rangeCount={config.secondaryRanges.length}
           issue={secondaryIssue}
+          rangeIssue={issueFor(validation, 'secondaryRanges')}
+          text={lettered}
+          fieldRef={textField}
           open={secondaryOpen}
           onToggle={() => setSecondaryOpen((open) => !open)}
           onChoose={state.chooseSecondaryColor}
+          onApply={state.applySecondaryColor}
+          onUnapply={state.unapplySecondaryColor}
           onRemove={state.removeSecondaryColor}
         />
       </Step>
@@ -185,20 +189,21 @@ export function ConfiguratorForm({
         {...step('position')}
         title="Posição do texto"
         summary={
-          block === undefined
-            ? ''
-            : ((preset && PRESET_LABEL_SHORT[`${preset.row}-${preset.column}`]) ?? 'personalizada')
+          fixedPlacement
+            ? 'centro, fixo'
+            : block === undefined
+              ? ''
+              : ((preset && PRESET_LABEL_SHORT[`${preset.row}-${preset.column}`]) ??
+                'personalizada')
         }
         complete={block !== undefined}
       >
         <TextPositionControls
           block={block}
+          fixed={fixedPlacement}
           moved={!isDefaultPosition(placement, catalogAlign)}
-          mode={positionMode}
-          onMode={onPositionMode}
           onPlace={state.placeText}
           onAlign={state.alignText}
-          onNudge={state.nudgeText}
           onReset={state.resetTextLayout}
         />
       </Step>

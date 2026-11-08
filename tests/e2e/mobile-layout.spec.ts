@@ -138,7 +138,7 @@ for (const width of WIDTHS) {
 
       await open(page, 'Modelo e tamanho');
       await expect(toggle(page, 'Texto e cores')).toHaveAccessibleDescription(
-        /Concluído · “Ana” · .*Letra azul/,
+        /Concluído · “ANA” · .*Letra azul/,
       );
       await open(page, 'Texto e cores');
       await expect(page.getByLabel('Texto', { exact: true })).toHaveValue('Ana\nLuz');
@@ -267,25 +267,50 @@ test.describe('accordion focus and scrolling (WAI-ARIA)', () => {
     expect(await page.evaluate(() => window.scrollY)).toBe(before);
   });
 
-  test('drags only in manual mode; the presets mode scrolls by touch again', async ({ page }) => {
+  test('positions with presets only; the preview scrolls by touch (D-068)', async ({ page }) => {
     await toggle(page, 'Texto e cores').tap();
     await page.getByLabel('Texto', { exact: true }).fill('Ana');
     await toggle(page, 'Posição do texto').tap();
     const canvas = preview(page).locator('canvas');
     await expect(canvas).toHaveCSS('touch-action', 'auto');
+    await expect(page.getByRole('radio', { name: 'Ajustar manualmente' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: /^Mover para/ })).toHaveCount(0);
 
-    await page.getByRole('radio', { name: 'Ajustar manualmente' }).locator('..').tap();
-    await expect(canvas).toHaveCSS('touch-action', 'none');
-    await expect(page.getByRole('group', { name: 'Posições predefinidas' })).toHaveCount(0);
-    await page.getByRole('button', { name: 'Mover para a direita' }).tap();
-    await expect(page.getByText(/^Posição personalizada: horizontal 52%/)).toBeVisible();
-
-    await page.getByRole('radio', { name: 'Escolher posição' }).locator('..').tap();
-    await expect(canvas).toHaveCSS('touch-action', 'auto');
-    await expect(page.getByText(/^Posição personalizada: horizontal 52%/)).toBeVisible();
-    // Closing the step leaves manual mode too.
-    await page.getByRole('radio', { name: 'Ajustar manualmente' }).locator('..').tap();
+    await page.getByRole('button', { name: 'Superior à direita' }).tap();
+    await expect(page.getByText('Posição: Superior à direita.')).toBeVisible();
     await toggle(page, 'Revisar personalização').tap();
-    await expect(canvas).toHaveCSS('touch-action', 'auto');
+    await expect(
+      page.locator('.review__summary dt', { hasText: 'Posição' }).locator('+ dd'),
+    ).toHaveText('Superior à direita');
+  });
+
+  test('applies the second color by tapping, after selecting in the field (D-068)', async ({
+    page,
+  }) => {
+    await toggle(page, 'Texto e cores').tap();
+    const field = page.getByLabel('Texto', { exact: true });
+    await field.fill('Casa da Ana');
+    await page
+      .getByRole('group', { name: 'Cor do texto' })
+      .getByRole('radio', { name: /Letra azul/ })
+      .check();
+    // As with touch handles: no mouse or key release reaches the page.
+    await field.evaluate((element) => {
+      const area = element as HTMLTextAreaElement;
+      area.focus();
+      area.setSelectionRange(0, 4);
+    });
+    await page.getByRole('button', { name: 'Usar segunda cor' }).tap();
+    await page
+      .getByRole('group', { name: 'Segunda cor' })
+      .locator('label', { has: page.getByRole('radio', { name: /Letra vinho/ }) })
+      .tap();
+    const apply = page.getByRole('button', { name: 'Aplicar segunda cor à seleção' });
+    await apply.scrollIntoViewIfNeeded();
+    await expect(page.getByText('Seleção: “CASA”')).toBeVisible();
+    await apply.tap();
+    await expect(page.getByText('Segunda cor aplicada a “CASA”.')).toBeVisible();
+    await expect(page.getByText('1 trecho com a segunda cor.')).toBeVisible();
+    await expectNoHorizontalScroll(page);
   });
 });

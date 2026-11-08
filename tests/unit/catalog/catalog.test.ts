@@ -138,6 +138,8 @@ describe('production catalog', () => {
         area: { x: 0.28, y: 0.265, width: 0.43, height: 0.43 },
         align: 'center',
         fontSize: 0.117,
+        // Always centered (D-068).
+        fixedPlacement: true,
       },
     });
     // Same placement; each file stays in its own model's folder.
@@ -145,6 +147,14 @@ describe('production catalog', () => {
     expect(g?.text?.area).toEqual(m?.text?.area);
     expect(g?.image.src).toBe('/catalog/plates/bandeja-ondulada-g-11/bege.jpg');
     expect(g?.text?.fontSize).toBe(0.0851);
+    expect(g?.text?.fixedPlacement).toBe(true);
+  });
+
+  it("fixes only the Bandejas' lettering at the center (D-068)", () => {
+    const fixed = getCatalog()
+      .plates.filter((plate) => plate.image?.text?.fixedPlacement === true)
+      .map((plate) => plate.id);
+    expect(fixed).toEqual(['bandeja-ondulada-m-8', 'bandeja-ondulada-g-11']);
   });
 
   it.each([

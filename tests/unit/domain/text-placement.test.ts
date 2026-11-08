@@ -4,15 +4,18 @@ import {
   defaultPlacement,
   effectivePlacement,
   isDefaultPosition,
+  isPlacementFixed,
   isValidPlacement,
   matchesPreset,
   nudgePlacement,
+  placementFor,
   PRESET_COLUMNS,
   PRESET_ROWS,
   presetPlacement,
   resetPosition,
   resolvePlacement,
   validateConfiguration,
+  type Plate,
   type TextPlacement,
 } from '../../../src/domain';
 import { testCatalog, validConfiguration } from './fixtures';
@@ -178,5 +181,34 @@ describe('validateConfiguration: textLayout', () => {
       'text',
       'textLayout',
     ]);
+  });
+});
+
+describe('fixed placement (D-068)', () => {
+  const plate = (fixedPlacement = false): Plate => ({
+    id: 'test-plate-x',
+    type: 'plate',
+    displayName: 'X',
+    sizeLabel: 'X',
+    ceramicColor: 'X',
+    shape: 'scalloped',
+    dimensions: { status: 'pending' },
+    image: {
+      image: { src: '/catalog/plates/test-plate-x/x.webp' },
+      text: { area: { x: 0.2, y: 0.2, width: 0.6, height: 0.6 }, align: 'center', fixedPlacement },
+    },
+  });
+  const stored: TextPlacement = { align: 'right', x: 1, y: 0 };
+
+  it('reports which models fix the placement', () => {
+    expect(isPlacementFixed(plate(true))).toBe(true);
+    expect(isPlacementFixed(plate())).toBe(false);
+    expect(isPlacementFixed(undefined)).toBe(false);
+  });
+
+  it('centers a fixed model whatever is stored, and uses the stored placement otherwise', () => {
+    expect(placementFor(stored, plate(true))).toEqual({ align: 'center', x: 0.5, y: 0.5 });
+    expect(placementFor(stored, plate())).toEqual(stored);
+    expect(placementFor(null, plate())).toEqual({ align: 'center', x: 0.5, y: 0.5 });
   });
 });

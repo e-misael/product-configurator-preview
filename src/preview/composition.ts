@@ -10,7 +10,8 @@ import {
   findPlateImage,
   findTextColor,
   isAvailable,
-  resolvePlacement,
+  letteringText,
+  placementFor,
   type Catalog,
   type Configuration,
   type ConfigurationField,
@@ -116,18 +117,21 @@ export function composePreview(
       // No approved lettering size: nothing is drawn rather than a guessed or fitted size (D-055).
       notices.push('text-size-pending');
     } else {
-      // An invalid stored placement is reported by validation and drawn at the catalog default.
-      const placement = resolvePlacement(config.textLayout, textLayout.align);
+      // An invalid stored placement is reported by validation and drawn at the catalog default;
+      // a model with a fixed placement always uses its default (D-068).
+      const placement = placementFor(config.textLayout, plate);
+      const fontFamily: FontFamily = hasIssue(validation, 'fontFamily', 'invalid')
+        ? 'sans-serif'
+        : config.fontFamily;
       textLayer = {
-        text: config.text,
+        // Capitals for "Sem serifa", same offsets as the stored text (D-068).
+        text: letteringText(config.text, fontFamily),
         area: textLayout.area,
         fontSize: textLayout.fontSize,
         align: placement.align,
         x: placement.x,
         y: placement.y,
-        fontFamily: hasIssue(validation, 'fontFamily', 'invalid')
-          ? 'sans-serif'
-          : config.fontFamily,
+        fontFamily,
         primaryColor: usableColor(catalog, config.textColorId, validation, 'textColorId'),
         secondary: secondaryStyle(catalog, config, validation),
       };

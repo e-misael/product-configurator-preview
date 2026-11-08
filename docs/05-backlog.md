@@ -291,6 +291,18 @@ Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decisio
 - [x] Tests: unit (alignment model, presets, reset, modes, accordion, signature geometry and factors, illustration flow, image reuse); Playwright on real photographs (alignment edges and signature placement per model, both engines), demo flows, export PNG signature pixels and missing-mark blocking, mobile layout at four widths by touch in Chromium and WebKit, production tray transition
 - Remaining: product-owner review on real phones (LAN); the signature over the Quadro frame rail; whether M and G should share one image file; where the "Observação" goes (D-062).
 
+## M4.7 — Functional and UX corrections
+
+Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decision D-068.
+
+- [x] "Sem serifa" in capitals (preview, summary, line limit, PNG), stored text unchanged, "Com serifa" mixed case; hint beside the font choice
+- [x] Bandeja M and G always centered (`fixedPlacement`); no presets or alignment; hint before and after the size; other models keep their position
+- [x] "Ajustar manualmente", drag, and arrow movement removed; presets and alignment only
+- [x] Second color: actions in its panel, always enabled, read the selection when pressed; selection indicator; confirmation and no-selection feedback (root cause in D-068)
+- [x] Summary shows "Alinhamento:" and "Posição:"; contextual help for typography, second color, presets, trays
+- [x] Tests: letter-case unit tests, fixed placement (domain, composition, catalog), component flows, Playwright on real photographs and demo in Chromium and WebKit (desktop and phone), including a touch-style selection and tray centering
+- Remaining: lowercase manufacturability (P-04/P-14); real-phone review of selection on iOS and Android.
+
 ## M5 — Quality and usability
 
 Status: Planned.

@@ -1,4 +1,12 @@
-import type { TextAlignment } from '../../domain';
+import {
+  matchesPreset,
+  PRESET_COLUMNS,
+  PRESET_ROWS,
+  type PresetColumn,
+  type PresetRow,
+  type TextAlignment,
+  type TextPlacement,
+} from '../../domain';
 import type { PreviewNoticeCode } from '../../preview/composition';
 
 /** Line alignment inside the text block (D-059). */
@@ -7,6 +15,33 @@ export const ALIGNMENT_LABELS: Record<TextAlignment, string> = {
   center: 'Centralizado',
   right: 'À direita',
 };
+
+const ROW_LABELS: Record<PresetRow, string> = {
+  top: 'Superior',
+  middle: 'Meio',
+  bottom: 'Inferior',
+};
+const COLUMN_LABELS: Record<PresetColumn, string> = {
+  left: 'à esquerda',
+  center: 'ao centro',
+  right: 'à direita',
+};
+
+/** Preset names, as on the position buttons and in the review. */
+export const presetLabel = (row: PresetRow, column: PresetColumn) =>
+  row === 'middle' && column === 'center'
+    ? 'Centro'
+    : `${ROW_LABELS[row]} ${COLUMN_LABELS[column]}`;
+
+/** The preset a placement sits at, if any. */
+export function presetOf(placement: TextPlacement) {
+  return PRESET_ROWS.flatMap((row) => PRESET_COLUMNS.map((column) => ({ row, column }))).find(
+    ({ row, column }) => matchesPreset(placement, row, column),
+  );
+}
+
+/** The help for a model whose lettering cannot be moved (D-068). */
+export const FIXED_PLACEMENT_HINT = 'Nas bandejas, o texto fica sempre centralizado.';
 
 /** pt-BR wording for each reason part of the preview is not shown (D-037). */
 export const NOTICE_MESSAGES: Record<PreviewNoticeCode, string> = {

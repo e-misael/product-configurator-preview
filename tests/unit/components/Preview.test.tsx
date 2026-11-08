@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/App';
 import { contextOf, installFakeCanvas, strokesOf, type FakeContext } from '../support/fake-canvas';
@@ -148,7 +148,8 @@ describe('Preview', () => {
       await user.type(screen.getByLabelText('Texto'), 'Casa{Enter}da Ana');
 
       const texts = painted(currentContext()).filter((entry) => entry.startsWith('text:'));
-      expect(texts).toEqual(['text:Casa', 'text:da Ana']);
+      // "Sem serifa" (the default) is lettered in capitals (D-068).
+      expect(texts).toEqual(['text:CASA', 'text:DA ANA']);
     });
 
     it('says the lettering color is provisional until one is chosen', async () => {
@@ -172,7 +173,7 @@ describe('Preview', () => {
       // The signature is painted last, over everything (D-060).
       expect(painted(currentContext())).toEqual([
         SQUARE_PLATE,
-        'text:Ana',
+        'text:ANA',
         'deboss',
         'signature',
         'signature',
@@ -186,7 +187,8 @@ describe('Preview', () => {
       await user.type(field, '  Ana{Enter}Maria  ');
 
       expect(field).toHaveValue('  Ana\nMaria  ');
-      expect(summaryText()?.textContent).toBe('  Ana\nMaria  ');
+      // Shown as lettered; the stored text keeps its case (D-068).
+      expect(summaryText()?.textContent).toBe('  ANA\nMARIA  ');
     });
 
     describe('line limit (D-063)', () => {
@@ -305,7 +307,7 @@ describe('Preview', () => {
         'text:L0',
         'text:L1',
         'text:L2',
-        'text:abcdefghijk',
+        'text:ABCDEFGHIJK',
       ]);
 
       await user.type(field, ' abcdefghijk');
@@ -328,7 +330,7 @@ describe('Preview', () => {
         'O tamanho das letras deste modelo ainda não foi definido; o texto não aparece na imagem.';
       expect(within(preview()).getByText(message)).toBeVisible();
       expect(painted(currentContext()).some((entry) => entry.startsWith('text:'))).toBe(false);
-      expect(summaryText()).toHaveTextContent('Ana');
+      expect(summaryText()).toHaveTextContent('ANA');
       // A complete configuration still cannot be exported without an approved size.
       const exportButton = within(review()).getByRole('button', { name: 'Exportar imagem' });
       expect(exportButton).toHaveAttribute('aria-disabled', 'true');
@@ -350,7 +352,7 @@ describe('Preview', () => {
       ).toBeVisible();
       expect(painted(currentContext()).some((entry) => entry.startsWith('text:'))).toBe(false);
       // The entered text is preserved and still shown in the summary.
-      expect(summaryText()).toHaveTextContent('Ana');
+      expect(summaryText()).toHaveTextContent('ANA');
     });
   });
 
@@ -366,7 +368,7 @@ describe('Preview', () => {
       settle();
       await user.type(screen.getByLabelText('Texto'), 'Ana');
 
-      expect(canvas()).toHaveAccessibleDescription(/Test plate square.*Ana/s);
+      expect(canvas()).toHaveAccessibleDescription(/Test plate square.*ANA/s);
     });
   });
 
@@ -374,9 +376,6 @@ describe('Preview', () => {
     const positionGroup = () => screen.getByRole('group', { name: 'Posição do texto' });
     const button = (name: string) => within(positionGroup()).getByRole('button', { name });
     const alignment = (name: string) => within(positionGroup()).getByRole('radio', { name });
-    /** Switches to "Ajustar manualmente": the arrow pad and dragging (D-058). */
-    const manual = (user: ReturnType<typeof userEvent.setup>) =>
-      user.click(within(positionGroup()).getByRole('radio', { name: 'Ajustar manualmente' }));
     /** The one position announcement (D-057). */
     const status = () => within(positionGroup()).getByRole('status');
     /** The first painted line as [x, textAlign]. */
@@ -418,15 +417,18 @@ describe('Preview', () => {
       expect(button('Redefinir posição')).toBeDisabled();
       // One section: the groups are named for assistive technology, without visible captions.
       expect(within(positionGroup()).getAllByRole('status')).toHaveLength(1);
-      // "Escolher posição" first: the presets only, never both sets of controls.
+      // The nine presets with a short explanation; no manual mode, arrows, or dragging (D-068).
       expect(
-        within(positionGroup()).getByRole('radio', { name: 'Escolher posição' }),
-      ).toBeChecked();
-      expect(screen.getByRole('group', { name: 'Posições predefinidas' })).toBeInTheDocument();
-      expect(screen.queryByRole('group', { name: 'Ajuste fino' })).toBeNull();
+        screen.getByRole('group', { name: 'Posições predefinidas' }),
+      ).toHaveAccessibleDescription('Escolha onde o bloco de texto fica na peça.');
       expect(within(positionGroup()).queryByText('Posições predefinidas')).toBeNull();
-      // No "Mover texto": the manual mode enables dragging.
-      expect(within(positionGroup()).queryByRole('button', { name: 'Mover texto' })).toBeNull();
+      expect(
+        within(positionGroup()).queryByRole('radio', { name: 'Ajustar manualmente' }),
+      ).toBeNull();
+      expect(within(positionGroup()).queryByRole('radio', { name: 'Escolher posição' })).toBeNull();
+      expect(within(positionGroup()).queryByRole('button', { name: /^Mover/ })).toBeNull();
+      expect(within(positionGroup()).queryByText(/arraste/i)).toBeNull();
+      expect(canvas()?.style.touchAction).toBe('');
     });
 
     it('offers icon-only alignment options, named for assistive technology', async () => {
@@ -442,30 +444,6 @@ describe('Preview', () => {
       ]);
       // No visible text in the options: only the icons.
       for (const option of options) expect(option.closest('label')).toHaveTextContent(/^$/);
-    });
-
-    it('shows one set of controls per mode and keeps the position when switching', async () => {
-      const { user } = await withText();
-      await user.click(button('Inferior à direita'));
-      await user.click(alignment('Alinhar à esquerda'));
-
-      await manual(user);
-      expect(screen.queryByRole('group', { name: 'Posições predefinidas' })).toBeNull();
-      expect(screen.getByRole('group', { name: 'Ajuste fino' })).toHaveAccessibleDescription(
-        'Setas do teclado: 2% por passo, 10% com Shift.',
-      );
-      // The keyboard instructions are for assistive technology only.
-      expect(screen.getByText('Setas do teclado: 2% por passo, 10% com Shift.')).toHaveClass(
-        'visually-hidden',
-      );
-      expect(status()).toHaveTextContent('Posição: Inferior à direita.');
-      expect(firstLine()).toEqual([200 + 60, 'left']);
-
-      await user.click(button('Mover para cima'));
-      await user.click(within(positionGroup()).getByRole('radio', { name: 'Escolher posição' }));
-      expect(screen.queryByRole('group', { name: 'Ajuste fino' })).toBeNull();
-      expect(status()).toHaveTextContent('Posição personalizada: horizontal 100%, vertical 98%.');
-      expect(alignment('Alinhar à esquerda')).toBeChecked();
     });
 
     it('applies a preset to the position only, keeping the line alignment (D-059)', async () => {
@@ -554,35 +532,8 @@ describe('Preview', () => {
         button('Meio à direita'),
       ]);
       expect(status()).toHaveTextContent('Posição: Meio à direita.');
-
-      await manual(user);
-      await user.click(button('Mover para cima'));
-      await user.click(within(positionGroup()).getByRole('radio', { name: 'Escolher posição' }));
-      const again = within(
-        screen.getByRole('group', { name: 'Posições predefinidas' }),
-      ).getAllByRole('button');
-      expect(again.every((preset) => preset.getAttribute('aria-pressed') === 'false')).toBe(true);
-      expect(status()).toHaveTextContent('Posição personalizada: horizontal 100%, vertical 48%.');
-    });
-
-    it('moves by 2% per button or arrow key, 10% with Shift', async () => {
-      const { user } = await withText();
-      await user.click(button('Superior à esquerda'));
-      await manual(user);
-
-      await user.click(button('Mover para a direita'));
-      expect(status()).toHaveTextContent('Posição personalizada: horizontal 2%, vertical 0%.');
-
-      await user.keyboard('{Shift>}');
-      await user.click(button('Mover para baixo'));
-      await user.keyboard('{/Shift}');
-      expect(status()).toHaveTextContent('Posição personalizada: horizontal 2%, vertical 10%.');
-
-      button('Mover para a direita').focus();
-      await user.keyboard('{ArrowRight}{ArrowRight}{Shift>}{ArrowDown}{/Shift}{ArrowUp}');
-      expect(status()).toHaveTextContent('Posição personalizada: horizontal 6%, vertical 18%.');
-      // Moving never changes the line alignment.
-      expect(firstLine()[1]).toBe('center');
+      const summary = within(review()).getByText('Posição:', { selector: 'dt' });
+      expect(summary.nextElementSibling).toHaveTextContent('Meio à direita');
     });
 
     it('resets the position to the catalog default, keeping the chosen alignment', async () => {
@@ -599,81 +550,6 @@ describe('Preview', () => {
       // Block "Ana" centered (x 170–230), its line right-aligned.
       expect(firstLine()).toEqual([230, 'right']);
       expect(alignment('Alinhar à direita')).toBeChecked();
-    });
-
-    it('drags the text with a mouse, changing only its position', async () => {
-      const { user, element } = await withText();
-      await user.click(button('Superior à esquerda'));
-      await manual(user);
-      // Block "Ana" at x 80–140, y 120–168; free space x 180, y 112.
-
-      fireEvent.pointerDown(element, {
-        pointerId: 1,
-        pointerType: 'mouse',
-        clientX: 100,
-        clientY: 140,
-      });
-      fireEvent.pointerMove(element, {
-        pointerId: 1,
-        pointerType: 'mouse',
-        clientX: 145,
-        clientY: 168,
-      });
-      fireEvent.pointerUp(element, {
-        pointerId: 1,
-        pointerType: 'mouse',
-        clientX: 145,
-        clientY: 168,
-      });
-
-      expect(status()).toHaveTextContent('Posição personalizada: horizontal 25%, vertical 25%.');
-      // Block at x 125, its line centered in it.
-      expect(firstLine()).toEqual([155, 'center']);
-    });
-
-    it('ignores a press outside the text', async () => {
-      const { user, element } = await withText();
-      await manual(user);
-
-      fireEvent.pointerDown(element, {
-        pointerId: 1,
-        pointerType: 'mouse',
-        clientX: 10,
-        clientY: 10,
-      });
-      fireEvent.pointerMove(element, {
-        pointerId: 1,
-        pointerType: 'mouse',
-        clientX: 60,
-        clientY: 60,
-      });
-
-      expect(status()).toHaveTextContent('Posição: Centro.');
-    });
-
-    it('drags only in "Ajustar manualmente"; elsewhere touch scrolls the page', async () => {
-      const { user, element } = await withText();
-      const drag = (pointerType: 'touch' | 'mouse') => {
-        const at = (clientX: number) => ({ pointerId: 2, pointerType, clientX, clientY: 200 });
-        fireEvent.pointerDown(element, at(200));
-        fireEvent.pointerMove(element, at(245));
-        fireEvent.pointerUp(element, at(245));
-      };
-
-      expect(element.style.touchAction).toBe('auto');
-      drag('touch');
-      drag('mouse');
-      expect(status()).toHaveTextContent('Posição: Centro.');
-
-      await manual(user);
-      expect(element.style.touchAction).toBe('none');
-      drag('touch');
-      expect(status()).toHaveTextContent('Posição personalizada: horizontal 75%, vertical 50%.');
-
-      // Leaving manual mode restores touch scrolling and keeps the position.
-      await user.click(within(positionGroup()).getByRole('radio', { name: 'Escolher posição' }));
-      expect(element.style.touchAction).toBe('auto');
-      expect(status()).toHaveTextContent('Posição personalizada: horizontal 75%, vertical 50%.');
     });
 
     it('keeps the position when the model changes', async () => {
@@ -796,8 +672,8 @@ describe('Preview', () => {
     });
   });
 
-  describe('blocked-axis positioning', () => {
-    it('does not change the coordinate of an axis without free space', async () => {
+  describe('overflowing text keeps its preset (D-044)', () => {
+    it('names the preset while an axis has no free space, and after the text fits again', async () => {
       const { user } = setup();
       await choosePlate(user, /^Test plate square /);
       settle();
@@ -807,24 +683,14 @@ describe('Preview', () => {
       const group = () => screen.getByRole('group', { name: 'Posição do texto' });
       const status = () => within(group()).getByRole('status');
       await user.click(within(group()).getByRole('button', { name: 'Superior à esquerda' }));
-      await user.click(within(group()).getByRole('radio', { name: 'Ajustar manualmente' }));
-      // Overflowing lines: no vertical free space; horizontal free space remains.
       await user.clear(field);
       // Words that wrap one per line (line breaks past the area are refused, D-063).
       await user.type(field, Array.from({ length: 30 }, () => 'abcdefghij').join(' '));
       expect(status()).toHaveTextContent('Posição: Superior à esquerda.');
-      expect(within(group()).getByRole('button', { name: 'Mover para baixo' })).toBeDisabled();
 
-      within(group()).getByRole('button', { name: 'Mover para a direita' }).focus();
-      await user.keyboard('{ArrowDown}{Shift>}{ArrowDown}{/Shift}{ArrowRight}');
-      expect(status()).toHaveTextContent(
-        'Posição personalizada: horizontal 2%, vertical sem espaço livre.',
-      );
-
-      // Back to short text: y is still exactly where the preset put it; x moved 2%.
       await user.clear(field);
       await user.type(field, 'Ana');
-      expect(status()).toHaveTextContent('Posição personalizada: horizontal 2%, vertical 0%.');
+      expect(status()).toHaveTextContent('Posição: Superior à esquerda.');
     });
   });
 });

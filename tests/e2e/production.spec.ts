@@ -393,7 +393,7 @@ test.describe('Placa photograph with debossed lettering (M1.3b-1)', () => {
     await expectNoHorizontalScroll(page);
   });
 
-  test('stays responsive while dragging and typing on a phone-sized canvas', async ({
+  test('stays responsive while positioning and typing on a phone-sized canvas', async ({
     page,
     browserName,
     isMobile,
@@ -407,11 +407,8 @@ test.describe('Placa photograph with debossed lettering (M1.3b-1)', () => {
     await chooseModel(page, 'Placa cerâmica — 10 × 10 cm');
     const field = await textField(page);
     await field.fill('Casa da Ana');
-    // Dragging is part of "Ajustar manualmente" (D-058).
+    // Presets are the only way to move the text (D-068); each one repaints the scene.
     await openStep(page, 'Posição do texto');
-    await page.getByRole('radio', { name: 'Ajustar manualmente' }).check();
-    const canvas = page.getByRole('region', { name: 'Pré-visualização' }).locator('canvas');
-    await canvas.scrollIntoViewIfNeeded();
     await page.evaluate(() => {
       const w = window as unknown as { longTasks: number[] };
       w.longTasks = [];
@@ -420,22 +417,22 @@ test.describe('Placa photograph with debossed lettering (M1.3b-1)', () => {
       }).observe({ type: 'longtask', buffered: false });
     });
 
-    const box = await canvas.boundingBox();
-    if (!box) throw new Error('No canvas box');
-    const x = box.x + box.width / 2;
-    const y = box.y + box.height / 2;
-    const steps = 60;
-    const dragStart = Date.now();
-    await page.mouse.move(x, y);
-    await page.mouse.down();
-    for (let i = 1; i <= steps; i += 1) {
-      await page.mouse.move(x + i, y + i / 2);
+    const presets = [
+      'Superior à esquerda',
+      'Superior à direita',
+      'Inferior à direita',
+      'Inferior à esquerda',
+      'Centro',
+    ];
+    const rounds = 4;
+    const moveStart = Date.now();
+    for (let round = 0; round < rounds; round += 1) {
+      for (const name of presets) {
+        await page.getByRole('button', { name, exact: true }).click();
+      }
     }
-    await page.mouse.up();
-    const dragMs = (Date.now() - dragStart) / steps;
-    // The drag really moved the text, so every step repainted the scene.
-    await openStep(page, 'Posição do texto');
-    await expect(page.getByText(/^Posição personalizada:/)).toBeVisible();
+    const dragMs = (Date.now() - moveStart) / (rounds * presets.length);
+    await expect(page.getByText('Posição: Centro.')).toBeVisible();
     await openStep(page, 'Texto e cores');
 
     const typeStart = Date.now();
@@ -450,7 +447,7 @@ test.describe('Placa photograph with debossed lettering (M1.3b-1)', () => {
     test.info().annotations.push({
       type: 'performance (4× CPU throttling, 390 px viewport)',
       description: JSON.stringify({
-        msPerDragStep: Math.round(dragMs),
+        msPerPresetChange: Math.round(dragMs),
         msPerTypedCharacter: Math.round(typeMs),
         longTasks: longTasks.length,
         worstLongTaskMs: Math.round(worst),
@@ -458,7 +455,7 @@ test.describe('Placa photograph with debossed lettering (M1.3b-1)', () => {
     });
     // Generous bounds: an interaction that blocks for a quarter second is noticeable.
     expect(worst).toBeLessThan(250);
-    expect(dragMs).toBeLessThan(100);
+    expect(dragMs).toBeLessThan(250);
   });
 });
 
@@ -499,14 +496,18 @@ test.describe('Bandeja ondulada sizes (D-057)', () => {
     await openStep(page, 'Modelo e tamanho');
     await sizes.getByRole('radio', { name: 'G — 11 × 11 cm' }).check();
     await expect(preview.getByRole('img')).toBeVisible();
+    // Tray lettering is always centered: no position or alignment controls (D-068).
     await openStep(page, 'Posição do texto');
-    await page
-      .getByRole('group', { name: 'Posição do texto' })
-      .getByRole('button', { name: 'Superior à esquerda', exact: true })
-      .click();
+    await expect(
+      page.getByText('Nas bandejas, o texto fica sempre centralizado.').last(),
+    ).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Posições predefinidas' })).toHaveCount(0);
+    await expect(page.getByRole('radio', { name: 'Alinhar à esquerda' })).toHaveCount(0);
     await expect(preview).not.toContainText('O texto não cabe');
     await openStep(page, 'Revisar personalização');
     await expect(summary('Tamanho')).toHaveText('G — 11 × 11 cm');
+    await expect(summary('Alinhamento')).toHaveText('Centralizado');
+    await expect(summary('Posição')).toHaveText('Centro');
     await expect(button).toHaveAttribute('aria-disabled', 'false');
 
     await openStep(page, 'Modelo e tamanho');
@@ -518,10 +519,6 @@ test.describe('Bandeja ondulada sizes (D-057)', () => {
     await expect(
       page.getByRole('group', { name: 'Cor do texto' }).getByRole('radio', { name: 'Azul' }),
     ).toBeChecked();
-    await openStep(page, 'Posição do texto');
-    await expect(
-      page.getByRole('button', { name: 'Superior à esquerda', exact: true }),
-    ).toHaveAttribute('aria-pressed', 'true');
     await openStep(page, 'Revisar personalização');
     await expect(button).toHaveAttribute('aria-disabled', 'true');
 
@@ -766,9 +763,10 @@ test.describe('Text position section (D-057)', () => {
     await expect(
       position.getByRole('group', { name: 'Alinhamento das linhas' }).getByRole('radio'),
     ).toHaveCount(3);
-    // One set of controls at a time: the presets, or the arrow pad (D-058).
+    // The presets only: no manual mode or arrow pad (D-068).
     await expect(position.getByRole('group', { name: 'Posições predefinidas' })).toBeVisible();
-    await expect(position.getByRole('group', { name: 'Ajuste fino' })).toHaveCount(0);
+    await expect(position.getByRole('radio', { name: 'Ajustar manualmente' })).toHaveCount(0);
+    await expect(position.getByRole('button', { name: /^Mover para/ })).toHaveCount(0);
     await expect(position.getByText('Posições predefinidas')).toHaveCount(0);
     await expect(
       position.getByRole('group', { name: 'Posições predefinidas' }).getByRole('button'),
@@ -777,18 +775,8 @@ test.describe('Text position section (D-057)', () => {
     await expect(status).toHaveCount(1);
     await expect(status).toHaveText('Posição: Centro.');
 
-    await position.getByRole('radio', { name: 'Ajustar manualmente' }).check();
-    await expect(position.getByRole('group', { name: 'Posições predefinidas' })).toHaveCount(0);
-    await expect(
-      position.getByRole('group', { name: 'Ajuste fino' }).getByRole('button'),
-    ).toHaveCount(4);
-    // Keyboard instructions are not shown; they describe the arrow pad.
-    await expect(position.getByText(/Setas do teclado/)).toHaveClass('visually-hidden');
-    await expect(position.getByRole('group', { name: 'Ajuste fino' })).toHaveAccessibleDescription(
-      /Setas do teclado/,
-    );
-    await position.getByRole('button', { name: 'Mover para a direita' }).click();
-    await expect(status).toHaveText('Posição personalizada: horizontal 52%, vertical 50%.');
+    await position.getByRole('button', { name: 'Inferior à direita', exact: true }).click();
+    await expect(status).toHaveText('Posição: Inferior à direita.');
     await position.getByRole('button', { name: 'Redefinir posição' }).click();
     await expect(status).toHaveText('Posição: Centro.');
     await expectNoHorizontalScroll(page);

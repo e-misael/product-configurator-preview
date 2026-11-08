@@ -15,7 +15,13 @@ function bandejaImage(id: string, fontSize: number): PlateImage {
       heightPx: 1060,
     },
     objectBounds: { x: 0.0283, y: 0.0387, width: 0.9425, height: 0.9226 },
-    text: { area: { x: 0.28, y: 0.265, width: 0.43, height: 0.43 }, align: 'center', fontSize },
+    // Tray lettering is always centered: no position or alignment choice (D-068).
+    text: {
+      area: { x: 0.28, y: 0.265, width: 0.43, height: 0.43 },
+      align: 'center',
+      fontSize,
+      fixedPlacement: true,
+    },
   };
 }
 

@@ -3,7 +3,6 @@ import { getCatalog } from './catalog';
 import { ConfiguratorForm, type StepId } from './components/configurator/ConfiguratorForm';
 import { groupOf, MODEL_GROUPS, type ModelGroup } from './components/configurator/model-groups';
 import { PreviewPanel } from './components/preview/PreviewPanel';
-import type { PositionMode } from './components/preview/TextPositionControls';
 import { findPlate, type Catalog } from './domain';
 import { useConfiguration } from './hooks/useConfiguration';
 import { usePreviewScene } from './hooks/usePreviewScene';
@@ -56,15 +55,12 @@ export function App({ catalog = getCatalog(), banner, modelGroups = MODEL_GROUPS
   );
   const wide = useWideLayout();
   const [openStep, setOpenStep] = useState<StepId | null>('model');
-  const [positionMode, setPositionMode] = useState<PositionMode>('presets');
   const revealed = useRef<StepId | null>(null);
 
   // Accordion (WAI-ARIA): focus stays on the activated header; nothing else is focused.
   const toggleStep = (step: StepId) => {
     const next = openStep === step ? null : step;
     setOpenStep(next);
-    // Dragging belongs to the position step: leaving it gives touch scrolling back.
-    if (next !== 'position') setPositionMode('presets');
     revealed.current = next;
   };
 
@@ -103,8 +99,6 @@ export function App({ catalog = getCatalog(), banner, modelGroups = MODEL_GROUPS
             sizePending={sizePending}
             expanded={!wide && openStep === 'position'}
             reduced={!wide && openStep === 'text'}
-            moveMode={positionMode === 'manual'}
-            onPlace={state.placeText}
           />
           <ConfiguratorForm
             catalog={catalog}
@@ -115,8 +109,6 @@ export function App({ catalog = getCatalog(), banner, modelGroups = MODEL_GROUPS
             collapsible={!wide}
             openStep={openStep}
             onToggleStep={toggleStep}
-            positionMode={positionMode}
-            onPositionMode={setPositionMode}
           />
         </div>
       )}

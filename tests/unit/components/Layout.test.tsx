@@ -135,7 +135,8 @@ describe('layout (D-058)', () => {
     ).toBeChecked();
     expect(screen.getByRole('radio', { name: 'Alinhar à direita', hidden: true })).toBeChecked();
     expect(toggle('Modelo e tamanho')).toHaveAccessibleDescription(/Concluído/);
-    expect(toggle('Texto e cores')).toHaveAccessibleDescription('Concluído · “Ana” · Test ink A');
+    // "Sem serifa": the summary shows the text as lettered, in capitals (D-068).
+    expect(toggle('Texto e cores')).toHaveAccessibleDescription('Concluído · “ANA” · Test ink A');
     expect(toggle('Posição do texto')).toHaveAccessibleDescription(
       'Concluído · inferior à esquerda',
     );
@@ -147,7 +148,7 @@ describe('layout (D-058)', () => {
     ).toHaveAttribute('aria-disabled', 'false');
   });
 
-  it('expands the preview while positioning, and leaves touch-move mode when closing', async () => {
+  it('expands the preview while positioning; the canvas never captures touch (D-068)', async () => {
     const { user } = setup();
     const preview = region('Pré-visualização');
     await user.click(
@@ -163,15 +164,13 @@ describe('layout (D-058)', () => {
 
     await user.click(toggle('Posição do texto'));
     expect(preview).toHaveClass('preview--expanded');
-    await user.click(screen.getByRole('radio', { name: 'Ajustar manualmente' }));
-    expect(preview.querySelector('canvas')?.style.touchAction).toBe('none');
+    // Presets only: no manual mode, arrow pad, or dragging.
+    expect(screen.queryByRole('radio', { name: 'Ajustar manualmente' })).toBeNull();
+    expect(screen.queryByRole('button', { name: /^Mover para/ })).toBeNull();
+    expect(preview.querySelector('canvas')?.style.touchAction).toBe('');
 
-    // Closing the step leaves manual mode, so touch scrolls the page again.
     await user.click(toggle('Revisar personalização'));
     expect(preview).not.toHaveClass('preview--expanded');
-    expect(preview.querySelector('canvas')?.style.touchAction).toBe('auto');
-    await user.click(toggle('Posição do texto'));
-    expect(screen.getByRole('radio', { name: 'Escolher posição' })).toBeChecked();
   });
 
   it('keeps focus on the activated header and focuses nothing else (WAI-ARIA accordion)', async () => {

@@ -526,6 +526,17 @@ Status values:
 - Supplied by the product owner (2026-11-08): Marrom `#802b00` (was `#4a2a14`), Azul `#002b80` (was `#2b4a7a`), Verde `#006600` (was `#2f4a36`), and new colors Laranja escuro `#b25900`, Amarelo queimado `#b38f00` (replacing the proposed `#a87a10`), Preto `#000000`. Vermelho escuro `#7a1f1f` was not mentioned and is kept. Display order: Marrom, Azul, Verde, Vermelho escuro, Laranja escuro, Amarelo queimado, Preto; IDs `laranja-escuro`, `amarelo-queimado`, `preto` are new, existing IDs unchanged. Each may be the second color. Marrom stays the default (D-064). The demo catalog is unchanged.
 - **Status:** Approved (product owner, 2026-11-08). Implementation pending acceptance.
 
+### D-068 — M4.7 corrections: letter case by typeface, centered trays, presets only, working second color (2026-11-08)
+
+- Requested by the product owner (M4.7, 2026-11-08).
+- **Letter case:** "Com serifa" keeps the text as typed; "Sem serifa" letters in capitals only (as the reference pieces do). `letteringText(text, fontFamily)` uppercases per grapheme in pt-BR and keeps a grapheme whose capital changes length (e.g. "ß"), so character offsets, second-color ranges, and the stored text are unchanged; switching back to "Com serifa" restores the mixed case. The preview, summary, line limit, and PNG use the lettered text; the field shows capitals with CSS. Physical sizes (D-055) are unchanged: the 7 mm calibration is a capital height, so it already holds for capitals; lowercase in "Com serifa" uses the same font size.
+- **Trays centered:** `TextLayout.fixedPlacement` (catalog data) on Bandeja ondulada M and G. `placementFor` returns the default center for such a model wherever a placement is used (composition, review, form); the configuration's `textLayout` is not migrated or cleared, so other models keep their position. No presets or alignment are shown on the trays; the shared photograph before the size (D-061) is unchanged. The demo tray is not fixed (demo catalog unchanged).
+- **Manual positioning removed** (supersedes D-059's second mode and the D-044 drag/keyboard movement): only the nine presets and the line alignment, for Placa and Quadro. The domain keeps a normalized position, so no migration is needed.
+- **Second color, root cause:** "Aplicar segunda cor à seleção" was enabled by React's `onSelect`, which fires only on mouse or key release; selections made with touch handles (iOS, Android) or programmatically never enabled it, and the disabled button gave no reason. The buttons were also in the text field, far from the swatches. Fix: the actions moved into the second-color panel and are always enabled; they read the textarea's selection at press time (a textarea keeps its selection after blur); a `selectionchange`/`select`-based indicator shows the selected letters; the result or the missing selection is announced politely.
+- **Help:** short hints for the font rule, the second color, the presets, and the trays. Summary labels "Alinhamento:" and "Posição:".
+- **Open:** whether lowercase serif lettering is manufacturable (no character-set rule exists, P-04/P-14); accented serif capitals overshoot their line slot by about 0.035 em in Chromium (pre-existing).
+- **Status:** Approved as requested (product owner, 2026-11-08). Implementation pending acceptance.
+
 ## Proposed
 
 ### D-066 — Lettering font evaluation: Georgia Bold and Century Gothic Bold (2026-11-08)

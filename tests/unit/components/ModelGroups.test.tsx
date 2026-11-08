@@ -266,7 +266,7 @@ describe('model groups (D-057)', () => {
       expect(within(group('Tamanho')).queryByRole('radio', { checked: true })).toBeNull();
     });
 
-    it('keeps text, colors, and position when the size changes, and revalidates overflow', async () => {
+    it('keeps text and colors when the size changes, and revalidates overflow', async () => {
       const { user } = setup();
       await user.click(models().getByRole('radio', { name: 'Bandeja ondulada' }));
       await user.click(within(group('Tamanho')).getByRole('radio', { name: 'G — 11 × 11 cm' }));
@@ -274,7 +274,6 @@ describe('model groups (D-057)', () => {
       // G holds 4 lines at its fixed size; M holds 3.
       await user.type(screen.getByLabelText('Texto'), 'Ana{Enter}Luz{Enter}Casa{Enter}Mar');
       await user.click(within(group('Cor do texto')).getByRole('radio', { name: /Azul/ }));
-      await user.click(screen.getByRole('button', { name: 'Superior à esquerda' }));
       expect(within(preview()).queryByText(/O texto não cabe/)).toBeNull();
       expect(configStatus()).toHaveTextContent('Configuração completa.');
 
@@ -283,10 +282,6 @@ describe('model groups (D-057)', () => {
 
       expect(screen.getByLabelText('Texto')).toHaveValue('Ana\nLuz\nCasa\nMar');
       expect(within(group('Cor do texto')).getByRole('radio', { name: /Azul/ })).toBeChecked();
-      expect(screen.getByRole('button', { name: 'Superior à esquerda' })).toHaveAttribute(
-        'aria-pressed',
-        'true',
-      );
       expect(
         within(preview()).getByText(
           'O texto não cabe na área do modelo: 1 linha a mais. Reduza o texto ou use menos linhas.',
@@ -298,6 +293,58 @@ describe('model groups (D-057)', () => {
       settle();
       expect(within(preview()).queryByText(/O texto não cabe/)).toBeNull();
       expect(exportButton()).not.toHaveAttribute('aria-disabled', 'true');
+    });
+  });
+
+  describe('tray lettering is always centered (D-068)', () => {
+    it('hides every position and alignment control, before and after the size', async () => {
+      const { user } = setup();
+      await user.click(models().getByRole('radio', { name: 'Bandeja ondulada' }));
+      const hint = 'Nas bandejas, o texto fica sempre centralizado.';
+
+      // Before the size: the note beside the size and in place of the position controls.
+      expect(group('Tamanho')).toHaveAccessibleDescription(hint);
+      expect(screen.getAllByText(hint)).toHaveLength(2);
+      expect(screen.queryByRole('group', { name: 'Posições predefinidas' })).toBeNull();
+
+      for (const size of ['M — 8 × 8 cm', 'G — 11 × 11 cm']) {
+        await user.click(within(group('Tamanho')).getByRole('radio', { name: size }));
+        settle();
+        await user.type(screen.getByLabelText('Texto'), 'Ana');
+        expect(screen.queryByRole('group', { name: 'Posições predefinidas' })).toBeNull();
+        expect(screen.queryByRole('radio', { name: 'Alinhar à esquerda' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Redefinir posição' })).toBeNull();
+        expect(screen.getAllByText(hint).length).toBeGreaterThan(0);
+        expect(summary('Alinhamento')).toBe('Centralizado');
+        expect(summary('Posição')).toBe('Centro');
+        await user.clear(screen.getByLabelText('Texto'));
+      }
+    });
+
+    it("keeps another model's position and alignment for when it comes back", async () => {
+      const { user } = setup();
+      await user.click(models().getByRole('radio', { name: 'Placa cerâmica — 10 × 10 cm' }));
+      settle();
+      await user.type(screen.getByLabelText('Texto'), 'Ana');
+      await user.click(screen.getByRole('button', { name: 'Superior à direita' }));
+      await user.click(screen.getByRole('radio', { name: 'Alinhar à direita' }));
+      expect(summary('Posição')).toBe('Superior à direita');
+      expect(summary('Alinhamento')).toBe('À direita');
+
+      await user.click(models().getByRole('radio', { name: 'Bandeja ondulada' }));
+      await user.click(within(group('Tamanho')).getByRole('radio', { name: 'M — 8 × 8 cm' }));
+      settle();
+      expect(summary('Posição')).toBe('Centro');
+      expect(summary('Alinhamento')).toBe('Centralizado');
+
+      await user.click(models().getByRole('radio', { name: 'Placa cerâmica — 10 × 10 cm' }));
+      settle();
+      expect(summary('Posição')).toBe('Superior à direita');
+      expect(summary('Alinhamento')).toBe('À direita');
+      expect(screen.getByRole('button', { name: 'Superior à direita' })).toHaveAttribute(
+        'aria-pressed',
+        'true',
+      );
     });
   });
 

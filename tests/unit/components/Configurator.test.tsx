@@ -72,9 +72,31 @@ describe('Configurator', () => {
 
       expect(field).toHaveValue('  Casa da Ana\nDesde 2024 ');
       expect(field).toHaveAccessibleDescription('As quebras de linha são mantidas.');
+      // "Sem serifa" (the default) is lettered in capitals; the stored text is unchanged (D-068).
+      expect(field).toHaveClass('textarea--uppercase');
       expect(review().querySelector('.review__text')?.textContent).toBe(
-        '  Casa da Ana\nDesde 2024 ',
+        '  CASA DA ANA\nDESDE 2024 ',
       );
+    });
+
+    it('keeps mixed case for "Com serifa" and restores it after "Sem serifa" (D-068)', async () => {
+      const { user } = setup();
+      const field = screen.getByLabelText('Texto');
+      const text = () => review().querySelector('.review__text')?.textContent;
+      await user.type(field, 'Ação é já');
+
+      expect(group('Fonte')).toHaveAccessibleDescription(/somente letras maiúsculas/);
+      expect(text()).toBe('AÇÃO É JÁ');
+
+      await user.click(within(group('Fonte')).getByRole('radio', { name: 'Com serifa' }));
+      expect(field).toHaveValue('Ação é já');
+      expect(field).not.toHaveClass('textarea--uppercase');
+      expect(text()).toBe('Ação é já');
+
+      await user.click(within(group('Fonte')).getByRole('radio', { name: 'Sem serifa' }));
+      expect(text()).toBe('AÇÃO É JÁ');
+      await user.click(within(group('Fonte')).getByRole('radio', { name: 'Com serifa' }));
+      expect(text()).toBe('Ação é já');
     });
 
     it('marks blank text as invalid next to the field', async () => {
@@ -183,16 +205,50 @@ describe('Configurator', () => {
 
     it('applies the second color only to the selection, keeping the text unchanged', async () => {
       const { user } = await withSecondary('Casa da Ana');
-      expect(apply()).toBeDisabled();
       expect(screen.getByText('Nenhum trecho com a segunda cor.')).toBeInTheDocument();
 
       select(0, 4);
-      expect(apply()).toBeEnabled();
+      // The selection is named next to the actions (D-068).
+      expect(screen.getByText('Seleção: “CASA”')).toBeInTheDocument();
       await user.click(apply());
 
       expect(screen.getByLabelText('Texto')).toHaveValue('Casa da Ana');
+      expect(screen.getByText('Segunda cor aplicada a “CASA”.')).toBeInTheDocument();
       expect(screen.getByText('1 trecho com a segunda cor.')).toBeInTheDocument();
       expect(within(review()).getByText(/1 trecho/)).toBeInTheDocument();
+    });
+
+    it('never disables the actions: without a selection they say what to do (D-068)', async () => {
+      const { user } = await withSecondary('Casa da Ana');
+      expect(apply()).toBeEnabled();
+      expect(apply()).toHaveAccessibleDescription(/Selecione as letras no campo Texto/);
+
+      await user.click(apply());
+      expect(screen.getByText(/^Nenhuma letra selecionada\. Selecione no campo Texto/)).toHaveClass(
+        'field__error',
+      );
+      expect(screen.getByText('Nenhum trecho com a segunda cor.')).toBeInTheDocument();
+
+      await user.click(unapply());
+      expect(screen.getByText(/^Nenhuma letra selecionada\. Selecione/)).toBeInTheDocument();
+    });
+
+    it('applies a selection made before the color, after focus moved away (D-068)', async () => {
+      const { user } = setup();
+      const field = screen.getByLabelText<HTMLTextAreaElement>('Texto');
+      await user.type(field, 'Casa da Ana');
+      await user.click(ink('ink A'));
+      // Selected without a mouse or key release (as by touch), then focus leaves the field.
+      field.focus();
+      field.setSelectionRange(8, 11);
+      fireEvent(document, new Event('selectionchange'));
+      await user.click(disclosure());
+      await user.click(secondary('ink B'));
+      expect(field).not.toHaveFocus();
+
+      await user.click(apply());
+      expect(screen.getByText('Segunda cor aplicada a “ANA”.')).toBeInTheDocument();
+      expect(screen.getByText('1 trecho com a segunda cor.')).toBeInTheDocument();
     });
 
     it('removes the second color from a selection but keeps the chosen color', async () => {

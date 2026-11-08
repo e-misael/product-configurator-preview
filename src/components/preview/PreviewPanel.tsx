@@ -1,5 +1,4 @@
-import type { TextPlacement } from '../../domain';
-import { textBlockOf, type Point } from '../../preview/placement';
+import { textBlockOf } from '../../preview/placement';
 import type { Scene } from '../../preview/scene';
 import { noticeMessage } from './messages';
 import { PreviewCanvas } from './PreviewCanvas';
@@ -17,9 +16,6 @@ interface PreviewPanelProps {
    * never moves the page under the finger.
    */
   readonly reduced: boolean;
-  /** "Ajustar manualmente": the text can be dragged on the canvas. */
-  readonly moveMode: boolean;
-  readonly onPlace: (placement: TextPlacement) => void;
 }
 
 /**
@@ -29,25 +25,13 @@ interface PreviewPanelProps {
  * is positioned; its space is reserved from the start so choosing a model
  * does not shift the page. The text summary is in "Revisar personalização".
  */
-export function PreviewPanel({
-  scene,
-  active,
-  sizePending,
-  expanded,
-  reduced,
-  moveMode,
-  onPlace,
-}: PreviewPanelProps) {
+export function PreviewPanel({ scene, active, sizePending, expanded, reduced }: PreviewPanelProps) {
   const block = textBlockOf(scene);
   // Overflow blocks export and needs the customer to act: it is shown as an error (D-063).
   const notices = [...new Set(scene.notices)].map((code) => ({
     code,
     message: noticeMessage(code, block?.excessLines ?? 0, sizePending),
   }));
-  // Dragging changes only the block position; the line alignment is kept (D-059).
-  const moveText = (position: Point) => {
-    if (block !== undefined) onPlace({ align: block.align, ...position });
-  };
 
   return (
     <section
@@ -65,8 +49,6 @@ export function PreviewPanel({
             scene={scene}
             label={scene.description ?? 'Pré-visualização da configuração'}
             describedBy="review-summary"
-            moveMode={moveMode}
-            onMoveText={moveText}
           />
         ) : (
           <div className="preview__empty">Sem imagem para exibir</div>

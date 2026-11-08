@@ -1,4 +1,5 @@
-import type { Catalog, Plate, ValidationIssue } from '../../domain';
+import { isPlacementFixed, type Catalog, type Plate, type ValidationIssue } from '../../domain';
+import { FIXED_PLACEMENT_HINT } from '../preview/messages';
 import { ChoiceOption } from './ChoiceOption';
 import { InvalidSelection } from './InvalidSelection';
 import { invalidMessage, modelLabel } from './messages';
@@ -73,7 +74,10 @@ export function ModelField({
         )}
       </div>
       {sizes?.kind === 'group' && (
-        <fieldset className="field field--nested">
+        <fieldset
+          className="field field--nested"
+          aria-describedby={sizes.plates.some(isPlacementFixed) ? 'size-hint' : undefined}
+        >
           <legend className="field__legend">Tamanho</legend>
           <div className="field__options">
             {sizes.plates.map((option) => (
@@ -88,6 +92,12 @@ export function ModelField({
               </ChoiceOption>
             ))}
           </div>
+          {/* The tray lettering cannot be moved (D-068). */}
+          {sizes.plates.some(isPlacementFixed) && (
+            <p className="field__info" id="size-hint">
+              {FIXED_PLACEMENT_HINT}
+            </p>
+          )}
         </fieldset>
       )}
       {plate && (

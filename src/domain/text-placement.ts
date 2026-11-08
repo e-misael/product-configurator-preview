@@ -62,11 +62,29 @@ export function catalogTextAlign(plate: Plate | undefined): TextAlignment {
   return plate?.image?.text?.align ?? DEFAULT_TEXT_ALIGN;
 }
 
+/** Whether the model's lettering has one fixed placement (the Bandejas, D-068). */
+export function isPlacementFixed(plate: Plate | undefined): boolean {
+  return plate?.image?.text?.fixedPlacement === true;
+}
+
+/**
+ * The placement in effect for `plate`: its fixed default, or the stored
+ * placement. A fixed model ignores the stored placement without clearing it,
+ * so it applies again on the next model that allows positioning (D-068).
+ */
+export function placementFor(
+  layout: TextPlacement | null,
+  plate: Plate | undefined,
+): TextPlacement {
+  const align = catalogTextAlign(plate);
+  return isPlacementFixed(plate) ? defaultPlacement(align) : resolvePlacement(layout, align);
+}
+
 /** The placement in effect for a configuration (stored, or the selected model's default). */
 export function effectivePlacement(config: Configuration, catalog: Catalog): TextPlacement {
   // Looked up directly (not via findPlate) so validation can import this module without a cycle.
   const plate = catalog.plates.find((candidate) => candidate.id === config.plateId);
-  return resolvePlacement(config.textLayout, catalogTextAlign(plate));
+  return placementFor(config.textLayout, plate);
 }
 
 /** A preset places the block only; the line alignment is kept (D-059, replacing D-047). */

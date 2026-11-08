@@ -57,6 +57,11 @@ export interface TextLayout {
    * until approved for the model; the text is then not drawn and export is blocked.
    */
   readonly fontSize?: number;
+  /**
+   * The lettering is always at the default placement (centered in the area,
+   * centered lines); the customer cannot move or realign it (D-068).
+   */
+  readonly fixedPlacement?: boolean;
 }
 
 /**

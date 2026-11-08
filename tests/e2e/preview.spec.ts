@@ -308,7 +308,7 @@ test.describe('personalized text', () => {
     await expect(preview(page)).toContainText('O texto não cabe na área do modelo');
     // The full text is still kept and summarized in the review.
     const review = await step(page, 'Revisar personalização');
-    await expect(review.locator('.review__text')).toContainText('linha 39');
+    await expect(review.locator('.review__text')).toContainText('LINHA 39');
   });
 });
 
@@ -407,9 +407,6 @@ test.describe('text position (D-044)', () => {
     position(page)
       .getByRole('group', { name: 'Alinhamento das linhas' })
       .getByRole('radio', { name, exact: true });
-  /** "Escolher posição" (presets) or "Ajustar manualmente" (arrow pad and dragging). */
-  const mode = (page: Page, name: 'Escolher posição' | 'Ajustar manualmente') =>
-    position(page).getByRole('radio', { name, exact: true }).check();
 
   const EDGE = 0.025;
   const near = (a: number, b: number, tolerance = EDGE) => Math.abs(a - b) <= tolerance;
@@ -507,118 +504,32 @@ test.describe('text position (D-044)', () => {
     await expect(position(page).getByText('Posição: Inferior à direita.')).toBeVisible();
   });
 
-  test('drags the text with the mouse, changing only its position', async ({ page, isMobile }) => {
-    test.skip(isMobile, 'Mouse dragging is a desktop interaction; touch is tested separately.');
+  test('offers only the presets: no manual mode, arrows, or dragging (D-068)', async ({
+    page,
+    isMobile,
+  }) => {
     await withText(page);
     await preset(page, 'Superior à esquerda').click();
     const before = await settledBox(page, (b) => near(b.left, SQUARE_AREA.x0));
-    await mode(page, 'Ajustar manualmente');
-    // The controls are below the preview; the pointer can only reach what is on screen.
+
+    await expect(position(page).getByRole('radio', { name: 'Ajustar manualmente' })).toHaveCount(0);
+    await expect(position(page).getByRole('button', { name: /^Mover para/ })).toHaveCount(0);
+    await expect(position(page).getByText(/arraste/i)).toHaveCount(0);
+    // Touch on the preview scrolls the page as usual.
+    await expect(canvas(page)).toHaveCSS('touch-action', 'auto');
+    test.skip(isMobile, 'The mouse check is for desktop.');
+    // A mouse drag on the text does not move it.
     await canvas(page).scrollIntoViewIfNeeded();
     const rect = await boxOf(canvas(page));
-    const startX = rect.x + ((before.left + before.right) / 2) * rect.width;
-    const startY = rect.y + ((before.top + before.bottom) / 2) * rect.height;
-
-    await page.mouse.move(startX, startY);
+    const x = rect.x + ((before.left + before.right) / 2) * rect.width;
+    const y = rect.y + ((before.top + before.bottom) / 2) * rect.height;
+    await page.mouse.move(x, y);
     await page.mouse.down();
-    await page.mouse.move(startX + 0.15 * rect.width, startY + 0.1 * rect.height, { steps: 8 });
+    await page.mouse.move(x + 0.15 * rect.width, y + 0.1 * rect.height, { steps: 8 });
     await page.mouse.up();
-
-    const after = await settledBox(page, (b) => b.left > before.left + 0.1);
-    expect(after.left - before.left).toBeCloseTo(0.15, 1);
-    expect(after.top - before.top).toBeCloseTo(0.1, 1);
-    await expect(position(page).getByRole('status')).toContainText('Posição personalizada:');
-    await mode(page, 'Escolher posição');
-    await expect(preset(page, 'Superior à esquerda')).toHaveAttribute('aria-pressed', 'false');
-  });
-
-  test('drags by touch only in "Ajustar manualmente", then scrolls again', async ({
-    page,
-    browserName,
-    hasTouch,
-  }) => {
-    test.skip(
-      browserName !== 'chromium' || !hasTouch,
-      'Real touch input is driven through Chromium DevTools.',
-    );
-    await withText(page);
-    await preset(page, 'Superior à esquerda').click();
-    const before = await settledBox(page, (b) => near(b.left, SQUARE_AREA.x0));
-    const cdp = await page.context().newCDPSession(page);
-    /**
-     * A real one-finger horizontal drag of 20% of the canvas width, starting on
-     * the text. Coordinates are read just before, since the page may have scrolled.
-     */
-    const touchDrag = async () => {
-      // The controls are below the preview; a finger can only touch what is on screen.
-      await canvas(page).scrollIntoViewIfNeeded();
-      const rect = await boxOf(canvas(page));
-      const x = rect.x + ((before.left + before.right) / 2) * rect.width;
-      const y = rect.y + ((before.top + before.bottom) / 2) * rect.height;
-      const point = (dx: number) => [{ x: x + dx, y, id: 1 }];
-      await cdp.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: point(0) });
-      for (let i = 1; i <= 8; i += 1) {
-        await cdp.send('Input.dispatchTouchEvent', {
-          type: 'touchMove',
-          touchPoints: point((0.2 * rect.width * i) / 8),
-        });
-      }
-      await cdp.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
-      return rect.width;
-    };
-
-    await expect(canvas(page)).toHaveCSS('touch-action', 'auto');
-    await touchDrag();
-    const unchanged = await settledBox(page, () => true);
-    expect(unchanged.left).toBeCloseTo(before.left, 3);
+    const after = await settledBox(page, () => true);
+    expect(after.left).toBeCloseTo(before.left, 3);
     await expect(position(page).getByRole('status')).toHaveText('Posição: Superior à esquerda.');
-
-    await mode(page, 'Ajustar manualmente');
-    await expect(position(page).getByRole('group', { name: 'Posições predefinidas' })).toHaveCount(
-      0,
-    );
-    await expect(canvas(page)).toHaveCSS('touch-action', 'none');
-    await touchDrag();
-    const moved = await settledBox(page, (b) => b.left > before.left + 0.15);
-    expect(moved.left - before.left).toBeCloseTo(0.2, 1);
-
-    // Back to the presets: touch scrolls the page again, and the position is kept.
-    await mode(page, 'Escolher posição');
-    await expect(position(page).getByRole('group', { name: 'Ajuste fino' })).toHaveCount(0);
-    await expect(canvas(page)).toHaveCSS('touch-action', 'auto');
-    const kept = await settledBox(page, () => true);
-    expect(kept.left).toBeCloseTo(moved.left, 2);
-  });
-
-  test('moves by 2% steps with the arrow keys and 10% with Shift', async ({ page }) => {
-    await withText(page);
-    await preset(page, 'Superior à esquerda').click();
-    const start = await settledBox(page, (b) => near(b.left, SQUARE_AREA.x0));
-    const right = position(page).getByRole('button', { name: 'Mover para a direita' });
-    await mode(page, 'Ajustar manualmente');
-
-    await right.focus();
-    for (let i = 0; i < 5; i += 1) await page.keyboard.press('ArrowRight');
-    await expect(position(page)).toContainText(
-      'Posição personalizada: horizontal 10%, vertical 0%.',
-    );
-    const fiveSteps = await settledBox(page, (b) => b.left > start.left + 0.01);
-
-    await mode(page, 'Escolher posição');
-    await preset(page, 'Superior à esquerda').click();
-    await settledBox(page, (b) => near(b.left, start.left, 0.002));
-    await mode(page, 'Ajustar manualmente');
-    await right.focus();
-    await page.keyboard.press('Shift+ArrowRight');
-    await expect(position(page)).toContainText(
-      'Posição personalizada: horizontal 10%, vertical 0%.',
-    );
-    const shiftStep = await settledBox(page, (b) => b.left > start.left + 0.01);
-
-    expect(shiftStep.left).toBeCloseTo(fiveSteps.left, 3);
-    // 10% of the free space: area width 0.6 minus the block width.
-    const free = 0.6 - (start.right - start.left);
-    expect(fiveSteps.left - start.left).toBeCloseTo(0.1 * free, 1);
   });
 
   test('keeps the position on another model, inside that model’s safe area', async ({ page }) => {

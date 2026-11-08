@@ -73,6 +73,26 @@ export const previewCatalog: Catalog = {
       },
     },
     {
+      // Lettering always centered, like the Bandejas (D-068).
+      id: 'test-plate-fixed',
+      type: 'plate',
+      displayName: 'Test plate fixed',
+      sizeLabel: 'Test size',
+      ceramicColor: 'Test beige',
+      shape: 'scalloped',
+      dimensions: { status: 'pending' },
+      image: {
+        image: { src: '/catalog/plates/test-plate-fixed/beige.webp' },
+        objectBounds: BOUNDS,
+        text: {
+          area: { x: 0.25, y: 0.25, width: 0.5, height: 0.5 },
+          align: 'center',
+          fontSize: 0.1,
+          fixedPlacement: true,
+        },
+      },
+    },
+    {
       // No photograph registered yet (the production state of every model).
       id: 'test-plate-pending',
       type: 'plate',
@@ -96,13 +116,15 @@ export const previewSizes: Record<string, Size> = {
   '/catalog/plates/test-plate-rectangle/beige.webp': { width: 600, height: 400 },
   '/catalog/plates/test-plate-circle/beige.webp': { width: 400, height: 400 },
   '/catalog/plates/test-plate-size-pending/beige.webp': { width: 400, height: 400 },
+  '/catalog/plates/test-plate-fixed/beige.webp': { width: 400, height: 400 },
 };
 
 export function config(overrides: Partial<Configuration> = {}): Configuration {
   return {
     plateId: 'test-plate-square',
     text: 'Ana',
-    fontFamily: 'sans-serif',
+    // "Com serifa" letters the text as typed; "Sem serifa" capitals are covered separately (D-068).
+    fontFamily: 'serif',
     textColorId: 'test-text-color-a',
     secondaryColorId: null,
     secondaryRanges: [],
