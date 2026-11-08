@@ -25,7 +25,8 @@ function bandejaImage(id: string, fontSize: number): PlateImage {
  *
  * Contains only what Taavi has supplied: the four current models with their
  * customer-facing names, size labels, and confirmed outer dimensions, and the
- * fixed ceramic color "Bege" (D-040, D-041, D-046, P-01). The Quadro is one
+ * fixed ceramic color "Bege" (D-040, D-041, D-046, P-01), and the approved
+ * lettering colors (D-056). The Quadro is one
  * complete product (a 100 × 100 mm ceramic plate in a 200 × 200 mm wooden
  * frame), photographed assembled; there is no separate frame choice.
  * IDs must never be renamed without a migration note in docs/06-decisions.md
@@ -119,6 +120,13 @@ export const catalogData: Catalog = {
       image: bandejaImage('bandeja-ondulada-g-11', 0.0851),
     },
   ],
-  // Color names are approved (D-049) but no values are (P-02); nothing is invented.
-  textColors: [],
+  // First production palette (D-056), in the approved display order. Amarelo
+  // queimado is pending visual approval and Laranja is excluded for now; neither
+  // is listed. Every color may also be the second color, never equal to the first.
+  textColors: [
+    { id: 'marrom', type: 'text-color', displayName: 'Marrom', hex: '#4a2a14' },
+    { id: 'azul', type: 'text-color', displayName: 'Azul', hex: '#2b4a7a' },
+    { id: 'verde', type: 'text-color', displayName: 'Verde', hex: '#2f4a36' },
+    { id: 'vermelho-escuro', type: 'text-color', displayName: 'Vermelho escuro', hex: '#7a1f1f' },
+  ],
 };

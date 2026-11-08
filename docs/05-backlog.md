@@ -117,7 +117,7 @@ Status: **Done** (accepted by the product owner 2026-11-08; committed in c3c9d8b
 - [x] Permanent IDs confirmed: `quadro-20`, `bandeja-ondulada-m-8`, `bandeja-ondulada-g-11` (P-12)
 - [x] Image-size check reads JPEG as well as PNG
 - [x] Unit tests: exact entries, text area inside the Quadro ceramic, shared Bandeja placement with separate sizes, 7 mm capitals on every model; Playwright: every model shows its photograph, JPEGs served, lettering drawn, Bandeja M overflow warning, fixed size and 7 mm capitals per model with real font metrics, deboss inside the glyphs only on each new photograph
-- Remaining: production lettering colors (P-02); typography (P-04, P-14); deboss look (D-052).
+- Remaining: typography (P-04, P-14); deboss look (D-052). Production lettering colors: M4.4.
 
 ## M2 — Configuration interface
 
@@ -245,7 +245,18 @@ Status: **Done** (implemented 2026-11-08, not committed). Taavi's lettering mold
 - [x] `text-size-pending`: a model with a text area but no approved size draws no text, says so, and blocks export; no fallback to fitting
 - [x] Demo models use the same rule on their synthetic areas
 - [x] Unit, component, and Chromium/WebKit tests (including the drawn capital height, 6.8–7.2 mm): fixed size for short, long, wrapped, Unicode, and overflowing text; positions, drag, two colors, deboss, and preview/export consistency unchanged
-- Sizes for the Quadro and the Bandejas added in M1.3b-2 (P-15 resolved). Lettering colors stay a production-data dependency (P-02).
+- Sizes for the Quadro and the Bandejas added in M1.3b-2 (P-15 resolved). Lettering colors: M4.4.
+
+## M4.4 — First production lettering palette and disclaimer
+
+Status: **Done** (implemented 2026-11-08, not committed). Approved by the product owner (D-056).
+
+- [x] Production `textColors`: Marrom `#4a2a14`, Azul `#2b4a7a`, Verde `#2f4a36`, Vermelho escuro `#7a1f1f`, in that order, with stable IDs; each usable as the second color, never equal to the first
+- [x] Amarelo queimado (`#a87a10`) pending visual approval and Laranja excluded: neither in production; demo catalog unchanged
+- [x] Three-paragraph disclaimer (D-056)
+- [x] Production export available for complete configurations
+- [x] Unit tests: exact palette, no demo, pending, or excluded colors in production, disclaimer paragraphs; Playwright (production, Chromium and mobile WebKit): four named swatches with their values, each color painted in the preview, primary color required, second color excluding the primary, applying to an accented selection and removing it, PNG download at native size with both colors in the preview's proportion
+- Remaining: Amarelo queimado approval; Laranja decision (reversible).
 
 ## M5 — Quality and usability
 

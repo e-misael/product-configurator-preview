@@ -1,4 +1,5 @@
 import { getCatalog } from '../../../src/catalog';
+import { demoCatalog } from '../../../src/demo/demo-catalog';
 import { validateCatalog } from '../../../src/domain';
 import { expectDeeplyFrozen } from './expect-deeply-frozen';
 
@@ -25,8 +26,28 @@ describe('production catalog', () => {
     expect(Object.keys(getCatalog())).toEqual(['plates', 'textColors']);
   });
 
-  it('invents no lettering colors: the palette stays empty until Taavi supplies it', () => {
-    expect(getCatalog().textColors).toEqual([]);
+  it('lists exactly the four approved lettering colors, in order (D-056)', () => {
+    expect(getCatalog().textColors).toEqual([
+      { id: 'marrom', type: 'text-color', displayName: 'Marrom', hex: '#4a2a14' },
+      { id: 'azul', type: 'text-color', displayName: 'Azul', hex: '#2b4a7a' },
+      { id: 'verde', type: 'text-color', displayName: 'Verde', hex: '#2f4a36' },
+      { id: 'vermelho-escuro', type: 'text-color', displayName: 'Vermelho escuro', hex: '#7a1f1f' },
+    ]);
+  });
+
+  it('contains no demo-only, pending, or excluded colors (D-028, D-056)', () => {
+    const colors = getCatalog().textColors;
+    const demoIds = new Set(demoCatalog.textColors.map((color) => color.id));
+    for (const color of colors) {
+      expect(color.id).not.toMatch(/demo/);
+      expect(color.displayName).not.toMatch(/demonstração|proposta/i);
+      expect(demoIds.has(color.id)).toBe(false);
+    }
+    // Amarelo queimado is pending visual approval; Laranja is excluded for now.
+    expect(colors.map((color) => color.id)).not.toContain('amarelo-queimado');
+    expect(colors.map((color) => color.displayName.toLowerCase()).join(' ')).not.toMatch(
+      /amarelo|laranja/,
+    );
   });
 
   it('records the confirmed outer dimensions; every model is Bege and has a photograph', () => {

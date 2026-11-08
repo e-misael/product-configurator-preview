@@ -100,7 +100,13 @@ test('applies the second color to a keyboard selection without changing the text
 });
 
 test('shows the handmade-product disclaimer', async ({ page }) => {
-  await expect(page.getByText(/sujeitas à análise da Taavi/)).toBeVisible();
+  for (const paragraph of [
+    /^A pré-visualização é ilustrativa\. Como nossas peças são produzidas artesanalmente/,
+    /^As cores também podem variar conforme a iluminação/,
+    'Todas as solicitações de personalização estão sujeitas à análise e aprovação da Taavi.',
+  ]) {
+    await expect(page.getByText(paragraph)).toBeVisible();
+  }
 });
 
 test('the Quadro is one complete product (plate and frame), chosen as a model', async ({

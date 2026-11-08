@@ -537,9 +537,14 @@ body {
 }
 
 .disclaimer {
-  margin: 0;
+  display: grid;
+  gap: 0.5rem;
   font-size: 0.875rem;
   color: var(--color-muted);
+}
+
+.disclaimer p {
+  margin: 0;
 }
 
 /* Status */

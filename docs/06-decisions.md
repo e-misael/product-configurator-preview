@@ -321,6 +321,7 @@ Status values:
 - **Context:** The product needs font family, up to two lettering colors, and text positioning.
 - **Decision (design only, not implemented):** (1) `fontFamily` is `serif` or `sans-serif` ("Com serifa" / "Sem serifa", default sans-serif), mapped to provisional system font stacks; real typography stays pending (P-04). (2) `textColorId` is required (no default) and `secondaryColorId` is optional with `secondaryRanges` as UTF-16 offsets snapped to grapheme boundaries; the lettering palette is catalog data (P-02). (3) One source of truth for position: nine presets (left/center/right × top/middle/bottom) plus a normalized manual position inside the calibrated text area; dragging keeps the line alignment; "Redefinir posição" restores the catalog default; the position survives model changes constrained to the new safe area. (4) Touch movement requires an explicit "Mover texto" mode so scrolling is not hijacked; keyboard positioning is supported. (5) Editing text keeps secondary ranges when they map unambiguously and removes or invalidates them otherwise; grapheme clusters are never split. (6) The handmade disclaimer is shown near the controls: "Todas as solicitações de personalização estão sujeitas à análise da Taavi. Como nossas peças são produzidas artesanalmente, podem apresentar pequenas variações de formato, cor, acabamento e posicionamento em relação à pré-visualização." (7) A per-line text-length limit is a future rule, recorded in the backlog and not implemented.
 - **Update (M4.2):** "Sem segunda cor" is replaced by an explicit "Remover segunda cor" action behind the "Usar segunda cor" disclosure; collapsing never clears anything (D-047).
+- **Update (D-056):** the disclaimer copy is replaced by the three-paragraph text of D-056.
 - **Status:** Approved. Points 1, 2, 5, 6, 7 implemented in M4.1b-1 (D-043); points 3 and 4 implemented in M4.1b-2 (D-044, which refines the preset rule).
 - **Date:** 2026-11-08.
 
@@ -397,7 +398,7 @@ Status values:
 - **Context:** Taavi replaced the palette confirmed in D-048 (3).
 - **Decision:** The approved lettering-color names are **Marrom, Azul, Verde, Amarelo, Laranja, Vermelho escuro**, in the order supplied. Preto is no longer approved and is not registered unless Taavi approves it again.
 - **Rules that follow:** Names only. No `#rrggbb` value is invented or approved automatically; any proposed digital value is reviewed and approved by Taavi before it becomes a production color. `Catalog.textColors` stays empty until then (P-02).
-- **Status:** Approved (names confirmed by Taavi); recorded only, not implemented.
+- **Status:** Approved (names confirmed by Taavi). Values and the first production palette in D-056: Amarelo became "Amarelo queimado" (pending), Laranja is excluded for now.
 - **Date:** 2026-11-08.
 
 ### D-050 — Preview fidelity: illustrative, from Taavi's own photographs (2026-11-08)
@@ -455,6 +456,16 @@ Status values:
 - **Status:** Approved (product owner, 2026-11-08): Placa, then Quadro and Bandejas M and G.
 - **Date:** 2026-11-08.
 
+### D-056 — First production lettering palette and disclaimer (2026-11-08)
+
+- **Decision:** The production catalog lists four lettering colors, in this order: Marrom `#4a2a14` (`marrom`), Azul `#2b4a7a` (`azul`), Verde `#2f4a36` (`verde`), Vermelho escuro `#7a1f1f` (`vermelho-escuro`). Every available color may also be the second color; the second must differ from the first (existing `same-as-primary` rule). The primary color stays required, with no default.
+- **Pending and excluded:** Amarelo queimado (replacing Amarelo, D-049), proposed `#a87a10`, ID `amarelo-queimado`, awaits visual approval and is not in the production catalog. Laranja is excluded from the initial palette; reversible. The demo catalog is unchanged (its "(proposta)" entries, Amarelo and Laranja included, stay demo-only).
+- **Legibility (measured against the median face color of each text area):** Marrom 4.8 / 6.9 / 7.0 : 1 on the Placa / Quadro / Bandeja; Azul 3.3 / 4.8 / 4.8; Verde 3.6 / 5.2 / 5.3; Vermelho escuro 3.8 / 5.5 / 5.6. Amarelo queimado would measure 1.4 / 2.1 / 2.1 (the earlier Amarelo 1.3 / 1.1 / 1.1, Laranja 1.1 / 1.6 / 1.6).
+- **Disclaimer (replaces the copy of D-042):** three paragraphs below the controls: "A pré-visualização é ilustrativa. Como nossas peças são produzidas artesanalmente, o produto final pode apresentar pequenas variações de formato, textura, acabamento, posicionamento das letras e tonalidade das cores em relação à imagem exibida na tela." / "As cores também podem variar conforme a iluminação, as características da cerâmica e as configurações de cada dispositivo." / "Todas as solicitações de personalização estão sujeitas à análise e aprovação da Taavi."
+- **Consequence:** production configurations can be completed and exported as PNG for the first time.
+- **Status:** Approved (product owner, 2026-11-08).
+- **Date:** 2026-11-08.
+
 ## Proposed
 
 ### D-007 — SVG preview rendering
@@ -464,7 +475,7 @@ Status values:
 ## Pending
 
 - **P-01:** Resolved (product owner, 2026-11-08): Placa cerâmica 100 × 100 mm; Quadro 200 × 200 mm outside, holding a 100 × 100 mm ceramic plate; Bandeja ondulada M 80 × 80 mm; Bandeja ondulada G 110 × 110 mm. Recorded as `dimensions` (outer size; the Quadro's ceramic is noted in the catalog comments and D-055). The Bandeja labels changed from "Aprox. 8 cm" / "Aprox. 11 cm" to the nominal "8 × 8 cm" / "11 × 11 cm" (D-054); the handmade-variation disclaimer stays.
-- **P-02:** Partly resolved by D-049: the color names are Marrom, Azul, Verde, Amarelo, Laranja, Vermelho escuro. Still pending: a `#rrggbb` value for each (supplied or approved by Taavi), whether each may also be the second color, and their display order. Proposed values for review: `docs/reference-images/review/review-sheet.png` (not approved). Until then `Catalog.textColors` stays empty and no production configuration can be completed or exported. This empty palette is why the production site shows "As cores do texto ainda não foram definidas." instead of swatches: a missing production-data dependency, not a rendering defect (verified 2026-11-08; the swatches render in demo mode). Demo values are never copied into production.
+- **P-02:** Resolved for the first production palette by D-056: Marrom `#4a2a14`, Azul `#2b4a7a`, Verde `#2f4a36`, Vermelho escuro `#7a1f1f`, in that order, each also usable as the second color. Still open: Amarelo queimado (proposed `#a87a10`, pending visual approval) and Laranja (excluded for now, reversible). Earlier history: the names came from D-049, and the empty production palette was why the site showed "As cores do texto ainda não foram definidas." (a data dependency, not a rendering defect).
 - **P-03:** Resolved by D-046: no separate frames; the Quadro is photographed assembled.
 - **P-04:** Production typography rules and text limits (max length, lines).
 - **P-05:** Export resolution, transparency, background, file naming.

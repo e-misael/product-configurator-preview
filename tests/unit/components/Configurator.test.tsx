@@ -256,14 +256,16 @@ describe('Configurator', () => {
       expect(screen.getByRole('status')).toBeEmptyDOMElement();
     });
 
-    it('shows the handmade-product disclaimer', () => {
+    it('shows the approved three-paragraph disclaimer (D-056)', () => {
       setup();
 
-      expect(
-        screen.getByText(
-          'Todas as solicitações de personalização estão sujeitas à análise da Taavi. Como nossas peças são produzidas artesanalmente, podem apresentar pequenas variações de formato, cor, acabamento e posicionamento em relação à pré-visualização.',
-        ),
-      ).toBeInTheDocument();
+      for (const paragraph of [
+        'A pré-visualização é ilustrativa. Como nossas peças são produzidas artesanalmente, o produto final pode apresentar pequenas variações de formato, textura, acabamento, posicionamento das letras e tonalidade das cores em relação à imagem exibida na tela.',
+        'As cores também podem variar conforme a iluminação, as características da cerâmica e as configurações de cada dispositivo.',
+        'Todas as solicitações de personalização estão sujeitas à análise e aprovação da Taavi.',
+      ]) {
+        expect(screen.getByText(paragraph).tagName).toBe('P');
+      }
     });
   });
 

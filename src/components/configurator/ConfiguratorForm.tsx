@@ -63,11 +63,21 @@ export function ConfiguratorForm({ catalog, plate, state }: ConfiguratorFormProp
         onChoose={state.chooseSecondaryColor}
         onRemove={state.removeSecondaryColor}
       />
-      <p className="disclaimer">
-        Todas as solicitações de personalização estão sujeitas à análise da Taavi. Como nossas peças
-        são produzidas artesanalmente, podem apresentar pequenas variações de formato, cor,
-        acabamento e posicionamento em relação à pré-visualização.
-      </p>
+      {/* Approved copy (D-056). */}
+      <div className="disclaimer">
+        <p>
+          A pré-visualização é ilustrativa. Como nossas peças são produzidas artesanalmente, o
+          produto final pode apresentar pequenas variações de formato, textura, acabamento,
+          posicionamento das letras e tonalidade das cores em relação à imagem exibida na tela.
+        </p>
+        <p>
+          As cores também podem variar conforme a iluminação, as características da cerâmica e as
+          configurações de cada dispositivo.
+        </p>
+        <p>
+          Todas as solicitações de personalização estão sujeitas à análise e aprovação da Taavi.
+        </p>
+      </div>
       <ConfigurationStatus validation={validation} notice={state.notice} />
     </form>
   );

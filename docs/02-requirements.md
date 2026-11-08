@@ -74,10 +74,10 @@ Acceptance criteria:
 Typography and lettering colors (M4.1b-1, D-042, D-043):
 
 6. The font is "Sem serifa" (default) or "Com serifa"; the preview uses provisional system font stacks (P-14).
-7. A lettering color ("Cor do texto") must be chosen explicitly from the catalog palette; without one the configuration is _incomplete_. No production palette exists yet (P-02), and the UI says so. Until one is chosen, the preview draws the text in a provisional neutral color and says so ("Cor do texto ainda não escolhida…"); the summary shows "Não escolhida".
-8. An optional second color is applied to the selected characters with "Aplicar segunda cor à seleção" and removed with "Remover segunda cor da seleção". Ranges never split a grapheme or include a line break; the text itself is never changed by formatting. A second color equal to the first is _invalid_ (`same-as-primary`) and its swatch is disabled.
+7. A lettering color ("Cor do texto") must be chosen explicitly from the catalog palette; without one the configuration is _incomplete_. The production palette is Marrom, Azul, Verde, Vermelho escuro (D-056); an empty palette would say so in the UI. Until one is chosen, the preview draws the text in a provisional neutral color and says so ("Cor do texto ainda não escolhida…"); the summary shows "Não escolhida".
+8. Any available color may be the second color (D-056). An optional second color is applied to the selected characters with "Aplicar segunda cor à seleção" and removed with "Remover segunda cor da seleção". Ranges never split a grapheme or include a line break; the text itself is never changed by formatting. A second color equal to the first is _invalid_ (`same-as-primary`) and its swatch is disabled.
 9. Editing the text moves the colored ranges with the edit, using the textarea caret when available; when the edit cannot be located the affected formatting is removed and a notice says so. Removing the last range keeps the chosen second color; only "Remover segunda cor" clears the color and its ranges.
-10. The handmade-product disclaimer is shown below the controls (copy in D-042).
+10. The handmade-product disclaimer is shown below the controls, in three paragraphs (copy in D-056).
 
 Lettering-color controls (M4.2, D-047):
 
@@ -128,7 +128,7 @@ Acceptance criteria:
 7. While blocked, the button stays focusable (`aria-disabled="true"`) and click or keyboard activation does nothing; the reasons are listed below it ("Para exportar a imagem:"), and preview problems refer to the preview notices, which join the button's accessible description.
 8. Failures (canvas allocation, 2D context, drawing, encoding, object URL, download start) show "Não foi possível gerar a imagem. Tente novamente." (or the dimension message) and leave the button usable; success announces "Imagem exportada: {filename}".
 
-Status: Done (M4), verified with synthetic demonstration images and the four production photographs; production export stays blocked until the lettering palette is supplied (P-02).
+Status: Done (M4), verified with synthetic demonstration images and the four production photographs. Production export is available with the approved palette (D-056), verified end to end in Chromium and mobile WebKit.
 
 ### FR-08 — Real product imagery
 

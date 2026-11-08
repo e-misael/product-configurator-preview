@@ -27,12 +27,18 @@ describe('App shell', () => {
     expect(screen.queryByText(/demonstração/i)).not.toBeInTheDocument();
   });
 
-  it('states that the lettering palette is not defined, and offers no colors or second color', () => {
+  it('offers the four approved lettering colors in order, the second color, and the disclaimer', () => {
     render(<App />);
 
-    expect(screen.getByText('As cores do texto ainda não foram definidas.')).toBeInTheDocument();
-    expect(screen.queryByRole('group', { name: /Segunda cor/ })).not.toBeInTheDocument();
-    expect(screen.getByText(/sujeitas à análise da Taavi/)).toBeInTheDocument();
+    const colors = within(screen.getByRole('group', { name: 'Cor do texto' }));
+    expect(
+      colors.getAllByRole('radio').map((radio) => radio.closest('label')?.textContent),
+    ).toEqual(['✓Marrom', '✓Azul', '✓Verde', '✓Vermelho escuro']);
+    expect(
+      screen.queryByText('As cores do texto ainda não foram definidas.'),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Usar segunda cor' })).toBeInTheDocument();
+    expect(screen.getByText(/sujeitas à análise e aprovação da Taavi/)).toBeVisible();
   });
 
   it('handles an empty catalog', () => {
