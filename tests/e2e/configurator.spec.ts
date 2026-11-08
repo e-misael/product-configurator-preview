@@ -42,7 +42,9 @@ test('completes a configuration @smoke', async ({ page }) => {
     .getByRole('radio', { name: /Moldura clara/ })
     .check();
   await page.getByLabel('Texto', { exact: true }).fill('Casa da Ana\nDesde 2024');
-  await expect(page.getByText('Falta escolher: Cor do texto.')).toBeVisible();
+  await expect(page.getByRole('region', { name: 'Situação da configuração' })).toContainText(
+    'Falta escolher: Cor do texto.',
+  );
   await inks(page, 'Cor do texto')
     .getByRole('radio', { name: /Letra grafite/ })
     .check();

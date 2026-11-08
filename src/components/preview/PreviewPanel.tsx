@@ -15,6 +15,7 @@ import { createTextMeasurer } from '../../preview/draw';
 import { textBlockOf, type Point } from '../../preview/placement';
 import { buildScene } from '../../preview/scene';
 import { modelLabel } from '../configurator/messages';
+import { ExportControls } from './ExportControls';
 import { NOTICE_MESSAGES } from './messages';
 import { PreviewCanvas } from './PreviewCanvas';
 import { TextPositionControls } from './TextPositionControls';
@@ -88,7 +89,7 @@ export function PreviewPanel({
       ) : (
         <div className="preview__empty">Sem imagem para exibir</div>
       )}
-      <div className="preview__notices" aria-live="polite">
+      <div className="preview__notices" id="preview-notices" aria-live="polite">
         {messages.length > 0 && (
           <ul className="preview__notice-list">
             {messages.map((message) => (
@@ -106,6 +107,12 @@ export function PreviewPanel({
         onAlign={positioning.align}
         onNudge={positioning.nudge}
         onReset={positioning.reset}
+      />
+      <ExportControls
+        scene={scene}
+        validation={validation}
+        plateId={config.plateId}
+        noticesId="preview-notices"
       />
       <dl className="preview__summary" id="preview-summary">
         <dt>Modelo</dt>

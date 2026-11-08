@@ -1,7 +1,7 @@
 /**
  * Canvas 2D painting of a scene (D-035). The only code that touches a canvas
- * context; export (M4) will call `drawScene` on another canvas so preview and
- * exported image come from the same path. No CSS filters, tinting, or
+ * context; export (export.ts) calls `drawScene` on another canvas so preview
+ * and exported image come from the same path (D-008, D-009). No CSS filters, tinting, or
  * blending: each layer is the real image of its variation.
  */
 
@@ -14,6 +14,9 @@ import { FALLBACK_TEXT_COLOR, FONT_STACKS } from './text-style';
 export const TEXT_FONT_FAMILY = FONT_STACKS['sans-serif'];
 /** Preview color while no lettering color is chosen; never a product color. */
 export const TEXT_COLOR = FALLBACK_TEXT_COLOR;
+
+/** Opaque background of preview and export alike (D-008). */
+export const CANVAS_BACKGROUND = '#ffffff';
 
 /** Highest device pixel ratio the backing store is sized for. */
 export const MAX_PIXEL_RATIO = 3;
@@ -58,6 +61,8 @@ export function drawScene(
   const scale = pixelWidth / scene.width;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
   ctx.clearRect(0, 0, scene.width, scene.height);
+  ctx.fillStyle = CANVAS_BACKGROUND;
+  ctx.fillRect(0, 0, scene.width, scene.height);
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 

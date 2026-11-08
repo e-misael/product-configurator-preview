@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/App';
-import { contextOf, type FakeContext } from '../support/fake-canvas';
+import { contextOf, installFakeCanvas, type FakeContext } from '../support/fake-canvas';
 import { FakeImage, installFakeImages } from '../support/fake-image';
 import { previewCatalog, previewSizes } from '../preview/fixtures';
 
@@ -509,6 +509,151 @@ describe('Preview', () => {
 
       expect(button('Inferior à direita')).toHaveAttribute('aria-pressed', 'true');
       expect(status()).toHaveTextContent('Horizontal 100%, vertical 100%.');
+    });
+  });
+
+  describe('export (D-008)', () => {
+    const exportButton = () => within(preview()).getByRole('button', { name: 'Exportar imagem' });
+    const reasons = () => preview().querySelector('#export-reasons');
+    let clicked: HTMLAnchorElement[];
+
+    beforeEach(() => {
+      clicked = [];
+      vi.stubGlobal(
+        'URL',
+        Object.assign(Object.create(URL) as typeof URL, {
+          createObjectURL: () => 'blob:export',
+          revokeObjectURL: () => undefined,
+        }),
+      );
+      vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(function (
+        this: HTMLAnchorElement,
+      ) {
+        clicked.push(this);
+      });
+    });
+
+    async function ready() {
+      const { user } = setup();
+      await choosePlate(user, /^Test plate square /);
+      settle();
+      await user.type(screen.getByLabelText('Texto'), 'Ana');
+      await choose(user, 'Cor do texto', 'Test ink A');
+      return { user };
+    }
+
+    it('is blocked, but focusable, with the reasons listed, and does nothing when activated', async () => {
+      const { user } = setup();
+      await choosePlate(user, /^Test plate square /);
+      settle();
+
+      expect(exportButton()).toHaveAttribute('aria-disabled', 'true');
+      expect(exportButton()).not.toBeDisabled();
+      expect(reasons()).toHaveTextContent('Para exportar a imagem:');
+      expect(reasons()).toHaveTextContent('Falta escolher: Texto.');
+      expect(reasons()).toHaveTextContent('Falta escolher: Cor do texto.');
+
+      await user.click(exportButton());
+      exportButton().focus();
+      await user.keyboard('{Enter} ');
+      expect(clicked).toHaveLength(0);
+    });
+
+    it('points to the preview notices when the preview is incomplete', async () => {
+      const { user } = setup();
+      await choosePlate(user, /^Test plate square /);
+      await user.type(screen.getByLabelText('Texto'), 'Ana');
+      await choose(user, 'Cor do texto', 'Test ink A');
+      // Images still loading.
+      expect(reasons()).toHaveTextContent('Resolva os avisos da pré-visualização acima.');
+      expect(exportButton()).toHaveAccessibleDescription(/Carregando imagem…/);
+    });
+
+    it('blocks a selected frame without imagery, but not the absence of a frame', async () => {
+      const { user } = await ready();
+      expect(exportButton()).toHaveAttribute('aria-disabled', 'false');
+
+      await choose(user, 'Moldura (opcional)', 'Test frame square');
+      expect(exportButton()).toHaveAttribute('aria-disabled', 'true');
+
+      await choose(user, 'Moldura (opcional)', 'Sem moldura');
+      expect(exportButton()).toHaveAttribute('aria-disabled', 'false');
+    });
+
+    it('downloads taavi-{plateId}.png and confirms it', async () => {
+      const { user } = await ready();
+
+      await user.click(exportButton());
+
+      expect(
+        await within(preview()).findByText('Imagem exportada: taavi-test-plate-square.png'),
+      ).toBeInTheDocument();
+      expect(clicked.map((link) => link.download)).toEqual(['taavi-test-plate-square.png']);
+      expect(reasons()).toBeNull();
+    });
+
+    it('shows a pt-BR error when encoding fails and stays usable', async () => {
+      const { user } = await ready();
+      const toBlob = vi
+        .spyOn(HTMLCanvasElement.prototype, 'toBlob')
+        .mockImplementation((callback: BlobCallback) => callback(null));
+
+      await user.click(exportButton());
+
+      expect(await within(preview()).findByRole('alert')).toHaveTextContent(
+        'Não foi possível gerar a imagem. Tente novamente.',
+      );
+      expect(exportButton()).toHaveAttribute('aria-disabled', 'false');
+      toBlob.mockRestore();
+      installFakeCanvas();
+      await user.click(exportButton());
+      expect(await within(preview()).findByText(/Imagem exportada:/)).toBeInTheDocument();
+      expect(within(preview()).queryByRole('alert')).toBeNull();
+    });
+
+    it('shows an error when the download cannot start', async () => {
+      const { user } = await ready();
+      vi.stubGlobal(
+        'URL',
+        Object.assign(Object.create(URL) as typeof URL, {
+          createObjectURL: () => {
+            throw new Error('blocked');
+          },
+        }),
+      );
+
+      await user.click(exportButton());
+
+      expect(await within(preview()).findByRole('alert')).toHaveTextContent(
+        'Não foi possível gerar a imagem. Tente novamente.',
+      );
+      expect(clicked).toHaveLength(0);
+    });
+  });
+
+  describe('blocked-axis positioning', () => {
+    it('does not change the coordinate of an axis without free space', async () => {
+      const { user } = setup();
+      await choosePlate(user, /^Test plate square /);
+      settle();
+      const field = screen.getByLabelText('Texto');
+      await user.type(field, 'Ana');
+      const group = screen.getByRole('group', { name: 'Posição do texto' });
+      const status = () => within(group).getByText(/^Horizontal /);
+      await user.click(within(group).getByRole('button', { name: 'Superior à esquerda' }));
+      // Overflowing lines: no vertical free space; horizontal free space remains.
+      await user.clear(field);
+      await user.type(field, Array.from({ length: 30 }, () => 'ab').join('{Enter}'));
+      expect(status()).toHaveTextContent('Horizontal 0%, vertical sem espaço livre.');
+      expect(within(group).getByRole('button', { name: 'Mover para baixo' })).toBeDisabled();
+
+      within(group).getByRole('button', { name: 'Mover para a direita' }).focus();
+      await user.keyboard('{ArrowDown}{Shift>}{ArrowDown}{/Shift}{ArrowRight}');
+
+      // Back to short text: y is still exactly where the preset put it; x moved 2%.
+      await user.clear(field);
+      await user.type(field, 'Ana');
+      expect(status()).toHaveTextContent('Horizontal 2%, vertical 0%.');
     });
   });
 });

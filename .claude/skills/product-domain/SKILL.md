@@ -26,6 +26,7 @@ Before adding any value, ask: "Did the store provide this?" If not, do not add i
 - No invented plate/frame models, color names, HEX values, textures, finishes, typography, or asset files.
 - Do not choose a rectangle aspect ratio.
 - Test data belongs in `tests/` with `test-`-prefixed IDs, never in `src/catalog`.
+- Images are curated and registered only by Taavi in the catalog. Never add customer image uploads: no file picker, drag-and-drop, image URL field, image storage, or upload API (FR-09, D-045).
 - No generated or invented product photographs. Product imagery is resolved from catalog `AssetRef`s at composition time; `Configuration` stores no image data and validation never depends on image availability (D-027).
 - Asset paths are `/catalog/{plates|frames}/{owner-id}/{name}.{webp|png|jpg}` (D-031). A model has one photograph (`Plate.image`), matched exactly — no fallback to another model's image (D-041). Frame imagery is per compatible plate model with `back`/`front` layers (D-033). Placement boxes are optional, normalized, and never estimated (D-034). Guide: `docs/07-product-assets.md`.
 

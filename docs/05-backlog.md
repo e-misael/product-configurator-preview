@@ -184,13 +184,17 @@ Status: **Done** (accepted 2026-11-08, D-044). Evidence: typecheck, lint, format
 
 ## M4 — Image export
 
-Status: Planned (not implemented; plan not yet approved).
+Status: **Done** (accepted 2026-11-08, D-008, D-009). Evidence: typecheck, lint, format check, 515 unit tests, production build, demo isolation check, demo build with markers present, and 90 Playwright tests passed (2 intentionally skipped per device).
 
-- Confirm format, resolution, transparency, background, file naming (the filename no longer has color parts).
-- Export from the shared composition.
-- Preview/export consistency tests.
-- Export only a valid configuration: a valid primary lettering color is required; the preview's provisional color is never exported (D-043).
-- Block export while the scene reports `text-overflow` or an image is not loaded (D-044).
+- [x] "Exportar imagem" in the preview panel; PNG of the preview's own scene through `drawScene` (no second composition)
+- [x] Native size of the base image, never upscaled, longest edge ≤ 4000 px, aspect preserved; dimensions validated before allocating the canvas
+- [x] Opaque white background in preview and export (the transparent corners of earlier versions are now white)
+- [x] `taavi-{plateId}.png`, sanitized and length-limited; no customer text
+- [x] Blocked for incomplete/invalid configurations and any preview notice (images pending/loading/failed, selected frame missing/broken/uncalibrated, text area pending, provisional color, overflow); unselected frames block nothing
+- [x] Focusable `aria-disabled` button with listed reasons; click and keyboard activation ignored while blocked; pt-BR success and failure feedback; failures leave the UI usable
+- [x] Blocked-axis correction (from M4.1b-2): directional buttons and arrow keys no longer change the stored coordinate of an axis without free space
+- [x] Unit, component, and Playwright tests: real downloads, PNG header and decoded dimensions, white background, layer order, colors, text position, and preview/export consistency at normalized coordinates on desktop and mobile
+- Real-photo export depends on M1.3b (photographs and calibration) and P-02 (lettering palette).
 - **Acceptance criterion (D-039):** the preview and the exported image render the same font family lettering colors (including secondary ranges, M4.1b-1), and text alignment and position (M4.1b-2), from the same scene (`buildScene` + `drawScene`).
 
 ## M5 — Quality and usability

@@ -194,6 +194,24 @@ body {
   box-shadow: inset 0 0 0 1px var(--color-text);
 }
 
+/* Export (D-008) */
+.export {
+  margin-top: 1rem;
+}
+
+.export__button[aria-disabled='true'] {
+  border-color: var(--color-border);
+  color: var(--color-muted);
+  cursor: not-allowed;
+}
+
+.export__list {
+  margin: 0.25rem 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
 .preview__empty {
   display: grid;
   place-items: center;

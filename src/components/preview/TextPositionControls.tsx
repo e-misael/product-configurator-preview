@@ -93,7 +93,10 @@ export function TextPositionControls({
   const move = (direction: Direction, large: boolean) => {
     const [dx, dy] = VECTORS[direction];
     const step = large ? LARGE_POSITION_STEP : POSITION_STEP;
-    onNudge(dx * step, dy * step);
+    // An axis without free space cannot move; its stored coordinate stays unchanged.
+    const moveX = canMove.x ? dx * step : 0;
+    const moveY = canMove.y ? dy * step : 0;
+    if (moveX !== 0 || moveY !== 0) onNudge(moveX, moveY);
   };
 
   // Arrow keys work on any direction button, whichever has focus.

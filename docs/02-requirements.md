@@ -119,14 +119,16 @@ Status: UI (M3.1) — implemented and verified with synthetic demonstration imag
 
 Acceptance criteria:
 
-1. The user can export the current composition as an image.
-2. The exported image visually matches the preview.
-3. Format (PNG proposed), resolution, transparency, background, and file naming are confirmed during M4 before implementation.
+1. "Exportar imagem" downloads the current composition as a PNG.
+2. The exported image is the preview's own scene painted by the same `drawScene` (D-008, D-009): same images, font, colored ranges, alignment, and position.
+3. Size: the base image's native pixel size (the frame back when framed), never upscaled, longest edge capped at 4000 px, aspect ratio preserved; unusable dimensions are reported, not allocated. Background: opaque white (`#ffffff`), the same as the live preview. Filename: `taavi-{plateId}.png`, reduced to `[a-z0-9-]` and at most 60 ID characters; never the customer's text.
 4. The exported image renders the same font family, lettering colors (M4.1b-1), and text alignment and position (M4.1b-2) as the preview, from the same scene (D-039).
 5. Export is offered only for a _valid_ configuration; in particular, a valid primary lettering color is required (the preview's provisional color is never exported, D-043).
-6. Export is blocked while the scene reports `text-overflow` or an image is not loaded (D-044).
+6. Export is blocked while the scene reports any preview notice: an image pending, loading, or failed; a selected frame that is incompatible, missing, broken, or uncalibrated; a pending text area; the provisional text color; or `text-overflow` (D-044). A frame that is not selected blocks nothing. Selected elements are never silently left out.
+7. While blocked, the button stays focusable (`aria-disabled="true"`) and click or keyboard activation does nothing; the reasons are listed below it ("Para exportar a imagem:"), and preview problems refer to the preview notices, which join the button's accessible description.
+8. Failures (canvas allocation, 2D context, drawing, encoding, object URL, download start) show "Não foi possível gerar a imagem. Tente novamente." (or the dimension message) and leave the button usable; success announces "Imagem exportada: {filename}".
 
-Status: Pending (M4).
+Status: Done (M4), verified with synthetic demonstration images; production export stays blocked until real photographs and calibration exist (P-06, P-07) and the lettering palette is supplied (P-02).
 
 ### FR-08 — Real product imagery
 
@@ -146,6 +148,19 @@ Acceptance criteria:
 9. A model uses only its own photograph; with none registered, the image is pending — never another model's image (D-041).
 
 Status: Pending. M2: preview slot. M1.3a: catalog contract (image variations, frame layers per plate, optional placement, path rules, integrity checks) — done. M3.1: Canvas preview of catalog imagery, verified with synthetic demonstration images only — done. M1.3b: real assets and calibration — blocked on photographs.
+
+### FR-09 — Curated imagery; no customer uploads
+
+Approved product requirement (clarification of existing scope, 2026-11-08). All product photographs and visual assets are curated, prepared, and registered exclusively by Taavi through the version-controlled catalog.
+
+Acceptance criteria:
+
+1. Customers can only select an available model (and an optional frame where offered), enter and format the text, choose approved lettering colors, adjust alignment and position, preview, and export the PNG.
+2. There is no customer-facing image upload: no file picker, no drag-and-drop of images, no paste of images, and no field for an image URL.
+3. There is no customer image storage and no image upload API.
+4. Images are only same-origin catalog assets (FR-08.8, D-031); arbitrary external image URLs are never loaded.
+
+Status: Done — enforced by the catalog-driven image architecture and asset-path integrity; nothing in the UI accepts images.
 
 ## Non-functional requirements
 

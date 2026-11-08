@@ -1,5 +1,6 @@
 import { composePreview } from '../../../src/preview/composition';
 import {
+  CANVAS_BACKGROUND,
   chooseBackingWidth,
   createTextMeasurer,
   drawScene,
@@ -70,11 +71,13 @@ describe('drawScene', () => {
     expect(order).toEqual(['square-back.webp', 'beige.webp', 'text', 'square-front.webp']);
   });
 
-  it('scales logical units to the canvas width and clears first', () => {
+  it('scales logical units to the canvas width, then clears to opaque white', () => {
     const { ctx } = paint({}, 200);
 
     expect(ctx.calls[0]).toEqual({ op: 'setTransform', args: [0.5, 0, 0, 0.5, 0, 0] });
     expect(ctx.calls[1]).toEqual({ op: 'clearRect', args: [0, 0, 400, 400] });
+    expect(ctx.calls[2]).toEqual({ op: 'fillRect', args: [0, 0, 400, 400], fillStyle: '#ffffff' });
+    expect(CANVAS_BACKGROUND).toBe('#ffffff');
   });
 
   it('draws each image at its scene rectangle', () => {

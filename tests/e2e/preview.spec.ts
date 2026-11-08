@@ -9,6 +9,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 type Rgba = readonly [number, number, number, number];
 
 const BEGE: Rgba = [226, 208, 186, 255];
+const WHITE: Rgba = [255, 255, 255, 255];
 const RIM: Rgba = [60, 40, 24, 255];
 const WOOD: readonly Rgba[] = [
   [150, 118, 84, 255],
@@ -188,14 +189,14 @@ test.describe('model shapes', () => {
     expect(box.width / box.height).toBeCloseTo(1, 1);
   });
 
-  test('keeps a scalloped tray free of any frame, transparent outside its outline', async ({
+  test('keeps a scalloped tray free of any frame, on white outside its outline', async ({
     page,
   }) => {
     await model(page, TRAY_11).check();
 
     await expectPixel(page, 0.5, 0.8, BEGE);
-    // The corner of the image is outside the tray: nothing painted there.
-    await expect.poll(async () => (await sample(page, 0.03, 0.03))[3]).toBe(0);
+    // The corner of the image is outside the tray: only the opaque white background.
+    await expectPixel(page, 0.03, 0.03, WHITE);
     await expect(page.getByRole('group', { name: 'Moldura (opcional)' })).toHaveCount(0);
   });
 });
@@ -245,7 +246,7 @@ test.describe('frame layering', () => {
       'A moldura selecionada é incompatível e não é exibida.',
     );
     // The standalone Quadro is shown instead, with no wood anywhere on its edge.
-    await expectPixel(page, 0.02, 0.5, [0, 0, 0, 0]);
+    await expectPixel(page, 0.02, 0.5, WHITE);
   });
 });
 
@@ -509,6 +510,8 @@ test.describe('text position (D-044)', () => {
     await withText(page);
     await preset(page, 'Superior à esquerda').click();
     const before = await settledBox(page, (b) => near(b.left, SQUARE_AREA.x0));
+    // The controls are below the preview; the pointer can only reach what is on screen.
+    await canvas(page).scrollIntoViewIfNeeded();
     const rect = await boxOf(canvas(page));
     const startX = rect.x + ((before.left + before.right) / 2) * rect.width;
     const startY = rect.y + ((before.top + before.bottom) / 2) * rect.height;
@@ -655,8 +658,8 @@ test.describe('missing and broken images', () => {
       'Não foi possível carregar a imagem da moldura; a moldura não é exibida.',
     );
     await expectPixel(page, 0.5, 0.8, BEGE);
-    // No frame at all: the corner of the plate photograph is transparent.
-    await expectPixel(page, 0.02, 0.02, [0, 0, 0, 0]);
+    // No frame at all: the corner of the plate photograph shows the white background.
+    await expectPixel(page, 0.02, 0.02, WHITE);
   });
 });
 

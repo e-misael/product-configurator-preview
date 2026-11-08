@@ -54,8 +54,9 @@ Visual accuracy is a functional requirement: the preview must show exactly what 
 
 ## Preview/export consistency
 
-- Export must use the same composition as the preview (D-009, proposed).
-- Any difference between preview and export (size, background) must be intentional and documented.
+- Export paints the preview's own scene with `drawScene` (D-008, D-009); never recompose it separately. Both use an opaque white background; the export is the base image's native size (≤ 4000 px longest edge).
+- Export is blocked while the configuration is not valid or any preview notice exists; the blocked button stays focusable (`aria-disabled`) with visible reasons.
+- No customer image uploads or image URL inputs (FR-09, D-045).
 
 ## Review checklist
 

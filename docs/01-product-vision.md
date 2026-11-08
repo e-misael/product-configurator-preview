@@ -32,13 +32,13 @@ Customers cannot currently see what their personalized piece will look like befo
 | Real-time preview         | —                                                            |
 | Image export              | —                                                            |
 
-Planned next: font family, up to two lettering colors, and text positioning (M4.1b).
+The text has a font family, up to two lettering colors, alignment, and position (M4.1b). Images are curated by Taavi only; customers never upload images (FR-09).
 
 Details and acceptance criteria: [02-requirements.md](02-requirements.md).
 
 ## Out of scope
 
-Nuvemshop integration, shopping cart, checkout, order management, payments, customer accounts, authentication, database, backend API, cloud storage, inventory, dynamic pricing, AI-generated previews, 3D rendering, admin dashboard, analytics, multi-tenancy, and any commercial SaaS functionality.
+Customer image uploads (file picker, drag-and-drop, image URLs, image storage or upload APIs), Nuvemshop integration, shopping cart, checkout, order management, payments, customer accounts, authentication, database, backend API, cloud storage, inventory, dynamic pricing, AI-generated previews, 3D rendering, admin dashboard, analytics, multi-tenancy, and any commercial SaaS functionality.
 
 The long-term goal is to integrate with the existing store **without rebuilding its e-commerce infrastructure**. Future integration must not drive complexity into the current architecture.
 

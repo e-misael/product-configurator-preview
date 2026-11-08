@@ -50,6 +50,29 @@ test.describe('Production build @smoke', () => {
     await expect(page.getByText(/sujeitas à análise da Taavi/)).toBeVisible();
   });
 
+  test('offers "Exportar imagem" but blocks it, explaining why', async ({ page }) => {
+    await page.goto('/');
+    await page
+      .getByRole('group', { name: 'Modelo' })
+      .getByRole('radio', { name: 'Placa cerâmica (10 cm x 10 cm)' })
+      .check();
+    await page.getByLabel('Texto', { exact: true }).fill('Ana');
+
+    const preview = page.getByRole('region', { name: 'Pré-visualização' });
+    const button = preview.getByRole('button', { name: 'Exportar imagem' });
+    await expect(button).toHaveAttribute('aria-disabled', 'true');
+    await expect(preview).toContainText('Falta escolher: Cor do texto.');
+    await expect(button).toHaveAccessibleDescription(
+      /A foto deste modelo ainda não está disponível/,
+    );
+    let downloads = 0;
+    page.on('download', () => (downloads += 1));
+    // Playwright waits for `aria-disabled` buttons to become enabled; force the real click.
+    await button.click({ force: true });
+    await page.waitForTimeout(300);
+    expect(downloads).toBe(0);
+  });
+
   test('does not request demonstration chunks', async ({ page }) => {
     const requests: string[] = [];
     page.on('request', (request) => requests.push(request.url()));

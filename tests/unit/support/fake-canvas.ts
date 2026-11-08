@@ -7,6 +7,7 @@
 export type PaintCall =
   | { readonly op: 'setTransform'; readonly args: readonly number[] }
   | { readonly op: 'clearRect'; readonly args: readonly number[] }
+  | { readonly op: 'fillRect'; readonly args: readonly number[]; readonly fillStyle: string }
   | {
       readonly op: 'drawImage';
       readonly image: unknown;
@@ -44,6 +45,10 @@ export class FakeContext {
 
   clearRect(...args: number[]) {
     this.calls.push({ op: 'clearRect', args });
+  }
+
+  fillRect(...args: number[]) {
+    this.calls.push({ op: 'fillRect', args, fillStyle: this.fillStyle });
   }
 
   drawImage(image: unknown, x: number, y: number, width: number, height: number) {
@@ -95,5 +100,13 @@ export function installFakeCanvas() {
     this: HTMLCanvasElement,
   ) {
     return contextOf(this) as unknown as CanvasRenderingContext2D;
+  });
+  // jsdom cannot encode; hand back a small PNG-typed blob asynchronously, like a browser.
+  vi.spyOn(HTMLCanvasElement.prototype, 'toBlob').mockImplementation(function (
+    this: HTMLCanvasElement,
+    callback: BlobCallback,
+    type?: string,
+  ) {
+    setTimeout(() => callback(new Blob(['png'], { type: type ?? 'image/png' })), 0);
   });
 }

@@ -164,15 +164,16 @@ Configuration + validation + catalog
 - **Missing and broken images (D-037):** `composePreview` reports catalog-pending states; `useImages` and `buildScene` report loading and load failures. They are shown as distinct messages (`components/preview/messages.ts`, `aria-live="polite"`). Nothing is drawn until every needed file has settled, and nothing is substituted.
 - **Resolution:** the canvas CSS width follows its container; the backing store is `displayed width × devicePixelRatio` (clamped to 1–3), capped at the base image's width. Aspect ratio comes from the images, never stretched.
 - **Text (D-038):** provisional fitting in `src/preview/text-fit.ts`; no stamped or raised effect. Wrapped lines keep their source offsets, so `src/preview/text-style.ts` splits each line into colored segments from the secondary ranges (D-043); single-color lines are drawn aligned as before, mixed-color lines as consecutive runs. The font family maps to provisional system stacks (P-14); a neutral fallback color is used until a lettering color is chosen.
+- **Export (D-008, D-009):** `src/preview/export.ts` computes the export size (native, ≤ 4000 px longest edge), the blockers (validation issues + scene notices), and the filename, and `renderPng` paints the preview's own scene with `drawScene` on a new canvas and encodes PNG. `ExportControls` in the preview panel owns the button, reasons, feedback, and download. `drawScene` paints an opaque white background for both.
 - **Text placement (D-044):** `placeBlock` (scene.ts) positions the measured block inside the text area by the stored free-space fractions; `drawScene` aligns the lines inside the block. `src/preview/placement.ts` holds the pure pointer geometry (display → scene units, hit testing, drag → position) used by `PreviewCanvas`; `TextPositionControls` (presets, line alignment, directional buttons, "Mover texto", reset) sits below the canvas and calls the configuration hook.
 - **Accessibility:** the canvas has `role="img"`, a name from the images' `alt`, and is described by the text summary of the selection beside it.
 - **Masking:** circular and irregular outlines come from the image's own transparency; a bounding box cannot describe them. Whether a separate mask is needed is an M3.2 decision with real photographs.
 - **Demo images:** served only in demo mode from `src/demo/public/` (D-036).
 - **Tests:** composition, layout, text fitting, drawing (recording fake context), `useImages`, and the React panel are unit/component tested; Playwright reads canvas pixels from the demo build.
 
-## Export strategy (proposed — D-008, D-009)
+## Export strategy (D-008, D-009)
 
-Proposed: rasterize the same composition used by the preview to PNG on the client, from the same image sources. Resolution, transparency, background, and file naming are open decisions to be confirmed in M4. Export resolution must be chosen with the resolution of the real source images in mind (P-08).
+The preview's scene is painted again by `drawScene` on a separate canvas and encoded as PNG on the client: same images (already loaded by `useImages`), same measured text and colored segments, same alignment and position. Size is the base image's native size, never upscaled, with the longest edge capped at 4000 px; background is opaque white in both; the file is `taavi-{plateId}.png`. Export is blocked while the configuration is not valid or the scene reports any notice. Real source-image resolution (P-08) only affects the output size through the native-size rule.
 
 ## Testing strategy
 

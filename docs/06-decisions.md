@@ -328,24 +328,32 @@ Status values:
 - **Status:** Approved; implemented and accepted (2026-11-08).
 - **Date:** 2026-11-08.
 
+### D-008 — PNG export format
+
+- **Context:** M4 completes the workflow with a downloadable image.
+- **Decision:** PNG, rasterized client-side by painting the preview's scene on a separate canvas. Size: the base image's native pixel size (frame back when framed), never upscaled, longest edge capped at 4000 px with the aspect ratio preserved; dimensions are validated before a canvas is allocated (unusable or above 4000 × 4000 px of area → not exported, with a message). Background: opaque `#ffffff`, drawn by `drawScene` for preview and export alike. Filename: `taavi-{plateId}.png`, the ID reduced to `[a-z0-9-]`, at most 60 characters, never containing customer text. Export is blocked unless the configuration is valid and the scene has no preview notice, so a provisional color, a pending/failed image, an uncalibrated or broken selected frame, a pending text area, or overflowing text is never exported and nothing selected is silently left out. The blocked button stays focusable with `aria-disabled` and listed reasons. Canvas, context, drawing, encoding, object-URL, and download failures are caught and reported in pt-BR.
+- **Alternatives:** JPEG (lossy, no exact colors), SVG/PDF (would need a second renderer), transparent background (inconsistent with the opaque preview, rejected by the owner).
+- **Status:** Approved; implemented and accepted (2026-11-08).
+- **Date:** 2026-11-08.
+
+### D-009 — Shared composition for preview and export
+
+- **Decision:** `composePreview` → `buildScene` → `drawScene` is the single path. Export reuses the preview's scene object (the same loaded images, measured text, colored segments, alignment, and position) and only chooses a different pixel width; nothing is recomposed.
+- **Status:** Approved; implemented in M4.
+- **Date:** 2026-11-08.
+
+### D-045 — Curated imagery only; no customer uploads
+
+- **Context:** Clarification of existing scope by the owner.
+- **Decision:** Product photographs and visual assets are prepared and registered only by Taavi in the version-controlled catalog. Customers cannot upload images (no file picker, drag-and-drop, paste, or image URL), and there is no customer image storage or upload API. Images are same-origin catalog assets only (D-031). Recorded as FR-09.
+- **Status:** Approved.
+- **Date:** 2026-11-08.
+
 ## Proposed
 
 ### D-007 — SVG preview rendering
 
 - **Status:** Superseded by D-035 (Canvas 2D).
-
-### D-008 — PNG export format
-
-- **Proposal:** Export as PNG, rasterized client-side.
-- **Open:** resolution, transparency, background, file naming.
-- **Alternatives:** JPEG, SVG download, PDF.
-- **Status:** Proposed — confirm in M4.
-
-### D-009 — Shared composition model
-
-- **Proposal:** A pure function derives a composition (layers, geometry, text) from catalog + configuration; both preview and export consume it.
-- **Rationale:** Minimizes preview/export inconsistencies.
-- **Status:** Proposed — the preview side is implemented (`composePreview`, `buildScene`, `drawScene`, D-035–D-037); confirm the export side in M4.
 
 ## Pending
 
