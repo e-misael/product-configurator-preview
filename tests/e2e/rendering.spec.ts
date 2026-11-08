@@ -224,8 +224,9 @@ test.describe('Debossed lettering on the Placa photograph', () => {
   }
 
   test('keeps the original color in the stroke centers', async ({ page }) => {
-    // At the Placa's fixed lettering size (D-055), the size of every text on it.
-    const result = await compare(page, 'Ana\nLuz', null, 'default');
+    // At the Placa's fixed lettering size (D-055), the size of every text on it;
+    // three lines give enough stroke-center pixels to sample.
+    const result = await compare(page, 'Ana\nLuz\nCasa', null, 'default');
     test.info().annotations.push({ type: 'centers', description: JSON.stringify(result) });
 
     expect(result.changedOutside).toBe(0);
@@ -273,7 +274,15 @@ test.describe('Debossed lettering on the Placa photograph', () => {
           R.createTextMeasurer(),
         );
         const layer = scene.layers.find((candidate) => candidate.kind === 'text');
+        // Visible capital height as drawn, in the photograph's pixels.
+        const ctx = document.createElement('canvas').getContext('2d');
+        let capPx = null;
+        if (ctx && layer?.kind === 'text') {
+          ctx.font = R.fontFor(layer.block.fontSize, layer.block.fontFamily);
+          capPx = ctx.measureText('H').actualBoundingBoxAscent;
+        }
         return {
+          capPx,
           fontSize: layer?.kind === 'text' ? layer.block.fontSize : null,
           lines: layer?.kind === 'text' ? layer.block.lines.length : null,
           overflow: scene.notices.includes('text-overflow'),
@@ -281,8 +290,14 @@ test.describe('Debossed lettering on the Placa photograph', () => {
       });
     }, texts);
 
-    // 0.08625 of the 640 px photograph, whatever the text.
-    for (const result of results) expect(result.fontSize).toBeCloseTo(55.2, 6);
+    // 0.0837 of the 640 px photograph, whatever the text.
+    for (const result of results) expect(result.fontSize).toBeCloseTo(53.568, 6);
+    // Capitals about 7 mm tall on the 100 mm plate (0.8422 of 640 px), the provisional reference.
+    const pxPerMm = (0.8422 * 640) / 100;
+    for (const result of results) {
+      expect((result.capPx ?? 0) / pxPerMm).toBeGreaterThan(6.8);
+      expect((result.capPx ?? 0) / pxPerMm).toBeLessThan(7.2);
+    }
     expect(results.map((result) => result.overflow)).toEqual([false, false, false, false, true]);
     // Wrapping, not shrinking: one typed line wider than the area draws as several.
     expect(results[1]?.lines).toBeGreaterThan(1);

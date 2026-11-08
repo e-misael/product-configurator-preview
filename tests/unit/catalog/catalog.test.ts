@@ -55,16 +55,18 @@ describe('production catalog', () => {
       text: {
         area: { x: 0.145, y: 0.155, width: 0.71, height: 0.69 },
         align: 'center',
-        fontSize: 0.08625,
+        fontSize: 0.0837,
       },
     });
   });
 
-  it('fixes the Placa lettering at half its former starting size (D-055)', () => {
-    const text = getCatalog().plates.find((plate) => plate.id === 'placa-ceramica-10')?.image?.text;
-    // Former start: 25% of the text-area height (0.69 of the 640 px image) = 110.4 px.
-    expect(text?.fontSize).toBeCloseTo(0.5 * 0.25 * 0.69, 10);
-    expect((text?.fontSize ?? 0) * 640).toBeCloseTo(55.2, 10);
+  it('sizes the Placa lettering for a capital about 7 mm tall on the 100 mm plate (D-055)', () => {
+    const placa = getCatalog().plates.find((plate) => plate.id === 'placa-ceramica-10');
+    const fontSize = placa?.image?.text?.fontSize ?? 0;
+    const plateWidth = placa?.image?.objectBounds?.width ?? 0;
+    // Cap height of the sans-serif stack is 0.705 of the font size (measured, D-055).
+    const capMm = (fontSize * 0.705 * 100) / plateWidth;
+    expect(capMm).toBeCloseTo(7, 1);
   });
 
   it('returns the same deeply frozen instance on every call', () => {

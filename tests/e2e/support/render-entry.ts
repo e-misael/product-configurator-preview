@@ -6,6 +6,6 @@ export { getCatalog } from '../../../src/catalog';
 export { demoCatalog } from '../../../src/demo/demo-catalog';
 export { createEmptyConfiguration, validateConfiguration } from '../../../src/domain';
 export { composePreview } from '../../../src/preview/composition';
-export { createTextMeasurer, drawScene } from '../../../src/preview/draw';
+export { createTextMeasurer, drawScene, fontFor } from '../../../src/preview/draw';
 export { DEBOSS } from '../../../src/preview/deboss';
 export { buildScene } from '../../../src/preview/scene';

@@ -38,12 +38,13 @@ export const catalogData: Catalog = {
         },
         objectBounds: { x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 },
         // About 8% inside the plate edge, clear of the rounded rim. Fixed lettering
-        // size: half the former starting size, 0.5 × 0.25 × 0.69 = 0.08625 of the
-        // image width (55.2 px); an initial visual reference, not a mold measurement (D-055).
+        // size for a capital about 7 mm tall on the 100 mm plate: 7 × (0.8422 / 100)
+        // / 0.705 (cap height of the sans-serif stack) = 0.0837 of the image width
+        // (53.6 px). A provisional estimate from a photograph, not a mold measurement (D-055).
         text: {
           area: { x: 0.145, y: 0.155, width: 0.71, height: 0.69 },
           align: 'center',
-          fontSize: 0.08625,
+          fontSize: 0.0837,
         },
       },
     },

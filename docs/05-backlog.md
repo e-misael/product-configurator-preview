@@ -226,11 +226,11 @@ Status: **Done** (accepted 2026-11-08, D-046, D-047). Evidence: typecheck, lint,
 Status: **Done** (implemented 2026-11-08, not committed). Taavi's lettering molds have one size (D-055).
 
 - [x] `TextLayout.fontSize`: fixed size per model as a fraction of the image width; validated in (0, 1]; optional, so pending models keep the catalog valid
-- [x] Placa: 0.08625 (55.2 px on 640 px), half the former starting size; an initial visual reference, not a mold measurement
+- [x] Placa: 0.0837 (53.6 px on 640 px), for capitals about 7 mm tall on the 100 mm plate; a provisional estimate from the lettered reference photograph, not a mold measurement (first set at 0.08625, about 7.2 mm)
 - [x] Shrinking removed: `layoutText` keeps line breaks and wrapping at the fixed size; vertical and horizontal overflow show the warning and block export
 - [x] `text-size-pending`: a model with a text area but no approved size draws no text, says so, and blocks export; no fallback to fitting
 - [x] Demo models use the same rule on their synthetic areas
-- [x] Unit, component, and Chromium/WebKit tests: fixed size for short, long, wrapped, Unicode, and overflowing text; positions, drag, two colors, deboss, and preview/export consistency unchanged
+- [x] Unit, component, and Chromium/WebKit tests (including the drawn capital height, 6.8–7.2 mm): fixed size for short, long, wrapped, Unicode, and overflowing text; positions, drag, two colors, deboss, and preview/export consistency unchanged
 - Pending: sizes for the Quadro and the Bandejas (P-15). Lettering colors stay a production-data dependency (P-02).
 
 ## M5 — Quality and usability
