@@ -3,8 +3,9 @@ import { expect, test } from '@playwright/test';
 import { rolldown } from 'rolldown';
 
 /**
- * Debossed lettering (D-052) rendered by the app's real drawing code in a real
- * browser, on Taavi's Placa photograph with the production calibration. Each
+ * Debossed lettering (D-052) and fixed lettering size (D-055) rendered by the
+ * app's real drawing code in a real browser, on Taavi's photographs with the
+ * production calibration. Each
  * scene is painted flat (no effect) and debossed on equal canvases and
  * compared pixel by pixel. These checks guard the technique; they do not
  * replace the visual approval of the effect.
@@ -35,27 +36,60 @@ interface Comparison {
   readonly meanChange: number;
 }
 
-test.describe('Debossed lettering on the Placa photograph', () => {
+/** Every production model: its photograph and the real width (mm) of the ceramic in it. */
+const MODELS = [
+  {
+    id: 'placa-ceramica-10',
+    src: '/catalog/plates/placa-ceramica-10/bege.png',
+    ceramic: 0.8422,
+    mm: 100,
+  },
+  // The 100 mm ceramic inside the frame (282 of 660 px), never the 200 mm frame.
+  { id: 'quadro-20', src: '/catalog/plates/quadro-20/bege.jpg', ceramic: 282 / 660, mm: 100 },
+  {
+    id: 'bandeja-ondulada-m-8',
+    src: '/catalog/plates/bandeja-ondulada-m-8/bege.jpg',
+    ceramic: 0.9425,
+    mm: 80,
+  },
+  {
+    id: 'bandeja-ondulada-g-11',
+    src: '/catalog/plates/bandeja-ondulada-g-11/bege.jpg',
+    ceramic: 0.9425,
+    mm: 110,
+  },
+] as const;
+
+type Photos = Record<string, HTMLImageElement>;
+
+test.describe('Lettering on the catalog photographs', () => {
   test.beforeEach(async ({ page }) => {
-    const [code, photo] = await Promise.all([
+    const [code, ...files] = await Promise.all([
       bundle(),
-      readFile('public/catalog/plates/placa-ceramica-10/bege.png'),
+      ...MODELS.map((model) => readFile(`public${model.src}`)),
     ]);
     await page.setContent('<!doctype html><meta charset="utf-8"><body></body>');
     await page.addScriptTag({ content: code });
     await page.evaluate(
-      async (dataUrl) => {
-        const image = new Image();
-        image.src = dataUrl;
-        await image.decode();
-        (window as unknown as { photo: HTMLImageElement }).photo = image;
+      async (entries) => {
+        const photos: Record<string, HTMLImageElement> = {};
+        for (const [src, dataUrl] of entries) {
+          const image = new Image();
+          image.src = dataUrl;
+          await image.decode();
+          photos[src] = image;
+        }
+        (window as unknown as { photos: Record<string, HTMLImageElement> }).photos = photos;
       },
-      `data:image/png;base64,${photo.toString('base64')}`,
+      MODELS.map((model, i): [string, string] => [
+        model.src,
+        `data:image/${model.src.endsWith('.png') ? 'png' : 'jpeg'};base64,${files[i]?.toString('base64') ?? ''}`,
+      ]),
     );
   });
 
   /**
-   * Paints `text` on the Placa three ways (flat, debossed, and a black flat
+   * Paints `text` on a model (the Placa by default) three ways (flat, debossed, and a black flat
    * glyph mask on white without the photo) and compares them.
    */
   const compare = (
@@ -63,17 +97,18 @@ test.describe('Debossed lettering on the Placa photograph', () => {
     text: string,
     secondary: { start: number; end: number } | null,
     strength: 'default' | 'proposed',
+    plateId: string = 'placa-ceramica-10',
   ) =>
     page.evaluate(
-      ({ text, secondary, strength }) => {
+      ({ text, secondary, strength, plateId }) => {
         const R = window.Render;
-        const photo = (window as unknown as { photo: HTMLImageElement }).photo;
+        const photos = (window as unknown as { photos: Photos }).photos;
         const base = R.getCatalog();
         // Review-only colors (D-049 proposals) borrowed from the demo catalog.
         const catalog = { ...base, textColors: R.demoCatalog.textColors };
         const config = {
           ...R.createEmptyConfiguration(),
-          plateId: 'placa-ceramica-10',
+          plateId,
           text,
           textColorId: 'demo-letra-marrom',
           secondaryColorId: secondary ? 'demo-letra-laranja' : null,
@@ -82,12 +117,9 @@ test.describe('Debossed lettering on the Placa photograph', () => {
         const validation = R.validateConfiguration(config, catalog);
         if (validation.status !== 'valid') throw new Error(JSON.stringify(validation));
         const composition = R.composePreview(catalog, config, validation);
-        const images = new Map([
-          [
-            '/catalog/plates/placa-ceramica-10/bege.png',
-            { status: 'loaded' as const, image: photo },
-          ],
-        ]);
+        const images = new Map(
+          Object.entries(photos).map(([src, image]) => [src, { status: 'loaded' as const, image }]),
+        );
         const scene = R.buildScene(composition, images, R.createTextMeasurer());
         // 'proposed': the first, twice as strong candidate kept for comparison.
         const style =
@@ -202,7 +234,7 @@ test.describe('Debossed lettering on the Placa photograph', () => {
           meanChange: glyph ? change / glyph : 0,
         };
       },
-      { text, secondary, strength },
+      { text, secondary, strength, plateId },
     ) as Promise<Comparison>;
 
   for (const strength of ['default', 'proposed'] as const) {
@@ -248,61 +280,84 @@ test.describe('Debossed lettering on the Placa photograph', () => {
     expect(chosen.changedOutside).toBe(0);
   });
 
-  test('draws every text at the fixed Placa size, with real font metrics (D-055)', async ({
-    page,
-  }) => {
-    const texts = [
-      'A',
-      'Casa da Ana e do Pedro, desde 2024',
-      'Rua das Flores, 123\nApartamento 45\nFamília Souza',
-      'Ação 👩‍👩‍👧 João',
-      Array.from({ length: 12 }, (_, i) => `Linha ${i}`).join('\n'),
-    ];
-    const results = await page.evaluate((texts) => {
-      const R = window.Render;
-      const photo = (window as unknown as { photo: HTMLImageElement }).photo;
-      const catalog = R.getCatalog();
-      const images = new Map([
-        ['/catalog/plates/placa-ceramica-10/bege.png', { status: 'loaded' as const, image: photo }],
-      ]);
-      return texts.map((text) => {
-        const config = { ...R.createEmptyConfiguration(), plateId: 'placa-ceramica-10', text };
-        const validation = R.validateConfiguration(config, catalog);
-        const scene = R.buildScene(
-          R.composePreview(catalog, config, validation),
-          images,
-          R.createTextMeasurer(),
-        );
-        const layer = scene.layers.find((candidate) => candidate.kind === 'text');
-        // Visible capital height as drawn, in the photograph's pixels.
-        const ctx = document.createElement('canvas').getContext('2d');
-        let capPx = null;
-        if (ctx && layer?.kind === 'text') {
-          ctx.font = R.fontFor(layer.block.fontSize, layer.block.fontFamily);
-          capPx = ctx.measureText('H').actualBoundingBoxAscent;
-        }
-        return {
-          capPx,
-          fontSize: layer?.kind === 'text' ? layer.block.fontSize : null,
-          lines: layer?.kind === 'text' ? layer.block.lines.length : null,
-          overflow: scene.notices.includes('text-overflow'),
-        };
-      });
-    }, texts);
+  for (const model of MODELS) {
+    test(`draws every text at the fixed ${model.id} size, capitals about 7 mm (D-055)`, async ({
+      page,
+    }) => {
+      const texts = [
+        'A',
+        'Casa da Ana e do Pedro, desde 2024',
+        'Ação 👩‍👩‍👧 João',
+        Array.from({ length: 12 }, (_, i) => `Linha ${i}`).join('\n'),
+      ];
+      const { width, fontSize, results } = await page.evaluate(
+        ({ texts, plateId }) => {
+          const R = window.Render;
+          const photos = (window as unknown as { photos: Photos }).photos;
+          const catalog = R.getCatalog();
+          const plate = catalog.plates.find((candidate) => candidate.id === plateId);
+          const images = new Map(
+            Object.entries(photos).map(([src, image]) => [
+              src,
+              { status: 'loaded' as const, image },
+            ]),
+          );
+          const results = texts.map((text) => {
+            const config = { ...R.createEmptyConfiguration(), plateId, text };
+            const validation = R.validateConfiguration(config, catalog);
+            const scene = R.buildScene(
+              R.composePreview(catalog, config, validation),
+              images,
+              R.createTextMeasurer(),
+            );
+            const layer = scene.layers.find((candidate) => candidate.kind === 'text');
+            // Visible capital height as drawn, in the photograph's pixels.
+            const ctx = document.createElement('canvas').getContext('2d');
+            let capPx = null;
+            if (ctx && layer?.kind === 'text') {
+              ctx.font = R.fontFor(layer.block.fontSize, layer.block.fontFamily);
+              capPx = ctx.measureText('H').actualBoundingBoxAscent;
+            }
+            return {
+              capPx,
+              fontSize: layer?.kind === 'text' ? layer.block.fontSize : null,
+              lines: layer?.kind === 'text' ? layer.block.lines.length : null,
+              overflow: scene.notices.includes('text-overflow'),
+            };
+          });
+          return {
+            width: plate?.image?.image.widthPx ?? 0,
+            fontSize: plate?.image?.text?.fontSize ?? 0,
+            results,
+          };
+        },
+        { texts, plateId: model.id },
+      );
 
-    // 0.0837 of the 640 px photograph, whatever the text.
-    for (const result of results) expect(result.fontSize).toBeCloseTo(53.568, 6);
-    // Capitals about 7 mm tall on the 100 mm plate (0.8422 of 640 px), the provisional reference.
-    const pxPerMm = (0.8422 * 640) / 100;
-    for (const result of results) {
-      expect((result.capPx ?? 0) / pxPerMm).toBeGreaterThan(6.8);
-      expect((result.capPx ?? 0) / pxPerMm).toBeLessThan(7.2);
-    }
-    expect(results.map((result) => result.overflow)).toEqual([false, false, false, false, true]);
-    // Wrapping, not shrinking: one typed line wider than the area draws as several.
-    expect(results[1]?.lines).toBeGreaterThan(1);
-    expect(results[4]?.lines).toBe(12);
-  });
+      // The model's own fixed size, whatever the text.
+      for (const result of results) expect(result.fontSize).toBeCloseTo(fontSize * width, 6);
+      // Capitals about 7 mm tall on the ceramic, the provisional reference.
+      const pxPerMm = (model.ceramic * width) / model.mm;
+      for (const result of results) {
+        expect((result.capPx ?? 0) / pxPerMm).toBeGreaterThan(6.8);
+        expect((result.capPx ?? 0) / pxPerMm).toBeLessThan(7.2);
+      }
+      // Wrapping, not shrinking: one typed line wider than the area draws as several.
+      expect(results[1]?.lines).toBeGreaterThan(1);
+      expect(results[0]?.overflow).toBe(false);
+      expect(results[3]).toMatchObject({ lines: 12, overflow: true });
+    });
+  }
+
+  for (const model of MODELS.slice(1)) {
+    test(`shades only inside the glyphs on the ${model.id} photograph`, async ({ page }) => {
+      const result = await compare(page, 'Ana\n2024', { start: 0, end: 3 }, 'default', model.id);
+
+      expect(result.glyph).toBeGreaterThan(500);
+      expect(result.changedOutside).toBe(0);
+      expect(result.changedInside).toBeGreaterThan(0);
+    });
+  }
 
   test('keeps Unicode text and its colored ranges intact', async ({ page }) => {
     const result = await compare(page, 'Ação 👩‍👩‍👧\nJoão', { start: 0, end: 4 }, 'default');

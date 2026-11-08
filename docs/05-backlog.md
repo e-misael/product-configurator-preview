@@ -86,7 +86,7 @@ Status: **Done** — implemented; pending owner review. No real products or imag
 
 ### M1.3b — Real asset registration
 
-Status: **Partly done**: the four supplied models are registered without images or measurements (M4.1a, D-040). The rest is **blocked on clean photographs and measurements from the store.**
+Status: **Done** for the four current models: photographs, calibration, dimensions, and lettering sizes registered (M1.3b-1, M1.3b-2). Model IDs other than the Placa's are not yet confirmed (P-12).
 
 - Confirm the four provisional model IDs (P-12). No model takes a separate frame (P-13 resolved by D-046); the Quadro is photographed assembled.
 - Processed images under `public/catalog/` (background removal/masking, perspective correction as needed); originals archived outside the repository with provenance.
@@ -104,6 +104,18 @@ Status: **Done** (technical implementation, committed in 6d8cbb2, 2026-11-08). C
 - Mobile rendering: about 40 fps while dragging under 4× CPU throttling; optimize only with evidence from real devices.
 
 History: inputs confirmed so far (D-048): photo usage rights, the official name "Placa cerâmica (tamanho 10 x 10 cm)", the color names Marrom, Azul, Verde, Amarelo, Laranja, Vermelho escuro (D-049), and the text-area rule (ceramic only, never the frame). Candidate photograph `plate-no-text.png` accepted under D-050 after a basic quality check; crop and calibration proposed and a color review sheet prepared (`docs/07-product-assets.md`). ID, label, and centered default placement approved (D-051). Crop, calibration, and centered alignment provisionally accepted for the first iteration; the six proposed `#rrggbb` values are for review and demo only. Implementation approved on 2026-11-08 with the inner-shadow conditions of D-052.
+
+### M1.3b-2 — Quadro and Bandejas ondulada M and G
+
+Status: **Done** (implemented 2026-11-08, not committed). Crops, placement, sizes, and dimensions approved by the product owner (D-054, D-055, P-01).
+
+- [x] `public/catalog/plates/quadro-20/bege.jpg` (660 × 660) and the Bandeja photograph (1060 × 1060) in both `bandeja-ondulada-m-8/` and `bandeja-ondulada-g-11/` (identical files), JPEG quality about 90, cropped only: no tint, no background removal
+- [x] Quadro: the assembled product; text area on the ceramic only; lettering size from the 100 mm ceramic, not the frame
+- [x] Bandejas: one photograph and text area (the flat floor; the square kept after comparison with a wider rectangle and corrected clear of the walls), sizes M 0.1170 and G 0.0851
+- [x] `dimensions` for all four models (outer size; the Quadro's 100 mm ceramic documented)
+- [x] Image-size check reads JPEG as well as PNG
+- [x] Unit tests: exact entries, text area inside the Quadro ceramic, shared Bandeja placement with separate sizes, 7 mm capitals on every model; Playwright: every model shows its photograph, JPEGs served, lettering drawn, Bandeja M overflow warning, fixed size and 7 mm capitals per model with real font metrics, deboss inside the glyphs only on each new photograph
+- Remaining: production lettering colors (P-02); typography (P-04, P-14); deboss look (D-052).
 
 ## M2 — Configuration interface
 
@@ -231,7 +243,7 @@ Status: **Done** (implemented 2026-11-08, not committed). Taavi's lettering mold
 - [x] `text-size-pending`: a model with a text area but no approved size draws no text, says so, and blocks export; no fallback to fitting
 - [x] Demo models use the same rule on their synthetic areas
 - [x] Unit, component, and Chromium/WebKit tests (including the drawn capital height, 6.8–7.2 mm): fixed size for short, long, wrapped, Unicode, and overflowing text; positions, drag, two colors, deboss, and preview/export consistency unchanged
-- Pending: sizes for the Quadro and the Bandejas (P-15). Lettering colors stay a production-data dependency (P-02).
+- Sizes for the Quadro and the Bandejas added in M1.3b-2 (P-15 resolved). Lettering colors stay a production-data dependency (P-02).
 
 ## M5 — Quality and usability
 

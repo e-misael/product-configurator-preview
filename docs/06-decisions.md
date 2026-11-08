@@ -434,6 +434,15 @@ Status values:
 - **Status:** Approved (product owner, 2026-11-08).
 - **Date:** 2026-11-08.
 
+### D-054 — Confirmed product facts for M1.3b-2 (2026-11-08)
+
+- **Decision:** Supplied by the product owner: (1) the Bandeja ondulada M and G share one design, so both use the same photograph and placement, stored once per model folder as identical files (assets stay in their own model's folder); (2) the Quadro and Bandeja photographs (`quadro-no-text.jpg`, `ondulada.jpg`) are Taavi's own, with the lettering removed by AI editing, which D-050 accepts; (3) both the Quadro and the Bandejas take colored lettering, like the Placa; (4) the processed catalog files are JPEG at quality about 90.
+- **Not decided here:** crops, `objectBounds`, and `text.area` for these photographs stay proposals until the visual review approves them; IDs stay as in P-12; color values stay pending (P-02).
+- **Calibration (M1.3b-2, product owner review 2026-11-08):** Quadro: 660 × 660 crop at x 427, y 156 of `quadro-no-text.jpg`; `objectBounds` (the whole framed product) `{ x: 0.0364, y: 0.0318, width: 0.9273, height: 0.9364 }`; `text.area` on the ceramic only, about 8% inside its edge, `{ x: 0.3009, y: 0.3494, width: 0.3589, height: 0.3589 }`. Bandejas: 1060 × 1060 crop at x 54, y 171 of `ondulada.jpg`; `objectBounds` `{ x: 0.0283, y: 0.0387, width: 0.9425, height: 0.9226 }`; `text.area` `{ x: 0.28, y: 0.265, width: 0.43, height: 0.43 }`, on the flat floor with a margin of about 0.01 from the wavy walls. All centered. The owner asked for a wider, shorter floor rectangle to be compared with the square; the widest one clear of the walls (`0.585 × 0.31`) fits one line fewer (M 2 lines instead of 3, G 3 instead of 4) for 2–3 more characters per line, so the square was kept as the meaningful-improvement test failed. The first proposed square (`0.2726, 0.2736, 0.4528`) touched the wall foot at its lower-right corner and was corrected.
+- **Approval:** crops, bounds, centered placement, and the square text-area rule approved; the corrected square was chosen under the owner's rule "keep the square if the difference is negligible".
+- **Status:** Approved (product owner, 2026-11-08).
+- **Date:** 2026-11-08.
+
 ### D-055 — Fixed lettering size (2026-11-08)
 
 - **Context:** Taavi letters the pieces with physical molds of one size, so text that grows or shrinks with its length misrepresents the product.
@@ -441,9 +450,9 @@ Status values:
 - **Placa value:** 0.0837 of the image width (53.6 px on the 640 px photograph), for a visible capital about **7 mm** tall on the 100 mm plate. The 7 mm is a provisional estimate (6–8 mm) by the product owner from the reference photograph of a real lettered 10 × 10 cm Placa, `docs/reference-images/um-passo-de-cada-vez-…webp`. It is not a verified mold or manufacturing measurement; a direct reading of that photograph gives about 6.4 mm (6.2–6.6).
 - **Glyph height vs font size:** the canvas sets a nominal font size; the visible capital is 0.705 of it for the sans-serif stack and 0.693 for serif (measured in Chromium and WebKit on macOS; other platforms' system fonts differ by a few percent). Formula: `fontSize = capMm × (objectBounds.width ÷ ceramicWidthMm) ÷ 0.705`, so 7 × (0.8422 ÷ 100) ÷ 0.705 = 0.0837. At this size serif capitals are about 6.9 mm. The previous value, 0.08625 (55.2 px, half the former starting size), gave about 7.2 mm.
 - **Pending state:** `fontSize` is optional, so a model without an approved size keeps the catalog valid. When such a model has text, nothing is drawn on the image, the `text-size-pending` notice says so ("O tamanho das letras deste modelo ainda não foi definido; o texto não aparece na imagem."), and export is blocked like any preview notice. There is no fallback to fitting and no guessed size. Validation rejects a `fontSize` that is not a finite number in (0, 1].
-- **Other models:** no size is set for the Quadro or the Bandejas ondulada M and G (P-15). The same 7 mm reference applies to any model whose ceramic size is known, measured on the ceramic in its own photograph, never on the Quadro's wooden frame. Demo models use the same rule on their synthetic areas (demo-only values).
+- **Other models (approved 2026-11-08 with the confirmed dimensions, P-01):** Quadro 0.0424 (the 100 mm ceramic, 282 of 660 px, never the 200 mm frame; 28.0 px); Bandeja ondulada M 0.1170 (80 mm, 0.9425 of 1060 px; 124.0 px); Bandeja ondulada G 0.0851 (110 mm, same photograph; 90.2 px). M and G share a photograph but not a size. Same formula, with the measured cap ratio 0.7046 (0.705 rounded). The bandeja's dish measures 999 × 978 px in the photograph; its width is used, as for the Placa. Demo models use the same rule on their synthetic areas (demo-only values).
 - **Alternatives:** Halving the fitted size (rejected: still resizes with the text); a size per photograph (rejected: Bandeja M and G share one photograph at different physical sizes).
-- **Status:** Approved (product owner, 2026-11-08) for the Placa.
+- **Status:** Approved (product owner, 2026-11-08): Placa, then Quadro and Bandejas M and G.
 - **Date:** 2026-11-08.
 
 ## Proposed
@@ -454,18 +463,18 @@ Status values:
 
 ## Pending
 
-- **P-01:** Real plate dimensions and aspect ratios per shape.
+- **P-01:** Resolved (product owner, 2026-11-08): Placa cerâmica 100 × 100 mm; Quadro 200 × 200 mm outside, holding a 100 × 100 mm ceramic plate; Bandeja ondulada M 80 × 80 mm; Bandeja ondulada G 110 × 110 mm. Recorded as `dimensions` (outer size; the Quadro's ceramic is noted in the catalog comments and D-055). The size labels stay as supplied display text ("Aprox. 8 cm").
 - **P-02:** Partly resolved by D-049: the color names are Marrom, Azul, Verde, Amarelo, Laranja, Vermelho escuro. Still pending: a `#rrggbb` value for each (supplied or approved by Taavi), whether each may also be the second color, and their display order. Proposed values for review: `docs/reference-images/review/review-sheet.png` (not approved). Until then `Catalog.textColors` stays empty and no production configuration can be completed or exported. This empty palette is why the production site shows "As cores do texto ainda não foram definidas." instead of swatches: a missing production-data dependency, not a rendering defect (verified 2026-11-08; the swatches render in demo mode). Demo values are never copied into production.
 - **P-03:** Resolved by D-046: no separate frames; the Quadro is photographed assembled.
 - **P-04:** Production typography rules and text limits (max length, lines).
 - **P-05:** Export resolution, transparency, background, file naming.
-- **P-06:** Real product images: one photograph per model (D-041), the Quadro assembled with its frame (D-046).
-- **P-07:** Placement metadata per photograph: object bounds and text safe area (inside the ceramic for the Quadro), scale relative to real dimensions.
+- **P-06:** Resolved: one photograph per model (D-041) is registered, the Quadro assembled with its frame (D-046), the Bandejas sharing one (D-054).
+- **P-07:** Resolved: object bounds, text areas (inside the ceramic for the Quadro, on the flat floor for the Bandejas), and fixed lettering sizes from the real dimensions are calibrated for all four models (D-053, D-054, D-055).
 - **P-08:** Source image format, resolution, and consistency requirements (framing, lighting, background). Conventions and recommendations: `docs/07-product-assets.md`.
 - **P-09:** Resolved by D-046: no frame choice, so no frame finish variations.
 - **P-10:** Partly resolved by D-048: usage rights confirmed. Still pending: the original file name or location of each catalog photograph, for provenance records.
 - **P-11:** Resolved by D-040: the scalloped dishes are the Bandeja ondulada M models. No circular model is registered.
 - **P-12:** Confirmation of the four permanent model IDs. The Placa's ID `placa-ceramica-10` is confirmed (D-051); the other three are not yet.
 - **P-13:** Resolved by D-046: no model takes an optional frame.
-- **P-15:** Fixed lettering sizes (D-055) for the Quadro, Bandeja ondulada M, and Bandeja ondulada G: need the real ceramic dimensions (P-01) or an approved model-specific reference. If the Quadro's inner ceramic is confirmed as 10 × 10 cm, its value is 7 × (282 px ÷ 660 px ÷ 100 mm) ÷ 0.705 ≈ 0.0425 on the proposed M1.3b-2 crop. A measured letter height of Taavi's molds would replace the provisional 7 mm. Until then those models show the `text-size-pending` notice and cannot be exported with text.
+- **P-15:** Resolved (2026-11-08): with the confirmed dimensions (P-01), the Quadro (0.0424), Bandeja ondulada M (0.1170), and Bandeja ondulada G (0.0851) have fixed lettering sizes (D-055). The 7 mm letter height stays a provisional estimate; a measured letter height of Taavi's molds would replace it.
 - **P-14:** Real serif and sans-serif typefaces for the text (system stacks are provisional) and the per-line text-length limit.

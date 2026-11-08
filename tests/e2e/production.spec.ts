@@ -15,7 +15,7 @@ const MODELS = [
 ];
 
 test.describe('Production build @smoke', () => {
-  test('lists the four models, with no demo data; only the Placa has a photo', async ({ page }) => {
+  test('lists the four models, with no demo data, each with its photograph', async ({ page }) => {
     await page.goto('/');
 
     await expect(page).toHaveTitle('Taavi Configurator');
@@ -34,9 +34,11 @@ test.describe('Production build @smoke', () => {
     await expect(preview.getByRole('img')).toBeVisible();
     await expect(preview).not.toContainText('A foto deste modelo ainda não está disponível.');
 
-    await group.getByRole('radio', { name: 'Quadro — 20 × 20 cm' }).check();
-    await expect(preview).toContainText('A foto deste modelo ainda não está disponível.');
-    await expect(preview.locator('canvas')).toHaveCount(0);
+    for (const name of MODELS.slice(1)) {
+      await group.getByRole('radio', { name }).check();
+      await expect(preview.getByRole('img')).toBeVisible();
+      await expect(preview).not.toContainText('A foto deste modelo ainda não está disponível.');
+    }
 
     await expect(page.getByText(/demonstração/i)).toHaveCount(0);
     await expectNoHorizontalScroll(page);
@@ -102,6 +104,59 @@ test.describe('Production build @smoke', () => {
       const response = await request.get(path);
       expect(response.headers()['content-type'] ?? '').not.toContain('image/');
     }
+  });
+});
+
+test.describe('Quadro and Bandeja photographs (M1.3b-2)', () => {
+  for (const [name, path] of [
+    ['Quadro — 20 × 20 cm', 'quadro-20'],
+    ['Bandeja ondulada M — Aprox. 8 cm', 'bandeja-ondulada-m-8'],
+    ['Bandeja ondulada G — Aprox. 11 cm', 'bandeja-ondulada-g-11'],
+  ] as const) {
+    test(`serves the ${path} JPEG and draws the lettering on it`, async ({ page }) => {
+      const photo = page.waitForResponse(`**/catalog/plates/${path}/bege.jpg`);
+      await page.goto('/');
+      await page.getByRole('group', { name: 'Modelo' }).getByRole('radio', { name }).check();
+      const response = await photo;
+      expect(response.status()).toBe(200);
+      expect(response.headers()['content-type']).toContain('image/jpeg');
+
+      const preview = page.getByRole('region', { name: 'Pré-visualização' });
+      const canvas = preview.locator('canvas');
+      const pixels = () =>
+        canvas.evaluate((element: HTMLCanvasElement) => {
+          const ctx = element.getContext('2d');
+          if (!ctx) return '';
+          const { data } = ctx.getImageData(0, 0, element.width, element.height);
+          let sum = 0;
+          for (let i = 0; i < data.length; i += 97) sum += data[i] ?? 0;
+          return `${element.width}x${element.height}:${sum}`;
+        });
+      await expect.poll(pixels).not.toBe('');
+      const plain = await pixels();
+      await page.getByLabel('Texto', { exact: true }).fill('Ana');
+      await expect.poll(pixels).not.toBe(plain);
+      await expect(preview).not.toContainText('O texto não cabe');
+      await expect(preview).not.toContainText('ainda não foi definido');
+      await expectNoHorizontalScroll(page);
+    });
+  }
+
+  test('keeps the fixed size on the Bandeja M: long text warns instead of shrinking', async ({
+    page,
+  }) => {
+    await page.goto('/');
+    await page
+      .getByRole('group', { name: 'Modelo' })
+      .getByRole('radio', { name: 'Bandeja ondulada M — Aprox. 8 cm' })
+      .check();
+    const preview = page.getByRole('region', { name: 'Pré-visualização' });
+    await expect(preview.getByRole('img')).toBeVisible();
+    await page.getByLabel('Texto', { exact: true }).fill('Ana\nLuz\nLeo\nBia');
+
+    await expect(preview).toContainText(
+      'O texto não cabe na área do modelo. Reduza o texto ou use menos linhas.',
+    );
   });
 });
 

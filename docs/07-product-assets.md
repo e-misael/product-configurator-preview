@@ -2,7 +2,7 @@
 
 How Taavi's real product photographs become catalog imagery (FR-08, D-027, D-031–D-034). This guide covers **M1.3a** (conventions and catalog contract, implemented) and the steps for **M1.3b** (registering real assets, pending until photographs and measurements arrive).
 
-> One production photograph is registered: the Placa cerâmica (`public/catalog/plates/placa-ceramica-10/bege.png`, M1.3b-1), with its calibration, approved for the first production iteration (D-053). Store reference photographs in `docs/reference-images/` are not assets. The other three models have no photograph yet.
+> Every model has its production photograph and calibration: the Placa cerâmica (`placa-ceramica-10/bege.png`, M1.3b-1, D-053), the Quadro (`quadro-20/bege.jpg`), and the Bandejas ondulada M and G (`bandeja-ondulada-m-8/bege.jpg` and `bandeja-ondulada-g-11/bege.jpg`, identical files; M1.3b-2, D-054). Store reference photographs in `docs/reference-images/` are not assets.
 
 ## Provenance and originals
 
@@ -62,6 +62,15 @@ Three store photographs are kept in `docs/reference-images/` (WebP or PNG, 1024 
 Review page: `review.html` and `review-sheet.png` in `docs/reference-images/review/` (also shared as a private page). Proposed values for review and demo use only: Marrom `#4a2a14`, Azul `#2b4a7a`, Verde `#2f4a36`, Amarelo `#e0b225`, Laranja `#e07a1f`, Vermelho escuro `#7a1f1f`. Marrom and Verde are seeded from lettering sampled in Taavi's photographs (`#3f1f04`, `#333d2e`, under warm light); the others are suggestions with no Taavi reference. Amarelo and Laranja are shown in their natural hues and are not darkened to meet a contrast target; against the plate face in the photograph (`#c19669`) they measure about 1.3:1 and 1.1:1, versus 3.3–4.8:1 for the others. The goal is a representative illustration of Taavi's real lettering options. None of these values enters the production catalog until Taavi approves it.
 
 None of the shared files can be calibrated without approval: the text area must be measured on the final, lettering-free catalog photograph, because a different photograph changes the coordinates.
+
+### Quadro and Bandeja photographs (M1.3b-2, 2026-11-08)
+
+- **Sources:** `docs/reference-images/quadro-no-text.jpg` and `ondulada.jpg`, both 1152 × 1536 JPEG, Taavi's own photographs with the lettering removed by AI editing (D-054, accepted under D-050).
+- **Quadro:** front-on and clean. Measured in the source: frame x 451–1063, y 177–795; ceramic x 603–885, y 364–646 (282 × 282 px). Crop 660 × 660 at x 427, y 156. `objectBounds` is the whole framed product; `text.area` lies on the ceramic only, about 8% inside its edge (in the crop the ceramic spans x 176–458, y 208–490), so it measures about 84 × 84 mm, almost the Placa's 84 × 82 mm.
+- **Bandeja:** one photograph for both sizes (same design). Dish x 84–1083, y 212–1190 in the source (999 × 978 px; the width is used for scale). Crop 1060 × 1060 at x 54, y 171. `text.area` `{ x: 0.28, y: 0.265, width: 0.43, height: 0.43 }`: a square on the flat floor, about 0.01 clear of the wall foot at every corner, the tightest being the lower-right valley. About 36 × 36 mm on the M and 50 × 50 mm on the G.
+- **Floor-area comparison:** the widest rectangle clear of the walls, `{ x: 0.205, y: 0.34, width: 0.585, height: 0.31 }`, fits 2 lines × 7 capitals (9 lowercase) on the M and 3 × 10 (13) on the G, against 3 × 5 (7) and 4 × 7 (10) for the square. A line fewer for a few more characters per line is not a meaningful improvement, and two-line texts such as "Ana e Pedro / 2024" stop fitting on the M, so the square stays (D-054).
+- **Lettering sizes (D-055):** 7 mm capitals from the real dimensions (P-01): Quadro 0.0424 (from the 100 mm ceramic, never the 200 mm frame), M 0.1170, G 0.0851.
+- **Files:** cropped only (no tint, no background removal, D-053 presentation), JPEG quality about 90: `quadro-20/bege.jpg` 660 × 660 (126 KB), Bandeja 1060 × 1060 (367 KB) in each Bandeja folder. Opaque JPEG with the photograph's own background, like the Placa.
 
 ## Text-safe area rules confirmed by Taavi (D-048)
 
@@ -167,7 +176,7 @@ Pending, loading, and failed are separate messages. Configuration validity never
 ## Fidelity limitations
 
 - A composited preview is an approximation of the handmade piece: glaze variation, texture, and stamped lettering differ piece to piece.
-- Calibrated placement is not a physical measurement; real dimensions remain pending (P-01).
+- Calibrated placement is measured on the photographs; real dimensions are confirmed (P-01) and set the fixed lettering size (D-055). The 7 mm letter height is a provisional estimate, not a mold measurement.
 
 ## M1.3b checklist
 

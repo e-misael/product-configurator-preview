@@ -19,7 +19,7 @@ Vocabulary: the customer-facing word for a product is **Modelo**; the code keeps
 type Dimensions = { status: 'pending' } | { status: 'defined'; widthMm: number; heightMm: number };
 ```
 
-Unknown dimensions must be `pending`. Never invent numbers to satisfy types. A model's `sizeLabel` ("10 × 10 cm", "Aprox. 8 cm") is display text as supplied, not a measurement.
+Unknown dimensions must be `pending`. Never invent numbers to satisfy types. The four current models have confirmed outer dimensions (P-01); the Quadro's is its frame, with a 100 × 100 mm ceramic inside. A model's `sizeLabel` ("10 × 10 cm", "Aprox. 8 cm") is display text as supplied, not a measurement.
 
 ### `AssetRef`
 

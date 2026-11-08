@@ -1,22 +1,44 @@
-import type { Catalog } from '../domain';
+import type { Catalog, PlateImage } from '../domain';
+
+/**
+ * The Bandejas ondulada M and G share one design, so they share one photograph
+ * and its placement, stored once per model folder (D-054). Only the lettering
+ * size differs: the same 7 mm letters cover less of the larger G (D-055).
+ * Text area: the flat floor, clear of the wavy walls (M1.3b-2).
+ */
+function bandejaImage(id: string, fontSize: number): PlateImage {
+  return {
+    image: {
+      src: `/catalog/plates/${id}/bege.jpg`,
+      alt: 'Bandeja ondulada bege, sem texto',
+      widthPx: 1060,
+      heightPx: 1060,
+    },
+    objectBounds: { x: 0.0283, y: 0.0387, width: 0.9425, height: 0.9226 },
+    text: { area: { x: 0.28, y: 0.265, width: 0.43, height: 0.43 }, align: 'center', fontSize },
+  };
+}
 
 /**
  * Raw catalog definitions. Access the catalog through `getCatalog()`
  * (src/catalog/index.ts), never by importing this module directly.
  *
  * Contains only what Taavi has supplied: the four current models with their
- * customer-facing names and size labels, and the fixed ceramic color "Bege"
- * (D-040, D-041, D-046). The Quadro is one complete product (ceramic plate in a
- * wooden frame), photographed assembled; there is no separate frame choice.
+ * customer-facing names, size labels, and confirmed outer dimensions, and the
+ * fixed ceramic color "Bege" (D-040, D-041, D-046, P-01). The Quadro is one
+ * complete product (a 100 × 100 mm ceramic plate in a 200 × 200 mm wooden
+ * frame), photographed assembled; there is no separate frame choice.
  * IDs must never be renamed without a migration note in docs/06-decisions.md
  * (`bandeja-ondulada-m-11` became `bandeja-ondulada-g-11` under D-046).
- * The Placa cerâmica (official name "Placa cerâmica (tamanho 10 x 10 cm)",
- * D-048, D-051) has Taavi's photograph with the lettering removed (D-050),
- * cropped to 640 × 640, and its measured placement; crop and placement are
- * approved for the first production iteration (M1.3b-1, D-053), with a fixed
- * lettering size (D-055).
- * Everything else is pending and must not be invented: no other photographs or
- * placement (`image` omitted) and no physical dimensions.
+ * Every model has Taavi's photograph with the lettering removed (D-050, D-054)
+ * and its measured placement (M1.3b-1, D-053; M1.3b-2).
+ *
+ * Lettering size (D-055): one fixed size per model, for a visible capital
+ * about 7 mm tall (a provisional estimate, not a mold measurement):
+ * fontSize = 7 mm × (ceramic width in the photograph ÷ its real width) ÷ 0.7046,
+ * the capital height of the sans-serif stack as a fraction of the font size.
+ * The ceramic width is `objectBounds.width`, except on the Quadro, whose
+ * bounds are the frame: there it is the 100 mm ceramic, 282 of 660 px.
  * Every change must keep `validateCatalog` passing (tests/unit/catalog).
  */
 export const catalogData: Catalog = {
@@ -28,7 +50,7 @@ export const catalogData: Catalog = {
       sizeLabel: '10 × 10 cm',
       ceramicColor: 'Bege',
       shape: 'square',
-      dimensions: { status: 'pending' },
+      dimensions: { status: 'defined', widthMm: 100, heightMm: 100 },
       image: {
         image: {
           src: '/catalog/plates/placa-ceramica-10/bege.png',
@@ -37,10 +59,8 @@ export const catalogData: Catalog = {
           heightPx: 640,
         },
         objectBounds: { x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 },
-        // About 8% inside the plate edge, clear of the rounded rim. Fixed lettering
-        // size for a capital about 7 mm tall on the 100 mm plate: 7 × (0.8422 / 100)
-        // / 0.705 (cap height of the sans-serif stack) = 0.0837 of the image width
-        // (53.6 px). A provisional estimate from a photograph, not a mold measurement (D-055).
+        // About 8% inside the plate edge, clear of the rounded rim.
+        // Lettering: 7 × (0.8422 / 100) / 0.7046 = 0.0837 (53.6 px).
         text: {
           area: { x: 0.145, y: 0.155, width: 0.71, height: 0.69 },
           align: 'center',
@@ -55,7 +75,26 @@ export const catalogData: Catalog = {
       sizeLabel: '20 × 20 cm',
       ceramicColor: 'Bege',
       shape: 'square',
-      dimensions: { status: 'pending' },
+      // Outside of the frame; the ceramic inside measures 100 × 100 mm.
+      dimensions: { status: 'defined', widthMm: 200, heightMm: 200 },
+      image: {
+        image: {
+          src: '/catalog/plates/quadro-20/bege.jpg',
+          alt: 'Quadro: placa cerâmica bege em moldura de madeira, sem texto',
+          widthPx: 660,
+          heightPx: 660,
+        },
+        // The whole product, frame included.
+        objectBounds: { x: 0.0364, y: 0.0318, width: 0.9273, height: 0.9364 },
+        // On the ceramic only, about 8% inside its edge, never on the wood.
+        // Lettering from the 100 mm ceramic (282 of 660 px), not the frame:
+        // 7 × (282 / 660 / 100) / 0.7046 = 0.0424 (28.0 px).
+        text: {
+          area: { x: 0.3009, y: 0.3494, width: 0.3589, height: 0.3589 },
+          align: 'center',
+          fontSize: 0.0424,
+        },
+      },
     },
     {
       id: 'bandeja-ondulada-m-8',
@@ -64,7 +103,9 @@ export const catalogData: Catalog = {
       sizeLabel: 'Aprox. 8 cm',
       ceramicColor: 'Bege',
       shape: 'scalloped',
-      dimensions: { status: 'pending' },
+      dimensions: { status: 'defined', widthMm: 80, heightMm: 80 },
+      // 7 × (0.9425 / 80) / 0.7046 = 0.1170 (124.0 px).
+      image: bandejaImage('bandeja-ondulada-m-8', 0.117),
     },
     {
       id: 'bandeja-ondulada-g-11',
@@ -73,7 +114,9 @@ export const catalogData: Catalog = {
       sizeLabel: 'Aprox. 11 cm',
       ceramicColor: 'Bege',
       shape: 'scalloped',
-      dimensions: { status: 'pending' },
+      dimensions: { status: 'defined', widthMm: 110, heightMm: 110 },
+      // 7 × (0.9425 / 110) / 0.7046 = 0.0851 (90.2 px).
+      image: bandejaImage('bandeja-ondulada-g-11', 0.0851),
     },
   ],
   // Color names are approved (D-049) but no values are (P-02); nothing is invented.
