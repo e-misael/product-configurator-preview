@@ -134,3 +134,36 @@ export function drawScene(
     paintDeboss(ctx, runs, font, block.fontSize, scale, region, deboss);
   }
 }
+
+/** Dash pattern and stroke width of the overflow outline, in device pixels. */
+export const OVERFLOW_OUTLINE = { dash: [6, 4], width: 2, color: '#1f1f1f', halo: '#ffffff' };
+
+/**
+ * Preview only (D-057): outlines the calibrated text area while the text
+ * overflows it, so the customer sees how far the lettering runs past it. Drawn
+ * over a painted scene; never part of `drawScene`, so an export never shows it
+ * (an overflowing configuration cannot be exported anyway).
+ */
+export function drawOverflowOutline(
+  ctx: CanvasRenderingContext2D,
+  scene: Scene<CanvasImageSource & ImageSize>,
+  pixelWidth: number,
+): void {
+  const text = scene.layers.find((layer) => layer.kind === 'text');
+  if (text === undefined || !scene.notices.includes('text-overflow')) return;
+  const scale = pixelWidth / scene.width;
+  const { x, y, width, height } = text.block.area;
+  ctx.save();
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  const rect = [x * scale, y * scale, width * scale, height * scale] as const;
+  // A light halo under dark dashes keeps the outline visible on any ceramic.
+  ctx.lineWidth = OVERFLOW_OUTLINE.width + 2;
+  ctx.strokeStyle = OVERFLOW_OUTLINE.halo;
+  ctx.setLineDash([]);
+  ctx.strokeRect(...rect);
+  ctx.lineWidth = OVERFLOW_OUTLINE.width;
+  ctx.strokeStyle = OVERFLOW_OUTLINE.color;
+  ctx.setLineDash(OVERFLOW_OUTLINE.dash);
+  ctx.strokeRect(...rect);
+  ctx.restore();
+}

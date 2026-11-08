@@ -19,9 +19,11 @@ Acceptance criteria:
 5. An empty catalog is a supported state; no model data is invented.
 6. Each model has exactly one fixed shape classification (`square`, `rectangle`, `circle`, `scalloped`); the Quadro is a model that includes its frame (D-023, D-046).
 7. Only available models are offered. A selected model that is unknown or unavailable stays visible and marked invalid (D-030).
-8. Options show the supplied name and size label as given, as `displayName — sizeLabel` ("Bandeja ondulada M — 8 × 8 cm"). Size labels are nominal product dimensions; handmade pieces vary, as the disclaimer says. Physical dimensions are recorded only as confirmed by Taavi (P-01).
+8. Options show the supplied name and size label as given, as `displayName — sizeLabel` ("Placa cerâmica — 10 × 10 cm"). Size labels are nominal product dimensions; handmade pieces vary, as the disclaimer says. Physical dimensions are recorded only as confirmed by Taavi (P-01).
+9. Bandeja ondulada M and G are one option, "Bandeja ondulada" ("Disponível em dois tamanhos"), with a required "Tamanho" choice, "M — 8 × 8 cm" or "G — 11 × 11 cm", never preselected (D-057). The configuration stores the chosen size's own model ID. Until a size is chosen no model is selected, and the status and export reasons say "Falta escolher: Tamanho.". Changing the size keeps the text, colors, and position.
+10. The summary shows "Modelo" and "Tamanho" as separate rows.
 
-Status: UI (M2, revised by M4.1a and M4.2).
+Status: UI (M2, revised by M4.1a, M4.2, and M4.5).
 
 ### FR-02 — Frame selection (Moldura)
 
@@ -88,17 +90,17 @@ Lettering-color controls (M4.2, D-047):
 
 Text alignment and position (M4.1b-2, D-044):
 
-11. "Posição do texto" offers nine presets (Superior/Meio/Inferior × à esquerda/ao centro/à direita; the middle one is "Centro"). A preset sets the line alignment and the block position together: the left column aligns lines left at x = 0, the center column centers them at x = 0.5, the right column aligns them right at x = 1; rows set y = 0, 0.5, 1. Each preset shows a glyph of aligned lines placed where the text will go; the selected one is inverted (`aria-pressed`) and named in text ("Posição: Superior à esquerda." or "Posição personalizada.").
+11. "Posição do texto" offers nine presets (Superior/Meio/Inferior × à esquerda/ao centro/à direita; the middle one is "Centro"). A preset sets the line alignment and the block position together: the left column aligns lines left at x = 0, the center column centers them at x = 0.5, the right column aligns them right at x = 1; rows set y = 0, 0.5, 1. Each preset shows a glyph of aligned lines placed where the text will go; the selected one is inverted (`aria-pressed`) and named in the section's one status line ("Posição: Superior à esquerda." or, for any other position, "Posição personalizada: horizontal 34%, vertical 50%."; D-057).
 12. Superseded by D-047 (M4.2): there is no separate "Alinhamento das linhas" control; the alignment is set only by the presets (or the catalog default), and moving or dragging never changes it.
 13. The block position is a fraction of the free space around the block inside the calibrated text area, so the text never leaves that area. The font size does not depend on the position, and the text is not enlarged to fill the area; with free space, every preset gives a different position.
 14. With a mouse or pen, the text is dragged directly on the preview; dragging changes only the position. With touch, dragging works only while "Mover texto" is on, so the page scrolls normally otherwise. The toggle is shown on every device.
-15. Directional buttons ("Mover para cima/baixo/a esquerda/a direita"), in a compact pad beside the presets ("Ajuste fino"), and arrow keys on them move 2% of the free space, 10% with Shift; the position is announced ("Horizontal 34%, vertical 50%."). Buttons for an axis without free space are disabled.
+15. Directional buttons ("Mover para cima/baixo/a esquerda/a direita"), in a compact pad beside the presets, and arrow keys on them move 2% of the free space, 10% with Shift; the position is announced in the status line of criterion 11. Buttons for an axis without free space are disabled. The preset and arrow groups are named "Posições predefinidas" and "Ajuste fino" for assistive technology, without visible captions (D-057).
 16. "Redefinir posição" restores the catalog default (alignment and position).
 17. The position is kept across model changes and applies to the destination model's calibrated text area.
 18. Text that cannot fit keeps the established overflow warning and placement; the position controls cannot move it on an axis without free space. Export of overflowing text is blocked (FR-07.6).
 19. The controls are disabled, with a hint, while no text is drawn on the image (no photograph, no calibrated text area, or no text).
 
-Status: UI (M2) for criteria 1–4; criterion 5 (M3.1); criteria 6–10 (M4.1b-1); criteria 11–19 (M4.1b-2, criteria 11, 12, and 15 revised by M4.2); criteria 20–23 (M4.2).
+Status: UI (M2) for criteria 1–4; criterion 5 (M3.1); criteria 6–10 (M4.1b-1); criteria 11–19 (M4.1b-2, criteria 11, 12, and 15 revised by M4.2 and M4.5); criteria 20–23 (M4.2).
 
 ### FR-06 — Real-time preview
 
@@ -111,7 +113,7 @@ Acceptance criteria:
 5. The final preview is composed from real product images (FR-08); generic vector shapes are acceptable only as temporary, clearly marked demonstration output.
 6. Layers are painted in this order: the model's photograph, then the personalized text (D-037, revised by D-046).
 7. Each reason an image is not shown — model not selected or invalid, image not yet registered, loading, file failed to load, text area not calibrated, lettering size not yet defined, text too long — is stated in text and distinct from the others; nothing else is substituted.
-8. Text keeps its line breaks, is never altered, truncated, or silently clipped, and is drawn at the model's fixed lettering size whatever its length, wrapping, alignment, or position (D-055); text that does not fit shows a visible warning and cannot be exported. A model without an approved lettering size shows no text on the image, says so, and cannot be exported with text.
+8. Text keeps its line breaks, is never altered, truncated, or silently clipped, and is drawn at the model's fixed lettering size whatever its length, wrapping, alignment, or position (D-055); text that does not fit shows a visible warning and cannot be exported. While it overflows, the preview (never the export) outlines the calibrated text area with a dashed line, and for vertical overflow the warning states how many lines are over ("1 linha a mais", "2 linhas a mais"; D-057). A model without an approved lettering size shows no text on the image, says so, and cannot be exported with text.
 
 Status: UI (M3.1) — implemented and verified with synthetic demonstration images only. Real product images and calibration (M1.3b) and masking of non-rectangular outlines are pending (M3.2).
 

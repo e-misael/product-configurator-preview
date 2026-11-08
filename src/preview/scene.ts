@@ -50,6 +50,8 @@ export interface TextBlock {
   readonly slack: { readonly x: number; readonly y: number };
   /** Where the block is drawn: widest line × all lines. Used for drawing and hit testing. */
   readonly bounds: Rect;
+  /** Lines beyond what the area holds at the fixed size; 0 when the text fits vertically. */
+  readonly excessLines: number;
 }
 
 export type SceneLayer<I extends ImageSize> =
@@ -174,6 +176,7 @@ function assemble<I extends ImageSize>(
         align: text.align,
         area,
         lineWidths,
+        excessLines: fit.excessLines,
         ...placeBlock(area, lineWidths, fit.lines.length * fit.lineHeight, text),
       },
     });

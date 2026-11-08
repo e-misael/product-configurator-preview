@@ -466,6 +466,14 @@ Status values:
 - **Status:** Approved (product owner, 2026-11-08).
 - **Date:** 2026-11-08.
 
+### D-057 — Pre-beta UX refinement: Bandeja sizes, position section, overflow presentation (2026-11-08)
+
+- **Bandeja sizes:** Bandeja ondulada M and G are shown as one option, "Bandeja ondulada" ("Disponível em dois tamanhos"), with a required "Tamanho" choice: "M — 8 × 8 cm" and "G — 11 × 11 cm" (letter plus the supplied size label). No size is preselected. This is a presentation table (`src/components/configurator/model-groups.ts`, keyed by the real IDs); each size stays its own catalog model, and the configuration stores only its ID, so validation, preview, export, and the file name (`taavi-bandeja-ondulada-g-11.png`) are unchanged. Choosing the group clears `plateId`; while no size is chosen the missing field is called "Tamanho" and the preview asks for it. Changing the size changes only `plateId`. The summary shows "Modelo" and "Tamanho" as separate rows for every model. The table belongs with its catalog and is passed to `App` (`modelGroups`): production uses `MODEL_GROUPS`; demo mode passes `demoModelGroups` from `src/demo/demo-catalog.ts` ("(demonstração) Bandeja ondulada" over `demo-bandeja-ondulada-m-8` / `-g-11`), so both run the same grouping code and production code never names a demo ID (D-028).
+- **Position section:** one "Posição do texto" section without the visible captions "Posições predefinidas" and "Ajuste fino" (kept as accessible group names); a compact arrow pad beside the nine presets (36 px buttons, 44 px on coarse pointers); one status line announces the position ("Posição: Centro." or "Posição personalizada: horizontal 34%, vertical 50%.", "sem espaço livre" for an axis without free space). Replaces the separate "Posição personalizada." and "Horizontal X%, vertical Y%." lines of D-044/FR-05.15.
+- **Overflow presentation:** detection, the fixed size (D-055), the layout, and export blocking are unchanged; all text stays drawn, never clipped, truncated, or resized. While the text overflows, the preview draws a dashed outline (dark dashes over a light halo) of the calibrated text area on top of the image; it is painted by the preview canvas after `drawScene`, never by `drawScene`, so no export contains it. For vertical overflow the message states the lines over the area's capacity (`floor(area height ÷ line height)`): "O texto não cabe na área do modelo: 1 linha a mais. Reduza o texto ou use menos linhas." ("2 linhas a mais", …). Horizontal-only overflow keeps the general message.
+- **Status:** Approved (product owner, 2026-11-08).
+- **Date:** 2026-11-08.
+
 ## Proposed
 
 ### D-007 — SVG preview rendering

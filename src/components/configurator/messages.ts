@@ -41,8 +41,15 @@ const INVALID_MESSAGES: Record<ConfigurationField, Partial<Record<InvalidCode, s
   },
 };
 
-export function invalidMessage(issue: ValidationIssue): string {
-  if (issue.kind === 'missing') return `Falta escolher: ${FIELD_LABELS[issue.field]}.`;
+/** While a group is chosen without its size, the missing model is reported as "Tamanho" (D-057). */
+export const SIZE_LABEL = 'Tamanho';
+
+export function missingLabel(field: ConfigurationField, sizePending = false): string {
+  return field === 'plateId' && sizePending ? SIZE_LABEL : FIELD_LABELS[field];
+}
+
+export function invalidMessage(issue: ValidationIssue, sizePending = false): string {
+  if (issue.kind === 'missing') return `Falta escolher: ${missingLabel(issue.field, sizePending)}.`;
   return INVALID_MESSAGES[issue.field][issue.code] ?? 'Esta escolha não é válida.';
 }
 

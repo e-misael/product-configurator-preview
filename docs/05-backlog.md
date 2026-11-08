@@ -237,7 +237,7 @@ Status: **Done** (accepted 2026-11-08, D-046, D-047). Evidence: typecheck, lint,
 
 ## M4.3 — Fixed lettering size
 
-Status: **Done** (implemented 2026-11-08, not committed). Taavi's lettering molds have one size (D-055).
+Status: **Done** (2026-11-08, commits 798ec6b and 2290544). Taavi's lettering molds have one size (D-055).
 
 - [x] `TextLayout.fontSize`: fixed size per model as a fraction of the image width; validated in (0, 1]; optional, so pending models keep the catalog valid
 - [x] Placa: 0.0837 (53.6 px on 640 px), for capitals about 7 mm tall on the 100 mm plate; a provisional estimate from the lettered reference photograph, not a mold measurement (first set at 0.08625, about 7.2 mm)
@@ -249,7 +249,7 @@ Status: **Done** (implemented 2026-11-08, not committed). Taavi's lettering mold
 
 ## M4.4 — First production lettering palette and disclaimer
 
-Status: **Done** (implemented 2026-11-08, not committed). Approved by the product owner (D-056).
+Status: **Done** (2026-11-08, commit 7eaef0a). Approved by the product owner (D-056).
 
 - [x] Production `textColors`: Marrom `#4a2a14`, Azul `#2b4a7a`, Verde `#2f4a36`, Vermelho escuro `#7a1f1f`, in that order, with stable IDs; each usable as the second color, never equal to the first
 - [x] Amarelo queimado (`#a87a10`) pending visual approval and Laranja excluded: neither in production; demo catalog unchanged
@@ -257,6 +257,18 @@ Status: **Done** (implemented 2026-11-08, not committed). Approved by the produc
 - [x] Production export available for complete configurations
 - [x] Unit tests: exact palette, no demo, pending, or excluded colors in production, disclaimer paragraphs; Playwright (production, Chromium and mobile WebKit): four named swatches with their values, each color painted in the preview, primary color required, second color excluding the primary, applying to an accented selection and removing it, PNG download at native size with both colors in the preview's proportion
 - Remaining: Amarelo queimado approval; Laranja decision (reversible).
+
+## M4.5 — Pre-beta UX refinement
+
+Status: **Done** (2026-11-08). Accepted by the product owner (D-057).
+
+- [x] Bandeja grouping: one "Bandeja ondulada" option ("Disponível em dois tamanhos") with a required "Tamanho" choice ("M — 8 × 8 cm", "G — 11 × 11 cm"), never preselected; presentation only, the IDs `bandeja-ondulada-m-8` and `bandeja-ondulada-g-11` and the configuration are unchanged
+- [x] Choosing the group clears the model until a size is chosen ("Falta escolher: Tamanho." in the status and export reasons; "Escolha o tamanho para ver a pré-visualização."); changing the size keeps text, colors, and position and revalidates overflow at once
+- [x] Summary rows "Modelo" and "Tamanho" for every model; PNG file name from the real ID
+- [x] "Posição do texto" in one section: visible "Posições predefinidas" / "Ajuste fino" captions removed (groups keep their accessible names), compact arrow pad beside the presets (36 px; 44 px on coarse pointers), one status line ("Posição: Centro." or "Posição personalizada: horizontal X%, vertical Y%.")
+- [x] Overflow: dashed outline of the calibrated text area in the preview only; message with the lines over ("1 linha a mais", "2 linhas a mais") when vertical; general message for horizontal overflow; fixed size, layout, and blocking unchanged
+- [x] Tests: unit (excess-line count, message plural, grouping table, size flow, position status, outline only while overflowing, never in export), Playwright in production Chromium and mobile WebKit (grouped size flow and export file name, capacity boundaries Placa 6/7, Quadro 7/8, M 3/4, G 4/5 with outline and blocking, font-change revalidation, position section), demo specs updated
+- [x] Demo mode groups its Bandejas the same way, from its own table in `src/demo` (same grouping code, demo IDs and assets unchanged, isolation intact); unit and demo Playwright tests cover it
 
 ## M5 — Quality and usability
 

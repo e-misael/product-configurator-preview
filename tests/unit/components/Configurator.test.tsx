@@ -54,7 +54,7 @@ describe('Configurator', () => {
         expect(screen.queryByRole('group', { name: /Moldura/ })).not.toBeInTheDocument();
       }
       expect(within(preview()).queryByText('Moldura')).not.toBeInTheDocument();
-      expect(screen.getByRole('status')).toBeEmptyDOMElement();
+      expect(within(status()).getByRole('status')).toBeEmptyDOMElement();
     });
   });
 
@@ -253,7 +253,7 @@ describe('Configurator', () => {
 
       expect(field).toHaveValue('aaa');
       expect(screen.getByText('1 trecho com a segunda cor.')).toBeInTheDocument();
-      expect(screen.getByRole('status')).toBeEmptyDOMElement();
+      expect(within(status()).getByRole('status')).toBeEmptyDOMElement();
     });
 
     it('shows the approved three-paragraph disclaimer (D-056)', () => {
@@ -292,7 +292,9 @@ describe('Configurator', () => {
       expect(
         within(preview()).getByText('A foto deste modelo ainda não está disponível.'),
       ).toBeInTheDocument();
-      expect(within(preview()).getByText('Test test-plate-square — Test size')).toBeInTheDocument();
+      // Model and size are separate summary rows (D-057).
+      expect(within(preview()).getByText('Test test-plate-square')).toBeInTheDocument();
+      expect(within(preview()).getByText('Test size')).toBeInTheDocument();
       expect(within(preview()).getByText('Test beige')).toBeInTheDocument();
       // The test catalog registers no images, so nothing is painted and nothing is substituted.
       expect(preview().querySelector('img, svg, canvas')).toBeNull();

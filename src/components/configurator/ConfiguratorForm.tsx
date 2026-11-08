@@ -3,6 +3,7 @@ import type { Catalog, Plate } from '../../domain';
 import { issueFor, type useConfiguration } from '../../hooks/useConfiguration';
 import { ConfigurationStatus } from './ConfigurationStatus';
 import { FontField } from './FontField';
+import type { ModelGroup } from './model-groups';
 import { ModelField } from './ModelField';
 import { SecondaryColorField, TextColorField } from './TextColorFields';
 import { TextField } from './TextField';
@@ -11,9 +12,17 @@ interface ConfiguratorFormProps {
   readonly catalog: Catalog;
   readonly plate: Plate | undefined;
   readonly state: ReturnType<typeof useConfiguration>;
+  /** Model and model-group choice (D-057); see App. */
+  readonly model: {
+    readonly groups: readonly ModelGroup[];
+    readonly group: ModelGroup | undefined;
+    readonly sizePending: boolean;
+    readonly choosePlate: (plateId: string) => void;
+    readonly chooseGroup: (group: ModelGroup) => void;
+  };
 }
 
-export function ConfiguratorForm({ catalog, plate, state }: ConfiguratorFormProps) {
+export function ConfiguratorForm({ catalog, plate, state, model }: ConfiguratorFormProps) {
   const { config, validation } = state;
   const [secondaryOpen, setSecondaryOpen] = useState(false);
   const secondaryIssue = issueFor(validation, 'secondaryColorId');
@@ -27,8 +36,11 @@ export function ConfiguratorForm({ catalog, plate, state }: ConfiguratorFormProp
         catalog={catalog}
         plateId={config.plateId}
         plate={plate}
+        groups={model.groups}
+        group={model.group}
         issue={issueFor(validation, 'plateId')}
-        onChoose={state.choosePlate}
+        onChoose={model.choosePlate}
+        onChooseGroup={model.chooseGroup}
       />
       <TextField
         text={config.text}
@@ -78,7 +90,11 @@ export function ConfiguratorForm({ catalog, plate, state }: ConfiguratorFormProp
           Todas as solicitações de personalização estão sujeitas à análise e aprovação da Taavi.
         </p>
       </div>
-      <ConfigurationStatus validation={validation} notice={state.notice} />
+      <ConfigurationStatus
+        validation={validation}
+        notice={state.notice}
+        sizePending={model.sizePending}
+      />
     </form>
   );
 }

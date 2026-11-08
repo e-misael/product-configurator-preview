@@ -22,8 +22,18 @@ const model = (page: Page, name: RegExp) =>
 
 const CERAMIC_PLATE = /Placa cerâmica/;
 const QUADRO = /Quadro — 20/;
-const TRAY_8 = /Bandeja ondulada M/;
-const TRAY_11 = /Bandeja ondulada G/;
+
+/** Chooses a demo Bandeja size under its grouped option (D-057). */
+async function chooseTray(page: Page, size: 'M' | 'G') {
+  await page
+    .getByRole('group', { name: 'Modelo' })
+    .getByRole('radio', { name: /Bandeja ondulada$/ })
+    .check();
+  await page
+    .getByRole('group', { name: 'Tamanho' })
+    .getByRole('radio', { name: new RegExp(`^${size} — `) })
+    .check();
+}
 
 async function sample(page: Page, x: number, y: number): Promise<Rgba> {
   return canvas(page).evaluate(
@@ -158,11 +168,11 @@ test.describe('exact image selection', () => {
     await expectPixel(page, 0.5, 0.75, BEGE);
     await expect(canvas(page)).toHaveAttribute('aria-label', /Quadro 20 × 20 cm/);
 
-    await model(page, TRAY_8).check();
+    await chooseTray(page, 'M');
     await expectPixel(page, 0.5, 0.8, BEGE);
     await expect(canvas(page)).toHaveAttribute('aria-label', /Bandeja ondulada M 8 × 8 cm/);
 
-    await model(page, TRAY_11).check();
+    await chooseTray(page, 'G');
     await expect(canvas(page)).toHaveAttribute('aria-label', /Bandeja ondulada G 11 × 11 cm/);
   });
 
@@ -185,7 +195,7 @@ test.describe('model shapes', () => {
   test('keeps a scalloped tray free of any frame, on white outside its outline', async ({
     page,
   }) => {
-    await model(page, TRAY_11).check();
+    await chooseTray(page, 'G');
 
     await expectPixel(page, 0.5, 0.8, BEGE);
     // The corner of the image is outside the tray: only the opaque white background.
@@ -487,7 +497,7 @@ test.describe('text position (D-044)', () => {
     expect(after.left - before.left).toBeCloseTo(0.15, 1);
     expect(after.top - before.top).toBeCloseTo(0.1, 1);
     await expect(preset(page, 'Superior à esquerda')).toHaveAttribute('aria-pressed', 'false');
-    await expect(position(page).getByText('Posição personalizada.')).toBeVisible();
+    await expect(position(page).getByRole('status')).toContainText('Posição personalizada:');
   });
 
   test('moves with touch only after "Mover texto" is turned on', async ({
@@ -529,7 +539,7 @@ test.describe('text position (D-044)', () => {
     await touchDrag();
     const unchanged = await settledBox(page, () => true);
     expect(unchanged.left).toBeCloseTo(before.left, 3);
-    await expect(position(page)).toContainText('Horizontal 0%, vertical 0%.');
+    await expect(position(page).getByRole('status')).toHaveText('Posição: Superior à esquerda.');
 
     await position(page).getByRole('button', { name: 'Mover texto' }).click();
     await expect(canvas(page)).toHaveCSS('touch-action', 'none');
@@ -546,14 +556,18 @@ test.describe('text position (D-044)', () => {
 
     await right.focus();
     for (let i = 0; i < 5; i += 1) await page.keyboard.press('ArrowRight');
-    await expect(position(page)).toContainText('Horizontal 10%, vertical 0%.');
+    await expect(position(page)).toContainText(
+      'Posição personalizada: horizontal 10%, vertical 0%.',
+    );
     const fiveSteps = await settledBox(page, (b) => b.left > start.left + 0.01);
 
     await preset(page, 'Superior à esquerda').click();
     await settledBox(page, (b) => near(b.left, start.left, 0.002));
     await right.focus();
     await page.keyboard.press('Shift+ArrowRight');
-    await expect(position(page)).toContainText('Horizontal 10%, vertical 0%.');
+    await expect(position(page)).toContainText(
+      'Posição personalizada: horizontal 10%, vertical 0%.',
+    );
     const shiftStep = await settledBox(page, (b) => b.left > start.left + 0.01);
 
     expect(shiftStep.left).toBeCloseTo(fiveSteps.left, 3);
@@ -567,7 +581,7 @@ test.describe('text position (D-044)', () => {
     await preset(page, 'Inferior à direita').click();
     await settledBox(page, (b) => near(b.right, SQUARE_AREA.x1));
 
-    await model(page, TRAY_11).check();
+    await chooseTray(page, 'G');
 
     await expect(preset(page, 'Inferior à direita')).toHaveAttribute('aria-pressed', 'true');
     const box = await settledBox(

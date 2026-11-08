@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type PointerEvent } from 'react';
-import { chooseBackingWidth, drawScene } from '../../preview/draw';
+import { chooseBackingWidth, drawOverflowOutline, drawScene } from '../../preview/draw';
 import {
   dragPosition,
   HIT_TOLERANCE_PX,
@@ -32,7 +32,8 @@ interface Drag {
  * aspect ratio. The backing store follows the displayed width and the device
  * pixel ratio, capped at the source image's resolution. The text block can be
  * dragged with a mouse or pen, and with touch only in "Mover texto" mode so
- * the page still scrolls normally.
+ * the page still scrolls normally. Overflowing text gets a dashed outline of
+ * the text area here, never in the export (D-057).
  */
 export function PreviewCanvas({
   scene,
@@ -66,6 +67,7 @@ export function PreviewCanvas({
     canvas.width = pixelWidth;
     canvas.height = Math.max(1, Math.round((pixelWidth * scene.height) / scene.width));
     drawScene(ctx, scene, pixelWidth);
+    drawOverflowOutline(ctx, scene, pixelWidth);
   }, [scene, cssWidth]);
 
   /** The pointer in scene units, and whether it is on the text block. */

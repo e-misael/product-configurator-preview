@@ -42,6 +42,27 @@ describe('useConfiguration', () => {
     expect(result.current.validation).toEqual({ status: 'valid' });
   });
 
+  it('clears the model without touching any other choice (D-057)', () => {
+    const { result } = setup();
+    act(() => result.current.choosePlate('test-plate-square'));
+    act(() => result.current.setText('Ana'));
+    act(() => result.current.chooseTextColor('test-text-color-a'));
+    act(() => result.current.placeText({ align: 'right', x: 1, y: 0 }));
+
+    act(() => result.current.clearPlate());
+
+    expect(result.current.config).toMatchObject({
+      plateId: null,
+      text: 'Ana',
+      textColorId: 'test-text-color-a',
+      textLayout: { align: 'right', x: 1, y: 0 },
+    });
+    expect(issueFor(result.current.validation, 'plateId')).toEqual({
+      kind: 'missing',
+      field: 'plateId',
+    });
+  });
+
   it('changes the model without touching any other choice', () => {
     const { result } = setup();
     act(() => result.current.setText('Ana'));

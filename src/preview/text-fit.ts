@@ -24,6 +24,8 @@ export interface TextFit {
   readonly lineHeight: number;
   /** True when the lines are taller or wider than the area. */
   readonly overflow: boolean;
+  /** Lines beyond what the area's height holds; 0 when the lines fit vertically. */
+  readonly excessLines: number;
 }
 
 const segmenter = new Intl.Segmenter(undefined, { granularity: 'grapheme' });
@@ -122,9 +124,10 @@ export function layoutText(
   const lines = wrapped.map((line) => line.text);
   const starts = wrapped.map((line) => line.start);
   const lineHeight = fontSize * LINE_HEIGHT;
+  const tooTall = lines.length * lineHeight > area.height;
   // A single character wider than the area still overflows horizontally.
-  const overflow =
-    lines.length * lineHeight > area.height ||
-    lines.some((line) => measure(line, fontSize) > area.width);
-  return { lines, starts, fontSize, lineHeight, overflow };
+  const overflow = tooTall || lines.some((line) => measure(line, fontSize) > area.width);
+  const capacity = Math.floor(area.height / lineHeight);
+  const excessLines = tooTall ? Math.max(1, lines.length - capacity) : 0;
+  return { lines, starts, fontSize, lineHeight, overflow, excessLines };
 }

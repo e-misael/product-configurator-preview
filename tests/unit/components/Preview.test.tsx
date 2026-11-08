@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/App';
-import { contextOf, installFakeCanvas, type FakeContext } from '../support/fake-canvas';
+import { contextOf, installFakeCanvas, strokesOf, type FakeContext } from '../support/fake-canvas';
 import { FakeImage, installFakeImages } from '../support/fake-image';
 import { previewCatalog, previewSizes } from '../preview/fixtures';
 
@@ -180,13 +180,53 @@ describe('Preview', () => {
       await user.click(screen.getByLabelText('Texto'));
       await user.paste(Array.from({ length: 40 }, (_, i) => `linha ${i}`).join('\n'));
 
+      // Area 160 px tall, 48 px lines: 3 lines fit, 37 are over.
       expect(
         within(preview()).getByText(
-          'O texto não cabe na área do modelo. Reduza o texto ou use menos linhas.',
+          'O texto não cabe na área do modelo: 37 linhas a mais. Reduza o texto ou use menos linhas.',
         ),
       ).toBeVisible();
       const texts = painted(currentContext()).filter((entry) => entry.startsWith('text:'));
       expect(texts).toHaveLength(40);
+    });
+
+    it('counts the lines over and outlines the text area only while overflowing (D-057)', async () => {
+      const { user } = await squarePlate();
+      const field = screen.getByLabelText('Texto');
+      const lines = (count: number) =>
+        Array.from({ length: count }, (_, i) => `L${i}`).join('{Enter}');
+
+      await user.type(field, lines(3));
+      expect(within(preview()).queryByText(/O texto não cabe/)).toBeNull();
+      expect(strokesOf(currentContext())).toEqual([]);
+
+      await user.type(field, '{Enter}L3');
+      expect(
+        within(preview()).getByText(
+          'O texto não cabe na área do modelo: 1 linha a mais. Reduza o texto ou use menos linhas.',
+        ),
+      ).toBeVisible();
+      // A light halo, then dark dashes, exactly on the calibrated area (x 80, y 120, 240 × 160).
+      const strokes = strokesOf(currentContext());
+      expect(strokes.map((call) => call.args)).toEqual([
+        [80, 120, 240, 160],
+        [80, 120, 240, 160],
+      ]);
+      expect(strokes[1]?.lineDash).toEqual([6, 4]);
+      // All four lines are still drawn at the fixed size, none clipped.
+      expect(painted(currentContext()).filter((entry) => entry.startsWith('text:'))).toEqual([
+        'text:L0',
+        'text:L1',
+        'text:L2',
+        'text:L3',
+      ]);
+
+      await user.type(field, '{Enter}L4');
+      expect(within(preview()).getByText(/: 2 linhas a mais\./)).toBeVisible();
+
+      await user.type(field, '{Backspace}{Backspace}{Backspace}{Backspace}{Backspace}{Backspace}');
+      expect(within(preview()).queryByText(/O texto não cabe/)).toBeNull();
+      expect(strokesOf(currentContext())).toEqual([]);
     });
 
     it('explains why text is not drawn while the lettering size is pending', async () => {
@@ -247,8 +287,8 @@ describe('Preview', () => {
   describe('text position (D-044)', () => {
     const positionGroup = () => screen.getByRole('group', { name: 'Posição do texto' });
     const button = (name: string) => within(positionGroup()).getByRole('button', { name });
-    const current = () => within(positionGroup()).getByText(/^Posição( personalizada\.|:)/);
-    const status = () => within(positionGroup()).getByText(/^Horizontal /);
+    /** The one position announcement (D-057). */
+    const status = () => within(positionGroup()).getByRole('status');
     /** The first painted line as [x, textAlign]. */
     const firstLine = () => {
       const call = currentContext().drawn.find((entry) => entry.op === 'fillText');
@@ -282,9 +322,16 @@ describe('Preview', () => {
       await user.type(screen.getByLabelText('Texto'), 'Ana');
       expect(positionGroup()).toBeEnabled();
       expect(button('Centro')).toHaveAttribute('aria-pressed', 'true');
-      expect(current()).toHaveTextContent('Posição: Centro.');
-      expect(status()).toHaveTextContent('Horizontal 50%, vertical 50%.');
+      expect(status()).toHaveTextContent('Posição: Centro.');
       expect(button('Redefinir posição')).toBeDisabled();
+      // One section: the groups are named for assistive technology, without visible captions.
+      expect(within(positionGroup()).getAllByRole('status')).toHaveLength(1);
+      expect(screen.getByRole('group', { name: 'Posições predefinidas' })).toBeInTheDocument();
+      expect(screen.getByRole('group', { name: 'Ajuste fino' })).toHaveAccessibleDescription(
+        'Setas do teclado: 2% por passo, 10% com Shift.',
+      );
+      expect(within(positionGroup()).queryByText('Posições predefinidas')).toBeNull();
+      expect(within(positionGroup()).queryByText('Ajuste fino')).toBeNull();
     });
 
     it('applies a preset to alignment and position together', async () => {
@@ -294,8 +341,7 @@ describe('Preview', () => {
 
       expect(button('Superior à esquerda')).toHaveAttribute('aria-pressed', 'true');
       expect(button('Centro')).toHaveAttribute('aria-pressed', 'false');
-      expect(current()).toHaveTextContent('Posição: Superior à esquerda.');
-      expect(status()).toHaveTextContent('Horizontal 0%, vertical 0%.');
+      expect(status()).toHaveTextContent('Posição: Superior à esquerda.');
       // Area x 80–320: the left-aligned block starts at the area's left edge.
       expect(firstLine()).toEqual([80, 'left']);
     });
@@ -307,7 +353,7 @@ describe('Preview', () => {
 
       await user.click(button('Inferior à direita'));
 
-      expect(status()).toHaveTextContent('Horizontal 100%, vertical 100%.');
+      expect(status()).toHaveTextContent('Posição: Inferior à direita.');
       // Area x 80–320: the right-aligned block ends at the area's right edge.
       expect(firstLine()).toEqual([320, 'right']);
       await user.click(button('Centro'));
@@ -326,11 +372,11 @@ describe('Preview', () => {
       expect(presets.filter((preset) => preset.getAttribute('aria-pressed') === 'true')).toEqual([
         button('Meio à direita'),
       ]);
-      expect(current()).toHaveTextContent('Posição: Meio à direita.');
+      expect(status()).toHaveTextContent('Posição: Meio à direita.');
 
       await user.click(button('Mover para cima'));
       expect(presets.every((preset) => preset.getAttribute('aria-pressed') === 'false')).toBe(true);
-      expect(current()).toHaveTextContent('Posição personalizada.');
+      expect(status()).toHaveTextContent('Posição personalizada: horizontal 100%, vertical 48%.');
     });
 
     it('moves by 2% per button or arrow key, 10% with Shift', async () => {
@@ -338,16 +384,16 @@ describe('Preview', () => {
       await user.click(button('Superior à esquerda'));
 
       await user.click(button('Mover para a direita'));
-      expect(status()).toHaveTextContent('Horizontal 2%, vertical 0%.');
+      expect(status()).toHaveTextContent('Posição personalizada: horizontal 2%, vertical 0%.');
 
       await user.keyboard('{Shift>}');
       await user.click(button('Mover para baixo'));
       await user.keyboard('{/Shift}');
-      expect(status()).toHaveTextContent('Horizontal 2%, vertical 10%.');
+      expect(status()).toHaveTextContent('Posição personalizada: horizontal 2%, vertical 10%.');
 
       button('Mover para a direita').focus();
       await user.keyboard('{ArrowRight}{ArrowRight}{Shift>}{ArrowDown}{/Shift}{ArrowUp}');
-      expect(status()).toHaveTextContent('Horizontal 6%, vertical 18%.');
+      expect(status()).toHaveTextContent('Posição personalizada: horizontal 6%, vertical 18%.');
       // Moving never changes the line alignment the preset set.
       expect(firstLine()[1]).toBe('left');
     });
@@ -359,7 +405,7 @@ describe('Preview', () => {
       await user.click(button('Redefinir posição'));
 
       expect(button('Centro')).toHaveAttribute('aria-pressed', 'true');
-      expect(current()).toHaveTextContent('Posição: Centro.');
+      expect(status()).toHaveTextContent('Posição: Centro.');
       expect(button('Redefinir posição')).toBeDisabled();
       expect(firstLine()).toEqual([200, 'center']);
     });
@@ -388,7 +434,7 @@ describe('Preview', () => {
         clientY: 168,
       });
 
-      expect(status()).toHaveTextContent('Horizontal 25%, vertical 25%.');
+      expect(status()).toHaveTextContent('Posição personalizada: horizontal 25%, vertical 25%.');
       expect(firstLine()).toEqual([125, 'left']);
     });
 
@@ -408,7 +454,7 @@ describe('Preview', () => {
         clientY: 60,
       });
 
-      expect(status()).toHaveTextContent('Horizontal 50%, vertical 50%.');
+      expect(status()).toHaveTextContent('Posição: Centro.');
     });
 
     it('drags with touch only in "Mover texto" mode, so the page scrolls otherwise', async () => {
@@ -436,13 +482,13 @@ describe('Preview', () => {
 
       expect(element.style.touchAction).toBe('auto');
       touchDrag();
-      expect(status()).toHaveTextContent('Horizontal 50%, vertical 50%.');
+      expect(status()).toHaveTextContent('Posição: Centro.');
 
       await user.click(button('Mover texto'));
       expect(button('Mover texto')).toHaveAttribute('aria-pressed', 'true');
       expect(element.style.touchAction).toBe('none');
       touchDrag();
-      expect(status()).toHaveTextContent('Horizontal 75%, vertical 50%.');
+      expect(status()).toHaveTextContent('Posição personalizada: horizontal 75%, vertical 50%.');
     });
 
     it('keeps the position when the model changes', async () => {
@@ -453,7 +499,7 @@ describe('Preview', () => {
       settle();
 
       expect(button('Inferior à direita')).toHaveAttribute('aria-pressed', 'true');
-      expect(status()).toHaveTextContent('Horizontal 100%, vertical 100%.');
+      expect(status()).toHaveTextContent('Posição: Inferior à direita.');
     });
   });
 
@@ -573,21 +619,24 @@ describe('Preview', () => {
       const field = screen.getByLabelText('Texto');
       await user.type(field, 'Ana');
       const group = screen.getByRole('group', { name: 'Posição do texto' });
-      const status = () => within(group).getByText(/^Horizontal /);
+      const status = () => within(group).getByRole('status');
       await user.click(within(group).getByRole('button', { name: 'Superior à esquerda' }));
       // Overflowing lines: no vertical free space; horizontal free space remains.
       await user.clear(field);
       await user.type(field, Array.from({ length: 30 }, () => 'ab').join('{Enter}'));
-      expect(status()).toHaveTextContent('Horizontal 0%, vertical sem espaço livre.');
+      expect(status()).toHaveTextContent('Posição: Superior à esquerda.');
       expect(within(group).getByRole('button', { name: 'Mover para baixo' })).toBeDisabled();
 
       within(group).getByRole('button', { name: 'Mover para a direita' }).focus();
       await user.keyboard('{ArrowDown}{Shift>}{ArrowDown}{/Shift}{ArrowRight}');
+      expect(status()).toHaveTextContent(
+        'Posição personalizada: horizontal 2%, vertical sem espaço livre.',
+      );
 
       // Back to short text: y is still exactly where the preset put it; x moved 2%.
       await user.clear(field);
       await user.type(field, 'Ana');
-      expect(status()).toHaveTextContent('Horizontal 2%, vertical 0%.');
+      expect(status()).toHaveTextContent('Posição personalizada: horizontal 2%, vertical 0%.');
     });
   });
 });

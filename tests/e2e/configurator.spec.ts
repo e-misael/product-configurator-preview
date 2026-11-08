@@ -8,8 +8,9 @@ const inks = (page: Page, name: string) => page.getByRole('group', { name });
 
 const CERAMIC_PLATE = /Placa cerâmica — 10 × 10 cm/;
 const QUADRO = /Quadro — 20 × 20 cm/;
-const TRAY_8 = /Bandeja ondulada M — 8 × 8 cm/;
-const TRAY_11 = /Bandeja ondulada G — 11 × 11 cm/;
+/** The two demo Bandeja sizes are one option with a required "Tamanho" (D-057). */
+const TRAYS = /^\(demonstração\) Bandeja ondulada$/;
+const sizes = (page: Page) => page.getByRole('group', { name: 'Tamanho' });
 
 async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(
@@ -25,15 +26,42 @@ test.beforeEach(async ({ page }) => {
 
 test('lists the four models, with no ceramic color or frame choice', async ({ page }) => {
   const group = page.getByRole('group', { name: 'Modelo' });
-  await expect(group.getByRole('radio')).toHaveCount(4);
-  for (const name of [CERAMIC_PLATE, QUADRO, TRAY_8, TRAY_11]) {
+  await expect(group.getByRole('radio')).toHaveCount(3);
+  for (const name of [CERAMIC_PLATE, QUADRO, TRAYS]) {
     await expect(model(page, name)).toBeVisible();
   }
   await expect(page.getByRole('group', { name: /Cor da/ })).toHaveCount(0);
-  for (const name of [CERAMIC_PLATE, QUADRO, TRAY_8, TRAY_11]) {
+  for (const name of [CERAMIC_PLATE, QUADRO, TRAYS]) {
     await model(page, name).check();
     await expect(page.getByRole('group', { name: /Moldura/ })).toHaveCount(0);
   }
+  for (const size of ['M — 8 × 8 cm', 'G — 11 × 11 cm']) {
+    await sizes(page).getByRole('radio', { name: size }).check();
+    await expect(page.getByRole('group', { name: /Moldura/ })).toHaveCount(0);
+  }
+});
+
+test('groups the Bandejas like production: one option, a required size (D-057)', async ({
+  page,
+}) => {
+  const preview = page.getByRole('region', { name: 'Pré-visualização' });
+  await expect(model(page, TRAYS)).toHaveAccessibleDescription('Disponível em dois tamanhos');
+  await expect(sizes(page)).toHaveCount(0);
+
+  await model(page, TRAYS).check();
+  await expect(sizes(page).getByRole('radio')).toHaveCount(2);
+  await expect(sizes(page).getByRole('radio', { checked: true })).toHaveCount(0);
+  await expect(page.getByRole('region', { name: 'Situação da configuração' })).toContainText(
+    'Falta escolher: Tamanho, Texto, Cor do texto.',
+  );
+  await expect(preview).toContainText('Escolha o tamanho para ver a pré-visualização.');
+
+  await sizes(page).getByRole('radio', { name: 'M — 8 × 8 cm' }).check();
+  await expect(preview.getByRole('img')).toHaveAttribute('aria-label', /Bandeja ondulada M/);
+  await expect(preview.locator('dt', { hasText: 'Tamanho' }).locator('+ dd')).toHaveText(
+    'M — 8 × 8 cm',
+  );
+  await expectNoHorizontalScroll(page);
 });
 
 test('completes a configuration @smoke', async ({ page }) => {
@@ -116,7 +144,13 @@ test('the Quadro is one complete product (plate and frame), chosen as a model', 
 
   await expect(model(page, QUADRO)).toBeChecked();
   const preview = page.getByRole('region', { name: 'Pré-visualização' });
-  await expect(preview).toContainText('Quadro — 20 × 20 cm');
+  // Model and size are separate summary rows (D-057).
+  await expect(preview.locator('dt', { hasText: 'Modelo' }).locator('+ dd')).toHaveText(
+    '(demonstração) Quadro',
+  );
+  await expect(preview.locator('dt', { hasText: 'Tamanho' }).locator('+ dd')).toHaveText(
+    '20 × 20 cm',
+  );
   await expect(preview).not.toContainText('Moldura');
 });
 

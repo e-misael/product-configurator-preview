@@ -16,6 +16,16 @@ export const NOTICE_MESSAGES: Record<PreviewNoticeCode, string> = {
   'text-overflow': 'O texto não cabe na área do modelo. Reduza o texto ou use menos linhas.',
 };
 
+/** Replaces "plate-not-selected" while a model group waits for its size (D-057). */
+export const SIZE_PENDING_MESSAGE = 'Escolha o tamanho para ver a pré-visualização.';
+
+/** Vertical overflow states how many lines are over (D-057). */
+export function overflowMessage(excessLines: number): string {
+  if (excessLines <= 0) return NOTICE_MESSAGES['text-overflow'];
+  const count = excessLines === 1 ? '1 linha a mais' : `${excessLines} linhas a mais`;
+  return `O texto não cabe na área do modelo: ${count}. Reduza o texto ou use menos linhas.`;
+}
+
 /** pt-BR wording for PNG export (D-008). */
 export const EXPORT_MESSAGES = {
   empty: 'Não há imagem para exportar.',

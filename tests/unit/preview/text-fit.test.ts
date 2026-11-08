@@ -83,11 +83,25 @@ describe('layoutText (fixed size, D-055)', () => {
     expect(layoutText(lines.slice(1).join('\n'), area(200, 100), 10, measure).overflow).toBe(false);
   });
 
+  it('counts the lines beyond the area height (D-057)', () => {
+    const text = (count: number) => Array.from({ length: count }, (_, i) => `l${i}`).join('\n');
+    // 100 high at line height 12 holds 8 lines.
+    expect(layoutText(text(8), area(200, 100), 10, measure).excessLines).toBe(0);
+    expect(layoutText(text(9), area(200, 100), 10, measure).excessLines).toBe(1);
+    expect(layoutText(text(10), area(200, 100), 10, measure).excessLines).toBe(2);
+    // Exactly full: 120 high holds 10 lines of 12.
+    expect(layoutText(text(10), area(200, 120), 10, measure).excessLines).toBe(0);
+    // Shorter than one line: every line is over.
+    expect(layoutText('Ana', area(200, 5), 10, measure).excessLines).toBe(1);
+  });
+
   it('reports horizontal overflow when one character is wider than the area', () => {
     const fit = layoutText('W', area(4, 100), 10, measure);
 
     expect(fit.overflow).toBe(true);
     expect(fit.lines).toEqual(['W']);
+    // Horizontal only: no line is over.
+    expect(fit.excessLines).toBe(0);
   });
 
   it('keeps every visible character of accented and Unicode text', () => {

@@ -23,6 +23,13 @@ export type PaintCall =
         readonly dy: number;
       };
     }
+  | {
+      readonly op: 'strokeRect';
+      readonly args: readonly number[];
+      readonly strokeStyle: string;
+      readonly lineWidth: number;
+      readonly lineDash: readonly number[];
+    }
   | { readonly op: 'save' | 'restore' }
   | {
       readonly op: 'fillText';
@@ -51,6 +58,9 @@ export class FakeContext {
   shadowBlur = 0;
   shadowOffsetX = 0;
   shadowOffsetY = 0;
+  strokeStyle = '#000';
+  lineWidth = 1;
+  private lineDash: readonly number[] = [];
   private readonly stack: Record<string, unknown>[] = [];
   private static readonly STATE = [
     'font',
@@ -62,6 +72,9 @@ export class FakeContext {
     'shadowBlur',
     'shadowOffsetX',
     'shadowOffsetY',
+    'strokeStyle',
+    'lineWidth',
+    'lineDash',
   ] as const;
 
   save() {
@@ -108,6 +121,20 @@ export class FakeContext {
     });
   }
 
+  setLineDash(segments: readonly number[]) {
+    this.lineDash = [...segments];
+  }
+
+  strokeRect(...args: number[]) {
+    this.calls.push({
+      op: 'strokeRect',
+      args,
+      strokeStyle: this.strokeStyle,
+      lineWidth: this.lineWidth,
+      lineDash: this.lineDash,
+    });
+  }
+
   fillText(text: string, x: number, y: number) {
     this.calls.push({
       op: 'fillText',
@@ -135,6 +162,15 @@ export class FakeContext {
       .slice(lastClear + 1)
       .filter((call) => call.op === 'drawImage' || call.op === 'fillText');
   }
+}
+
+/** Outlines stroked since the last clear (the preview-only overflow outline, D-057). */
+export function strokesOf(ctx: FakeContext) {
+  let lastClear = -1;
+  ctx.calls.forEach((call, index) => {
+    if (call.op === 'clearRect') lastClear = index;
+  });
+  return ctx.calls.slice(lastClear + 1).filter((call) => call.op === 'strokeRect');
 }
 
 const contexts = new WeakMap<HTMLCanvasElement, FakeContext>();

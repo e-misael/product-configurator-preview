@@ -37,6 +37,18 @@ const preview = (page: Page) => page.getByRole('region', { name: 'Pré-visualiza
 const exportButton = (page: Page) => preview(page).getByRole('button', { name: 'Exportar imagem' });
 const model = (page: Page, name: RegExp) =>
   page.getByRole('group', { name: 'Modelo' }).getByRole('radio', { name });
+
+/** Chooses a demo Bandeja size under its grouped option (D-057). */
+async function chooseTray(page: Page, size: 'M' | 'G') {
+  await page
+    .getByRole('group', { name: 'Modelo' })
+    .getByRole('radio', { name: /Bandeja ondulada$/ })
+    .check();
+  await page
+    .getByRole('group', { name: 'Tamanho' })
+    .getByRole('radio', { name: new RegExp(`^${size} — `) })
+    .check();
+}
 const radio = (page: Page, group: string, name: RegExp | string) =>
   page.getByRole('group', { name: group }).getByRole('radio', { name });
 
@@ -227,7 +239,7 @@ test('exports font, both lettering colors, alignment, and manual position as pre
   await position
     .getByRole('button', { name: 'Mover para a esquerda' })
     .click({ modifiers: ['Shift'] });
-  await expect(position).toContainText('Horizontal 90%, vertical 100%.');
+  await expect(position).toContainText('Posição personalizada: horizontal 90%, vertical 100%.');
   await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'false');
 
   const file = await downloadPng(page);
@@ -250,7 +262,7 @@ test('exports font, both lettering colors, alignment, and manual position as pre
 });
 
 test('exports a scalloped tray on white, at its native size', async ({ page }) => {
-  await model(page, /Bandeja ondulada G/).check();
+  await chooseTray(page, 'G');
   await ready(page);
 
   const file = await downloadPng(page);

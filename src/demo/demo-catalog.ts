@@ -1,4 +1,5 @@
 import { deepFreeze } from '../catalog/deep-freeze';
+import type { ModelGroup } from '../components/configurator/model-groups';
 import type { AssetRef, Catalog, NormalizedBox, Plate, PlateShape, TextLayout } from '../domain';
 
 const OBJECT_BOUNDS: NormalizedBox = { x: 0.1, y: 0.1, width: 0.8, height: 0.8 };
@@ -135,3 +136,20 @@ export const demoCatalog: Catalog = deepFreeze({
     })),
   ],
 });
+
+/**
+ * The demo Bandejas grouped like production's (D-057): one option with a
+ * required M/G size, over the demo models' own IDs. Demo-only data, so it
+ * stays out of production builds with the rest of this module (D-028).
+ */
+export const demoModelGroups: readonly ModelGroup[] = deepFreeze([
+  {
+    id: 'demo-bandeja-ondulada',
+    name: '(demonstração) Bandeja ondulada',
+    description: 'Disponível em dois tamanhos',
+    sizes: [
+      { plateId: 'demo-bandeja-ondulada-m-8', letter: 'M' },
+      { plateId: 'demo-bandeja-ondulada-g-11', letter: 'G' },
+    ],
+  },
+]);

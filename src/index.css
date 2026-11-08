@@ -117,12 +117,9 @@ body {
 .position__controls {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem 1.5rem;
+  align-items: center;
+  gap: 0.75rem 1.25rem;
   margin-top: 0.25rem;
-}
-
-.position__caption {
-  margin: 0 0 0.25rem;
 }
 
 .position__presets {
@@ -210,16 +207,25 @@ body {
   margin-top: 0.5rem;
 }
 
+/* A compact arrow pad beside the presets; full touch targets on touch screens. */
 .position__moves {
+  --move-size: 2.25rem;
   display: grid;
   grid-template-areas: '. up .' 'left . right' '. down .';
-  grid-template-columns: repeat(3, 2.75rem);
-  gap: 0.25rem;
+  grid-template-columns: repeat(3, var(--move-size));
+  grid-template-rows: repeat(3, var(--move-size));
+  gap: 0.125rem;
 }
 
-.position__move {
-  min-width: 2.75rem;
-  min-height: 2.75rem;
+@media (pointer: coarse) {
+  .position__moves {
+    --move-size: var(--touch-target);
+  }
+}
+
+.button.position__move {
+  min-width: var(--move-size);
+  min-height: var(--move-size);
   margin: 0;
   padding: 0;
 }

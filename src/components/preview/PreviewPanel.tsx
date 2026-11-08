@@ -12,9 +12,9 @@ import { composePreview, compositionSources } from '../../preview/composition';
 import { createTextMeasurer } from '../../preview/draw';
 import { textBlockOf, type Point } from '../../preview/placement';
 import { buildScene } from '../../preview/scene';
-import { modelLabel } from '../configurator/messages';
+import { sizeLabel, type ModelGroup } from '../configurator/model-groups';
 import { ExportControls } from './ExportControls';
-import { NOTICE_MESSAGES } from './messages';
+import { NOTICE_MESSAGES, overflowMessage, SIZE_PENDING_MESSAGE } from './messages';
 import { PreviewCanvas } from './PreviewCanvas';
 import { TextPositionControls } from './TextPositionControls';
 
@@ -22,6 +22,10 @@ interface PreviewPanelProps {
   readonly catalog: Catalog;
   readonly config: Configuration;
   readonly plate: Plate | undefined;
+  /** Model groups of `catalog`, and the chosen one with or without its size (D-057). */
+  readonly groups?: readonly ModelGroup[];
+  readonly group?: ModelGroup | undefined;
+  readonly sizePending?: boolean;
   readonly validation: ValidationResult;
   readonly positioning: {
     readonly place: (placement: TextPlacement) => void;
@@ -44,6 +48,9 @@ export function PreviewPanel({
   catalog,
   config,
   plate,
+  groups = [],
+  group,
+  sizePending = false,
   validation,
   positioning,
 }: PreviewPanelProps) {
@@ -57,8 +64,13 @@ export function PreviewPanel({
     () => buildScene(composition, images, measure),
     [composition, images, measure],
   );
-  const messages = [...new Set(scene.notices.map((code) => NOTICE_MESSAGES[code]))];
   const block = textBlockOf(scene);
+  const noticeMessage = (code: (typeof scene.notices)[number]) => {
+    if (code === 'text-overflow') return overflowMessage(block?.excessLines ?? 0);
+    if (code === 'plate-not-selected' && sizePending) return SIZE_PENDING_MESSAGE;
+    return NOTICE_MESSAGES[code];
+  };
+  const messages = [...new Set(scene.notices.map(noticeMessage))];
   const [moveMode, setMoveMode] = useState(false);
   // Dragging changes only the block position; the line alignment is kept (D-044).
   const moveText = (position: Point) => {
@@ -104,10 +116,13 @@ export function PreviewPanel({
         validation={validation}
         plateId={config.plateId}
         noticesId="preview-notices"
+        sizePending={sizePending}
       />
       <dl className="preview__summary" id="preview-summary">
         <dt>Modelo</dt>
-        <dd>{plate ? modelLabel(plate) : '—'}</dd>
+        <dd>{group?.name ?? plate?.displayName ?? '—'}</dd>
+        <dt>Tamanho</dt>
+        <dd>{plate ? sizeLabel(groups, plate) : sizePending ? 'Não escolhido' : '—'}</dd>
         <dt>Cor da peça</dt>
         <dd>{plate?.ceramicColor ?? '—'}</dd>
         <dt>Fonte</dt>

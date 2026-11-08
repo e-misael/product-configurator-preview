@@ -66,7 +66,8 @@ const percent = (value: number) => `${Math.round(value * 100)}%`;
  * Text position (D-044, simplified by D-047): nine presets that set the line
  * alignment and the block position together, 2% / 10% (Shift) directional
  * moves by button or arrow key, the touch "Mover texto" mode, and reset to the
- * catalog default. Disabled while no text is drawn on the image.
+ * catalog default. Disabled while no text is drawn on the image. One status
+ * line names the position; the groups are named for assistive technology only (D-057).
  */
 export function TextPositionControls({
   block,
@@ -109,80 +110,66 @@ export function TextPositionControls({
       )}
 
       <div className="position__controls">
-        <div className="position__group">
-          <p className="field__info position__caption" id="position-presets-label">
-            Posições predefinidas
-          </p>
-          <div className="position__presets" role="group" aria-labelledby="position-presets-label">
-            {PRESET_ROWS.flatMap((row) =>
-              PRESET_COLUMNS.map((column) => {
-                const label = presetLabel(row, column);
-                return (
-                  <button
-                    key={`${row}-${column}`}
-                    type="button"
-                    className={`position__preset position__preset--${row} position__preset--${column}`}
-                    aria-label={label}
-                    title={label}
-                    aria-pressed={current?.row === row && current.column === column}
-                    onClick={() => onPlace(presetPlacement(row, column))}
-                  >
-                    {/* Three short lines, aligned and placed like the text will be. */}
-                    <span className="position__glyph" aria-hidden="true">
-                      <span />
-                      <span />
-                      <span />
-                    </span>
-                  </button>
-                );
-              }),
-            )}
-          </div>
+        <div className="position__presets" role="group" aria-label="Posições predefinidas">
+          {PRESET_ROWS.flatMap((row) =>
+            PRESET_COLUMNS.map((column) => {
+              const label = presetLabel(row, column);
+              return (
+                <button
+                  key={`${row}-${column}`}
+                  type="button"
+                  className={`position__preset position__preset--${row} position__preset--${column}`}
+                  aria-label={label}
+                  title={label}
+                  aria-pressed={current?.row === row && current.column === column}
+                  onClick={() => onPlace(presetPlacement(row, column))}
+                >
+                  {/* Three short lines, aligned and placed like the text will be. */}
+                  <span className="position__glyph" aria-hidden="true">
+                    <span />
+                    <span />
+                    <span />
+                  </span>
+                </button>
+              );
+            }),
+          )}
         </div>
 
-        <div className="position__group">
-          <p className="field__info position__caption" id="position-moves-label">
-            Ajuste fino
-          </p>
-          <div
-            className="position__moves"
-            role="group"
-            aria-labelledby="position-moves-label"
-            aria-describedby="position-keys"
-          >
-            {DIRECTIONS.map(({ direction, label, symbol }) => (
-              <button
-                key={direction}
-                type="button"
-                className={`button position__move position__move--${direction}`}
-                aria-label={label}
-                title={label}
-                disabled={direction === 'up' || direction === 'down' ? !canMove.y : !canMove.x}
-                onClick={(event: MouseEvent<HTMLButtonElement>) => move(direction, event.shiftKey)}
-                onKeyDown={onKeyDown}
-              >
-                <span aria-hidden="true">{symbol}</span>
-              </button>
-            ))}
-          </div>
+        <div
+          className="position__moves"
+          role="group"
+          aria-label="Ajuste fino"
+          aria-describedby="position-keys"
+        >
+          {DIRECTIONS.map(({ direction, label, symbol }) => (
+            <button
+              key={direction}
+              type="button"
+              className={`button position__move position__move--${direction}`}
+              aria-label={label}
+              title={label}
+              disabled={direction === 'up' || direction === 'down' ? !canMove.y : !canMove.x}
+              onClick={(event: MouseEvent<HTMLButtonElement>) => move(direction, event.shiftKey)}
+              onKeyDown={onKeyDown}
+            >
+              <span aria-hidden="true">{symbol}</span>
+            </button>
+          ))}
         </div>
       </div>
-      <p className="field__info position__current">
+      {/* The one position announcement: the preset, or the custom position in percent. */}
+      <p className="field__info position__current" role="status">
         {placement === undefined
           ? ''
           : current === undefined
-            ? 'Posição personalizada.'
+            ? `Posição personalizada: horizontal ${
+                canMove.x ? percent(placement.x) : 'sem espaço livre'
+              }, vertical ${canMove.y ? percent(placement.y) : 'sem espaço livre'}.`
             : `Posição: ${presetLabel(current.row, current.column)}.`}
       </p>
       <p className="field__info" id="position-keys">
         Setas do teclado: 2% por passo, 10% com Shift.
-      </p>
-      <p className="field__info" aria-live="polite">
-        {placement === undefined
-          ? ''
-          : `Horizontal ${canMove.x ? percent(placement.x) : 'sem espaço livre'}, vertical ${
-              canMove.y ? percent(placement.y) : 'sem espaço livre'
-            }.`}
       </p>
 
       <div className="selection-actions__buttons">

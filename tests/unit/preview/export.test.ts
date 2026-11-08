@@ -140,6 +140,21 @@ describe('renderPng', () => {
     ).toEqual(['image', '#aa2200', '#112233', 'deboss']);
   });
 
+  it('never paints the overflow outline, which is preview only (D-057)', async () => {
+    const { scene } = sceneFor({ text: Array.from({ length: 6 }, () => 'Ana').join('\n') });
+    expect(scene.notices).toContain('text-overflow');
+    let canvas: HTMLCanvasElement | undefined;
+    await renderPng(scene, () => (canvas = document.createElement('canvas')));
+
+    if (!canvas) throw new Error('No canvas');
+    expect(contextOf(canvas).calls.some((call) => call.op === 'strokeRect')).toBe(false);
+    // Blocked anyway: overflow is an export blocker.
+    expect(exportBlockers(validate(config({ text: 'x' })), scene)).toContainEqual({
+      kind: 'preview',
+      code: 'text-overflow',
+    });
+  });
+
   const failing = async (scene: Scene, create: () => HTMLCanvasElement) =>
     renderPng(scene, create).then(
       () => 'resolved',

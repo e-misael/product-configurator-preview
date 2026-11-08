@@ -19,6 +19,8 @@ interface ExportControlsProps {
   readonly plateId: string | null;
   /** Element listing the preview notices; part of the button's description when they block. */
   readonly noticesId: string;
+  /** A model group is chosen but not its size (D-057). */
+  readonly sizePending?: boolean;
 }
 
 type Outcome =
@@ -31,10 +33,10 @@ type Outcome =
  * spelled out in the preview notices, so they are summarized once and the
  * notices join the button's description instead of being repeated.
  */
-function blockerMessage(blocker: ExportBlocker): string {
+function blockerMessage(blocker: ExportBlocker, sizePending: boolean): string {
   switch (blocker.kind) {
     case 'configuration':
-      return invalidMessage(blocker.issue);
+      return invalidMessage(blocker.issue, sizePending);
     case 'preview':
       return EXPORT_MESSAGES.previewIncomplete;
     case 'empty':
@@ -47,12 +49,18 @@ function blockerMessage(blocker: ExportBlocker): string {
  * is blocked (`aria-disabled`) so the reasons listed below it can be reached;
  * activation by click or keyboard does nothing until they are resolved.
  */
-export function ExportControls({ scene, validation, plateId, noticesId }: ExportControlsProps) {
+export function ExportControls({
+  scene,
+  validation,
+  plateId,
+  noticesId,
+  sizePending = false,
+}: ExportControlsProps) {
   // The outcome belongs to the scene it was produced for; any change clears it.
   const [result, setResult] = useState<{ scene: Scene; outcome: Outcome } | null>(null);
   const outcome = result?.scene === scene ? result.outcome : undefined;
   const blockers = exportBlockers(validation, scene);
-  const reasons = [...new Set(blockers.map(blockerMessage))];
+  const reasons = [...new Set(blockers.map((blocker) => blockerMessage(blocker, sizePending)))];
   const previewBlocked = blockers.some((blocker) => blocker.kind === 'preview');
   const blocked = reasons.length > 0 || plateId === null;
   const working = outcome?.status === 'working';

@@ -234,11 +234,13 @@ describe('buildScene: text placement (D-044)', () => {
     const wrapped = sceneFor({ text: 'Casa da Ana Maria' });
     expect(textBlock(wrapped).lines).toEqual(['Casa da Ana', 'Maria']);
     expect(wrapped.notices).not.toContain('text-overflow');
+    expect(textBlock(wrapped).excessLines).toBe(0);
 
     // 160 high at line height 48 holds 3 lines.
     const tall = sceneFor({ text: Array.from({ length: 4 }, () => 'linha').join('\n') });
     expect(tall.notices).toContain('text-overflow');
     expect(textBlock(tall).slack.y).toBeLessThan(0);
+    expect(textBlock(tall).excessLines).toBe(1);
   });
 
   it('never enlarges the text to fill the area: the size does not depend on the position', () => {

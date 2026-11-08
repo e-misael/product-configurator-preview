@@ -39,7 +39,10 @@ export function useConfiguration(catalog: Catalog) {
     setState(({ config }) => ({ config: { ...config, ...patch }, notice: null }));
   }, []);
 
+  // Changing the model keeps the text, colors, and placement (D-044, D-057).
   const choosePlate = useCallback((plateId: string) => update({ plateId }), [update]);
+  /** No model selected, e.g. while a model group waits for its size (D-057). */
+  const clearPlate = useCallback(() => update({ plateId: null }), [update]);
   /**
    * The secondary-color ranges follow the edit (D-042). `caret` is the textarea
    * selection after the edit; when the edit cannot be located the affected
@@ -121,6 +124,7 @@ export function useConfiguration(catalog: Catalog) {
     notice: state.notice,
     validation,
     choosePlate,
+    clearPlate,
     setText,
     setFontFamily,
     chooseTextColor,

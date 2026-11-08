@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useId, type ReactNode } from 'react';
 
 interface ChoiceOptionProps {
   readonly name: string;
@@ -7,6 +7,8 @@ interface ChoiceOptionProps {
   readonly disabled?: boolean;
   readonly onSelect: () => void;
   readonly children: ReactNode;
+  /** Secondary text shown beside the label; it describes the option without naming it. */
+  readonly description?: string;
 }
 
 /** A native radio input with a full-width, touch-friendly label. */
@@ -17,7 +19,9 @@ export function ChoiceOption({
   disabled,
   onSelect,
   children,
+  description,
 }: ChoiceOptionProps) {
+  const id = useId();
   return (
     <label className="choice">
       <input
@@ -27,8 +31,17 @@ export function ChoiceOption({
         checked={checked}
         disabled={disabled}
         onChange={onSelect}
+        aria-labelledby={description === undefined ? undefined : `${id}-label`}
+        aria-describedby={description === undefined ? undefined : `${id}-description`}
       />
-      <span className="choice__label">{children}</span>
+      <span className="choice__label">
+        <span id={`${id}-label`}>{children}</span>
+        {description !== undefined && (
+          <span className="choice__detail" id={`${id}-description`}>
+            {description}
+          </span>
+        )}
+      </span>
     </label>
   );
 }

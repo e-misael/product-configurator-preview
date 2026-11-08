@@ -11,19 +11,15 @@ describe('App shell', () => {
     ).toBeInTheDocument();
   });
 
-  it('lists the four production models without demo data', () => {
+  it('lists the four production models without demo data, the Bandejas as one option', () => {
     render(<App />);
 
     const models = within(screen.getByRole('group', { name: 'Modelo' }));
-    for (const name of [
-      'Placa cerâmica — 10 × 10 cm',
-      'Quadro — 20 × 20 cm',
-      'Bandeja ondulada M — 8 × 8 cm',
-      'Bandeja ondulada G — 11 × 11 cm',
-    ]) {
+    // The two Bandeja sizes are one option with a "Tamanho" choice (D-057).
+    for (const name of ['Placa cerâmica — 10 × 10 cm', 'Quadro — 20 × 20 cm', 'Bandeja ondulada']) {
       expect(models.getByRole('radio', { name })).toBeInTheDocument();
     }
-    expect(models.getAllByRole('radio')).toHaveLength(4);
+    expect(models.getAllByRole('radio')).toHaveLength(3);
     expect(screen.queryByText(/demonstração/i)).not.toBeInTheDocument();
   });
 
