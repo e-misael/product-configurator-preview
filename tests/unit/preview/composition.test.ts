@@ -14,6 +14,12 @@ describe('preview fixture', () => {
   });
 });
 
+describe('composePreview: note (D-062)', () => {
+  it('never draws the note: the composition is identical with or without it', () => {
+    expect(compose({ note: 'Entregar até sexta' })).toEqual(compose());
+  });
+});
+
 describe('composePreview: plate image', () => {
   it('selects the exact category photograph when no shade is chosen', () => {
     const { plate, notices } = compose();

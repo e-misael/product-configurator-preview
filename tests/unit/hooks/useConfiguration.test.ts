@@ -18,6 +18,7 @@ describe('useConfiguration', () => {
       secondaryColorId: null,
       secondaryRanges: [],
       textLayout: null,
+      note: '',
     });
     expect(result.current.validation.status).toBe('incomplete');
     expect(result.current.notice).toBeNull();
@@ -38,6 +39,7 @@ describe('useConfiguration', () => {
       secondaryColorId: null,
       secondaryRanges: [],
       textLayout: null,
+      note: '',
     });
     expect(result.current.validation).toEqual({ status: 'valid' });
   });
@@ -91,6 +93,17 @@ describe('useConfiguration: lettering', () => {
     act(() => hook.result.current.chooseSecondaryColor('test-text-color-b'));
     return hook;
   };
+
+  it('stores the note exactly as typed without affecting validation (D-062)', () => {
+    const { result } = setup();
+    act(() => result.current.choosePlate('test-plate-square'));
+    act(() => result.current.setText('Ana'));
+    act(() => result.current.chooseTextColor('test-text-color-a'));
+
+    act(() => result.current.setNote('  Sem pressa\n'));
+    expect(result.current.config.note).toBe('  Sem pressa\n');
+    expect(result.current.validation).toEqual({ status: 'valid' });
+  });
 
   it('stores the font and the primary color as chosen', () => {
     const { result } = setup();

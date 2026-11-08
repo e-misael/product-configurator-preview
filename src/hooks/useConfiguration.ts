@@ -62,6 +62,8 @@ export function useConfiguration(catalog: Catalog) {
     });
   }, []);
 
+  /** The optional note, kept exactly as typed (D-062). */
+  const setNote = useCallback((note: string) => update({ note }), [update]);
   const setFontFamily = useCallback((fontFamily: FontFamily) => update({ fontFamily }), [update]);
   const chooseTextColor = useCallback(
     (textColorId: string | null) => update({ textColorId }),
@@ -155,6 +157,7 @@ export function useConfiguration(catalog: Catalog) {
     choosePlate,
     clearPlate,
     setText,
+    setNote,
     setFontFamily,
     chooseTextColor,
     chooseSecondaryColor,

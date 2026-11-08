@@ -157,6 +157,11 @@ export interface Configuration {
   readonly secondaryRanges: readonly TextRange[];
   /** `null` = the catalog default for the model's text area (D-044). */
   readonly textLayout: TextPlacement | null;
+  /**
+   * Optional "Observação" for Taavi, stored exactly as typed. Never validated
+   * and never drawn: preview and export show only the piece (D-062).
+   */
+  readonly note: string;
 }
 
 export type ConfigurationField = keyof Configuration;

@@ -203,6 +203,7 @@ export function ConfiguratorForm({
           sizePending={model.sizePending}
           validation={validation}
           scene={scene}
+          onNote={state.setNote}
         />
       </Step>
     </form>

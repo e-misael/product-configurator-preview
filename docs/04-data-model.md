@@ -89,15 +89,16 @@ The production palette is empty until Taavi supplies it (P-02); the demo catalog
 
 ### `Configuration`
 
-| Field              | Type                    | Required | Notes                                                    |
-| ------------------ | ----------------------- | -------- | -------------------------------------------------------- |
-| `plateId`          | `string \| null`        | yes      | References `Plate.id`.                                   |
-| `text`             | `string`                | yes      | Raw, never trimmed or normalized.                        |
-| `fontFamily`       | `FontFamily`            | yes      | Default `sans-serif` ("Sem serifa").                     |
-| `textColorId`      | `string \| null`        | yes      | References `TextColor.id`. No default (D-042).           |
-| `secondaryColorId` | `string \| null`        | no       | Optional second lettering color.                         |
-| `secondaryRanges`  | `readonly TextRange[]`  | no       | Characters drawn in the second color.                    |
-| `textLayout`       | `TextPlacement \| null` | no       | `null` = catalog default alignment and position (D-044). |
+| Field              | Type                    | Required | Notes                                                             |
+| ------------------ | ----------------------- | -------- | ----------------------------------------------------------------- |
+| `plateId`          | `string \| null`        | yes      | References `Plate.id`.                                            |
+| `text`             | `string`                | yes      | Raw, never trimmed or normalized.                                 |
+| `fontFamily`       | `FontFamily`            | yes      | Default `sans-serif` ("Sem serifa").                              |
+| `textColorId`      | `string \| null`        | yes      | References `TextColor.id`. No default (D-042).                    |
+| `secondaryColorId` | `string \| null`        | no       | Optional second lettering color.                                  |
+| `secondaryRanges`  | `readonly TextRange[]`  | no       | Characters drawn in the second color.                             |
+| `textLayout`       | `TextPlacement \| null` | no       | `null` = catalog default alignment and position (D-044).          |
+| `note`             | `string`                | no       | "Observação", exactly as typed; never validated or drawn (D-062). |
 
 Serializable as plain JSON. Contains only IDs and user input — never copies of catalog objects. There is no `shape` and no color field: the shape is derived from the selected model (`getPlateShape`) and the ceramic color is a catalog property of the model. No customer configuration is persisted anywhere, so removing the former color fields and `frameId` (D-046) needs no data migration.
 
@@ -151,7 +152,7 @@ Choosing a model only sets `plateId`; nothing else in the configuration changes 
 
 ### Result status
 
-Any invalid issue → `invalid`; otherwise any missing issue → `incomplete`; otherwise `valid`. Issues are listed in field order: `plateId`, `text`, `fontFamily`, `textColorId`, `secondaryColorId`, `secondaryRanges`, `textLayout`.
+Any invalid issue → `invalid`; otherwise any missing issue → `incomplete`; otherwise `valid`. Issues are listed in field order: `plateId`, `text`, `fontFamily`, `textColorId`, `secondaryColorId`, `secondaryRanges`, `textLayout` (`note` is never validated).
 
 ## Catalog integrity rules
 

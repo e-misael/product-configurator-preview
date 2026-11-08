@@ -882,6 +882,13 @@ body {
   overflow-wrap: anywhere;
 }
 
+/* Unselected "Cor do texto" chips: the color alone, still a full touch target. */
+.swatch-option--chip-only {
+  justify-content: center;
+  min-width: var(--touch-target);
+  padding: 0.25rem;
+}
+
 .disclosure {
   display: inline-flex;
   align-items: center;

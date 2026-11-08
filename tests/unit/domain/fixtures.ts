@@ -47,6 +47,7 @@ export function validConfiguration(overrides: Partial<Configuration> = {}): Conf
     secondaryColorId: null,
     secondaryRanges: [],
     textLayout: null,
+    note: '',
     ...overrides,
   };
 }

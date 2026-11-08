@@ -10,6 +10,7 @@ export const FIELD_LABELS: Record<ConfigurationField, string> = {
   secondaryColorId: 'Segunda cor',
   secondaryRanges: 'Trechos com a segunda cor',
   textLayout: 'Posição do texto',
+  note: 'Observação',
 };
 
 const INVALID_MESSAGES: Record<ConfigurationField, Partial<Record<InvalidCode, string>>> = {
@@ -39,6 +40,8 @@ const INVALID_MESSAGES: Record<ConfigurationField, Partial<Record<InvalidCode, s
   textLayout: {
     'invalid-layout': 'A posição do texto não é válida. Use "Redefinir posição".',
   },
+  // Free text, never validated (D-062).
+  note: {},
 };
 
 /** While a group is chosen without its size, the missing model is reported as "Tamanho" (D-057). */

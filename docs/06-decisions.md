@@ -500,6 +500,11 @@ Status values:
 - A model group may name the size whose photograph stands in before a size is chosen (`previewPlateId`, presentation data beside the grouping; production: `bandeja-ondulada-m-8`, whose file is byte-identical to G's). Choosing "Bandeja ondulada" shows that photograph at once, without lettering, with "Selecione o tamanho para visualizar a personalização.". The configuration still has no model (`plateId: null`), no size is preselected or stored, and export stays blocked ("Falta escolher: Tamanho."). Choosing M or G draws the lettering with that size's calibration. Switching sizes re-renders at once, and an already loaded photograph is never requested again.
 - **Status:** Approved (product owner, 2026-11-08, M4.6). Implementation pending acceptance.
 
+### D-062 — Optional "Observação" before export (2026-11-08)
+
+- Requested by the product owner (2026-11-08): an "Observação" field before exporting. It is a configuration field `note` (raw user input, default `''`), kept exactly as typed, with no validation, no length limit, and no effect on completeness or export. It is never drawn: the preview and the PNG show only the piece (D-027), and the hint says "Opcional. Não aparece na imagem exportada.". With no backend (out of scope) the note is not sent anywhere; how it reaches Taavi (e.g., in the image, in the filename, or copied into the order message) is an open decision.
+- **Status:** Approved as requested (product owner, 2026-11-08). Destination and any length limit open; implementation pending acceptance.
+
 ## Proposed
 
 ### D-007 — SVG preview rendering

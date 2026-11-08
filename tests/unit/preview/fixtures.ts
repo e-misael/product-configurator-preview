@@ -107,6 +107,7 @@ export function config(overrides: Partial<Configuration> = {}): Configuration {
     secondaryColorId: null,
     secondaryRanges: [],
     textLayout: null,
+    note: '',
     ...overrides,
   };
 }

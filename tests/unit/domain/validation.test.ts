@@ -97,6 +97,7 @@ describe('validateConfiguration', () => {
         'secondaryColorId',
         'secondaryRanges',
         'textLayout',
+        'note',
       ]);
     });
 

@@ -272,7 +272,7 @@ Status: **Done** (2026-11-08). Accepted by the product owner (D-057).
 
 ## M4.6 — Mobile-first layout, identity, alignment, signature
 
-Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decisions D-058–D-061.
+Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decisions D-058–D-062.
 
 - [x] Preview first; four steps; collapsible WAI-ARIA accordion on phones (one open, state kept, focus on the header, scroll only when needed, reduced motion); all open on wide screens
 - [x] Sticky preview band: compact, reduced while editing text, larger while positioning; scroll padding keeps focus below it; no horizontal scroll at 320/375/393/430 px
@@ -282,8 +282,10 @@ Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decisio
 - [x] Position modes "Escolher posição" / "Ajustar manualmente"; "Mover texto" removed; keyboard instructions visually hidden
 - [x] Taavi signature (arch + "© Taavi") in every preview and PNG, 0.055 high, opacities 0.64 / 0.72; export blocked and `renderPng` refusing without it
 - [x] Bandeja ondulada: shared photograph before the size, no lettering, export blocked until M or G
+- [x] "Cor do texto": only the selected swatch shows its name (others are chips with accessible names); "Alinhamento das linhas" after "Posição do bloco"
+- [x] Optional "Observação" before export, stored as typed, never drawn (D-062)
 - [x] Tests: unit (alignment model, presets, reset, modes, accordion, signature geometry and factors, illustration flow, image reuse); Playwright on real photographs (alignment edges and signature placement per model, both engines), demo flows, export PNG signature pixels and missing-mark blocking, mobile layout at four widths by touch in Chromium and WebKit, production tray transition
-- Remaining: product-owner review on real phones (LAN); the signature over the Quadro frame rail; whether M and G should share one image file.
+- Remaining: product-owner review on real phones (LAN); the signature over the Quadro frame rail; whether M and G should share one image file; where the "Observação" goes (D-062).
 
 ## M5 — Quality and usability
 

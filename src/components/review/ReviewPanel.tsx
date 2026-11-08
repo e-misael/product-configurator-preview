@@ -21,6 +21,7 @@ interface ReviewPanelProps {
   readonly sizePending: boolean;
   readonly validation: ValidationResult;
   readonly scene: Scene;
+  readonly onNote: (note: string) => void;
 }
 
 function colorName(catalog: Catalog, id: string | null, none = '—'): string {
@@ -42,6 +43,7 @@ export function ReviewPanel({
   sizePending,
   validation,
   scene,
+  onNote,
 }: ReviewPanelProps) {
   const align = config.textLayout?.align ?? catalogTextAlign(plate);
   return (
@@ -85,6 +87,23 @@ export function ReviewPanel({
         <p>
           Todas as solicitações de personalização estão sujeitas à análise e aprovação da Taavi.
         </p>
+      </div>
+      {/* Optional note (D-062): stored as typed, never drawn on the image. */}
+      <div className="field">
+        <label className="field__legend" htmlFor="note">
+          Observação
+        </label>
+        <p className="field__info" id="note-hint">
+          Opcional. Não aparece na imagem exportada.
+        </p>
+        <textarea
+          id="note"
+          className="textarea"
+          rows={3}
+          value={config.note}
+          aria-describedby="note-hint"
+          onChange={(e) => onNote(e.target.value)}
+        />
       </div>
       <ExportControls
         scene={scene}

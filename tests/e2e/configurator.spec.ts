@@ -152,6 +152,42 @@ test('shows the handmade-product disclaimer in the review, before export', async
   expect((text?.y ?? 0) < (button?.y ?? 0)).toBe(true);
 });
 
+test('shows only the selected text color name; the others are chips', async ({ page }) => {
+  await openStep(page, 'Texto e cores');
+  const colors = inks(page, 'Cor do texto');
+  const ink = colors.getByRole('radio', { name: /Letra grafite/ });
+  const label = colors
+    .locator('label')
+    .filter({ has: page.getByRole('radio', { name: /Letra grafite/ }) });
+  await expect(label.getByText(/Letra grafite/)).toHaveClass('visually-hidden');
+  await expect(label).toHaveAttribute('title', /Letra grafite/);
+
+  await ink.check();
+  await expect(label.getByText(/Letra grafite/)).toBeVisible();
+  await expect(colors.locator('.swatch-option__name')).toHaveCount(1);
+  await expectNoHorizontalScroll(page);
+});
+
+test('takes an optional "Observação" just before export, never required (D-062)', async ({
+  page,
+}) => {
+  await model(page, CERAMIC_PLATE).check();
+  await (await textField(page)).fill('Ana');
+  await inks(page, 'Cor do texto')
+    .getByRole('radio', { name: /Letra grafite/ })
+    .check();
+  const review = await step(page, 'Revisar personalização');
+  const note = review.getByRole('textbox', { name: 'Observação' });
+  const exportButton = review.getByRole('button', { name: 'Exportar imagem' });
+  await expect(exportButton).toHaveAttribute('aria-disabled', 'false');
+
+  await note.fill('  Entregar até sexta\nObrigada ');
+  await expect(note).toHaveValue('  Entregar até sexta\nObrigada ');
+  await expect(exportButton).toHaveAttribute('aria-disabled', 'false');
+  const [field, button] = [await note.boundingBox(), await exportButton.boundingBox()];
+  expect((field?.y ?? 0) < (button?.y ?? 0)).toBe(true);
+});
+
 test('the Quadro is one complete product (plate and frame), chosen as a model', async ({
   page,
 }) => {

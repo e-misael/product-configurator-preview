@@ -83,7 +83,7 @@ Typography and lettering colors (M4.1b-1, D-042, D-043):
 
 Lettering-color controls (M4.2, D-047):
 
-20. Lettering colors are labeled swatches with native radio semantics: the color name is visible text, and the selected swatch shows a check mark and a heavier border, so the choice never depends on color alone. They are keyboard-operable with a visible focus ring.
+20. Lettering colors are labeled swatches with native radio semantics: the selected swatch shows a check mark, a heavier border, and its color name as visible text, so the choice never depends on color alone. In "Cor do texto" only the selected swatch shows its name; the others are color chips whose name stays their accessible name and tooltip (M4.6). The second-color swatches keep their visible names. They are keyboard-operable with a visible focus ring.
 21. The second color is behind a "Usar segunda cor" button (`aria-expanded`, `aria-controls`). Its swatches appear only when expanded; the selection actions appear only when a second color is chosen and the section is open; "Remover segunda cor" appears only when a second color is chosen.
 22. Collapsing the section never changes the configuration: the color and its trechos stay, shown as "Segunda cor em uso: {cor} ({n} trechos)." and in the summary. "Remover segunda cor" clears the color and every trecho and returns focus to "Usar segunda cor".
 23. An invalid second color (unavailable or equal to the primary) keeps the section open, without the toggle, with its message, until it is replaced or removed (D-030).
@@ -134,6 +134,7 @@ Acceptance criteria:
 7. While blocked, the button stays focusable (`aria-disabled="true"`) and click or keyboard activation does nothing; the reasons are listed below it ("Para exportar a imagem:"), and preview problems refer to the preview notices, which join the button's accessible description.
 8. Failures (canvas allocation, 2D context, drawing, encoding, object URL, download start) show "Não foi possível gerar a imagem. Tente novamente." (or the dimension message) and leave the button usable; success announces "Imagem exportada: {filename}".
 9. "Exportar imagem" is the last action of "Revisar personalização", after the summary, the status, and the disclaimer (D-058). Export is also blocked while the Taavi signature cannot be loaded, and no PNG is ever written without it (D-060), or while a model group's size is not chosen (D-061).
+10. An optional "Observação" textarea sits just before "Exportar imagem". It is stored exactly as typed, never validated, never required, and never drawn on the preview or the PNG; its hint says so ("Opcional. Não aparece na imagem exportada.", D-062).
 
 Status: Done (M4), verified with synthetic demonstration images and the four production photographs. Production export is available with the approved palette (D-056), verified end to end in Chromium and mobile WebKit.
 

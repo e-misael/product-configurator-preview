@@ -30,6 +30,7 @@ export function createEmptyConfiguration(): Configuration {
     secondaryColorId: null,
     secondaryRanges: [],
     textLayout: null,
+    note: '',
   };
 }
 

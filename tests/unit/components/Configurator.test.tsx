@@ -143,6 +143,24 @@ describe('Configurator', () => {
       expect(within(review()).getByText('Test ink B')).toBeInTheDocument();
     });
 
+    it('shows the color name only on the selected chip, keeping every accessible name', async () => {
+      const { user } = setup();
+      const nameOf = (label: string) =>
+        within(group('Cor do texto')).getByText(label, { selector: 'label span' });
+
+      // Nothing selected: chips only; names for assistive technology and as tooltips.
+      expect(nameOf('Test ink A')).toHaveClass('visually-hidden');
+      expect(nameOf('Test ink B')).toHaveClass('visually-hidden');
+      expect(ink('ink A').closest('label')).toHaveAttribute('title', 'Test ink A');
+
+      await user.click(ink('ink B'));
+      expect(nameOf('Test ink B')).toHaveClass('swatch-option__name');
+      expect(nameOf('Test ink B')).not.toHaveClass('visually-hidden');
+      expect(ink('ink B').closest('label')).not.toHaveAttribute('title');
+      expect(nameOf('Test ink A')).toHaveClass('visually-hidden');
+      expect(ink('ink A')).toHaveAccessibleName('Test ink A');
+    });
+
     it('hides the second color behind "Usar segunda cor" until requested', async () => {
       const { user } = setup();
       await user.type(screen.getByLabelText('Texto'), 'Casa');
@@ -303,6 +321,31 @@ describe('Configurator', () => {
       expect(within(review()).getByText('Test beige')).toBeInTheDocument();
       // The test catalog registers no images, so nothing is painted and nothing is substituted.
       expect(preview().querySelector('img, svg, canvas')).toBeNull();
+    });
+  });
+
+  describe('Observação (D-062)', () => {
+    it('is an optional field in the review, before export, kept exactly as typed', async () => {
+      const { user } = setup();
+      const note = within(review()).getByRole('textbox', { name: 'Observação' });
+      const exportButton = within(review()).getByRole('button', { name: 'Exportar imagem' });
+
+      expect(note).toHaveValue('');
+      expect(note).toHaveAccessibleDescription('Opcional. Não aparece na imagem exportada.');
+      expect(note.compareDocumentPosition(exportButton) & Node.DOCUMENT_POSITION_FOLLOWING).toBe(
+        Node.DOCUMENT_POSITION_FOLLOWING,
+      );
+
+      await user.click(plateRadio('test-plate-square'));
+      await user.type(screen.getByLabelText('Texto'), 'Ana');
+      await user.click(within(group('Cor do texto')).getByRole('radio', { name: 'Test ink A' }));
+      await user.type(note, '  Entregar até sexta\nObrigada ');
+
+      expect(note).toHaveValue('  Entregar até sexta\nObrigada ');
+      // Never validated and never required.
+      expect(status()).toHaveTextContent('Configuração completa.');
+      await user.clear(note);
+      expect(status()).toHaveTextContent('Configuração completa.');
     });
   });
 });

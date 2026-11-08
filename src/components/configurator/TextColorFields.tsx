@@ -14,16 +14,23 @@ interface SwatchProps {
   readonly color: TextColor;
   readonly checked: boolean;
   readonly disabled?: boolean;
+  /** Show the name only on the selected chip; the others keep it as their accessible name. */
+  readonly compact?: boolean;
   readonly onSelect: () => void;
 }
 
 /**
  * A native radio shown as a color chip with its name. The selected chip gets a
  * check mark and a heavier border, so the choice never depends on color alone.
+ * Compact chips show the name only when selected (a tooltip otherwise).
  */
-function Swatch({ name, color, checked, disabled, onSelect }: SwatchProps) {
+function Swatch({ name, color, checked, disabled, compact = false, onSelect }: SwatchProps) {
+  const hideName = compact && !checked;
   return (
-    <label className="swatch-option">
+    <label
+      className={`swatch-option${hideName ? ' swatch-option--chip-only' : ''}`}
+      title={hideName ? color.displayName : undefined}
+    >
       <input
         type="radio"
         className="swatch-option__input"
@@ -40,7 +47,9 @@ function Swatch({ name, color, checked, disabled, onSelect }: SwatchProps) {
       >
         <span className="swatch-option__check">✓</span>
       </span>
-      <span className="swatch-option__name">{color.displayName}</span>
+      <span className={hideName ? 'visually-hidden' : 'swatch-option__name'}>
+        {color.displayName}
+      </span>
     </label>
   );
 }
@@ -82,6 +91,7 @@ export function TextColorField({ catalog, colorId, issue, onChoose }: PrimaryPro
               name="text-color"
               color={color}
               checked={color.id === colorId}
+              compact
               onSelect={() => onChoose(color.id)}
             />
           ))}

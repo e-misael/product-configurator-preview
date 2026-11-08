@@ -37,6 +37,7 @@ describe('configuration validation is independent of imagery', () => {
     secondaryColorId: null,
     secondaryRanges: [],
     textLayout: null,
+    note: '',
   } as const;
   const configs: Configuration[] = [
     { plateId: 'test-plate-a', text: 'Ana', ...style },
