@@ -29,12 +29,31 @@ describe('production catalog', () => {
     expect(getCatalog().textColors).toEqual([]);
   });
 
-  it('invents no dimensions or images; every model is Bege', () => {
+  it('invents no dimensions; every model is Bege; only the Placa has a photograph', () => {
     for (const plate of getCatalog().plates) {
       expect(plate.dimensions).toEqual({ status: 'pending' });
-      expect(plate.image).toBeUndefined();
       expect(plate.ceramicColor).toBe('Bege');
     }
+    expect(
+      getCatalog()
+        .plates.filter((plate) => plate.image)
+        .map((plate) => plate.id),
+    ).toEqual(['placa-ceramica-10']);
+  });
+
+  it('registers the Placa photograph with its measured, centered placement (M1.3b-1)', () => {
+    const placa = getCatalog().plates.find((plate) => plate.id === 'placa-ceramica-10');
+
+    expect(placa?.image).toEqual({
+      image: {
+        src: '/catalog/plates/placa-ceramica-10/bege.png',
+        alt: 'Placa cerâmica quadrada bege, sem texto',
+        widthPx: 640,
+        heightPx: 640,
+      },
+      objectBounds: { x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 },
+      text: { area: { x: 0.145, y: 0.155, width: 0.71, height: 0.69 }, align: 'center' },
+    });
   });
 
   it('returns the same deeply frozen instance on every call', () => {

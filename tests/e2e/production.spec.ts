@@ -15,7 +15,7 @@ const MODELS = [
 ];
 
 test.describe('Production build @smoke', () => {
-  test('lists the four models, with no demo data and no photos yet', async ({ page }) => {
+  test('lists the four models, with no demo data; only the Placa has a photo', async ({ page }) => {
     await page.goto('/');
 
     await expect(page).toHaveTitle('Taavi Configurator');
@@ -31,6 +31,10 @@ test.describe('Production build @smoke', () => {
     await group.getByRole('radio', { name: 'Placa cerâmica — 10 × 10 cm' }).check();
     await expect(group).toContainText('Cor da peça: Bege');
     const preview = page.getByRole('region', { name: 'Pré-visualização' });
+    await expect(preview.getByRole('img')).toBeVisible();
+    await expect(preview).not.toContainText('A foto deste modelo ainda não está disponível.');
+
+    await group.getByRole('radio', { name: 'Quadro — 20 × 20 cm' }).check();
     await expect(preview).toContainText('A foto deste modelo ainda não está disponível.');
     await expect(preview.locator('canvas')).toHaveCount(0);
 
@@ -63,9 +67,7 @@ test.describe('Production build @smoke', () => {
     const button = preview.getByRole('button', { name: 'Exportar imagem' });
     await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(preview).toContainText('Falta escolher: Cor do texto.');
-    await expect(button).toHaveAccessibleDescription(
-      /A foto deste modelo ainda não está disponível/,
-    );
+    await expect(button).toHaveAccessibleDescription(/Falta escolher: Cor do texto/);
     let downloads = 0;
     page.on('download', () => (downloads += 1));
     // Playwright waits for `aria-disabled` buttons to become enabled; force the real click.
@@ -100,5 +102,103 @@ test.describe('Production build @smoke', () => {
       const response = await request.get(path);
       expect(response.headers()['content-type'] ?? '').not.toContain('image/');
     }
+  });
+});
+
+test.describe('Placa photograph with debossed lettering (M1.3b-1)', () => {
+  test('serves the real photograph and draws the lettering on it', async ({ page }) => {
+    const photo = page.waitForResponse('**/catalog/plates/placa-ceramica-10/bege.png');
+    await page.goto('/');
+    await page
+      .getByRole('group', { name: 'Modelo' })
+      .getByRole('radio', { name: 'Placa cerâmica — 10 × 10 cm' })
+      .check();
+    const response = await photo;
+    expect(response.status()).toBe(200);
+    expect(response.headers()['content-type']).toContain('image/png');
+
+    const canvas = page.getByRole('region', { name: 'Pré-visualização' }).locator('canvas');
+    const pixels = () =>
+      canvas.evaluate((element: HTMLCanvasElement) => {
+        const ctx = element.getContext('2d');
+        if (!ctx) return '';
+        const { data } = ctx.getImageData(0, 0, element.width, element.height);
+        let sum = 0;
+        for (let i = 0; i < data.length; i += 97) sum += data[i] ?? 0;
+        return `${element.width}x${element.height}:${sum}`;
+      });
+    await expect.poll(pixels).not.toBe('');
+    const plain = await pixels();
+    await page.getByLabel('Texto', { exact: true }).fill('Casa da Ana');
+    await expect.poll(pixels).not.toBe(plain);
+    // The backing store never exceeds the 640 px photograph.
+    expect(Number(plain.split('x')[0])).toBeLessThanOrEqual(640);
+    await expectNoHorizontalScroll(page);
+  });
+
+  test('stays responsive while dragging and typing on a phone-sized canvas', async ({
+    page,
+    browserName,
+    isMobile,
+  }) => {
+    test.skip(browserName !== 'chromium' || isMobile, 'CPU throttling needs desktop Chromium.');
+    await page.setViewportSize({ width: 390, height: 844 });
+    const cdp = await page.context().newCDPSession(page);
+    // A mid-range phone: four times slower than this machine.
+    await cdp.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+    await page.goto('/');
+    await page
+      .getByRole('group', { name: 'Modelo' })
+      .getByRole('radio', { name: 'Placa cerâmica — 10 × 10 cm' })
+      .check();
+    const field = page.getByLabel('Texto', { exact: true });
+    await field.fill('Casa da Ana');
+    const canvas = page.getByRole('region', { name: 'Pré-visualização' }).locator('canvas');
+    await canvas.scrollIntoViewIfNeeded();
+    await page.evaluate(() => {
+      const w = window as unknown as { longTasks: number[] };
+      w.longTasks = [];
+      new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) w.longTasks.push(entry.duration);
+      }).observe({ type: 'longtask', buffered: false });
+    });
+
+    const box = await canvas.boundingBox();
+    if (!box) throw new Error('No canvas box');
+    const x = box.x + box.width / 2;
+    const y = box.y + box.height / 2;
+    const steps = 60;
+    const dragStart = Date.now();
+    await page.mouse.move(x, y);
+    await page.mouse.down();
+    for (let i = 1; i <= steps; i += 1) {
+      await page.mouse.move(x + i, y + i / 2);
+    }
+    await page.mouse.up();
+    const dragMs = (Date.now() - dragStart) / steps;
+    // The drag really moved the text, so every step repainted the scene.
+    await expect(page.getByText('Posição personalizada.')).toBeVisible();
+
+    const typeStart = Date.now();
+    await field.press('End');
+    await field.pressSequentially(' e família', { delay: 0 });
+    const typeMs = (Date.now() - typeStart) / ' e família'.length;
+
+    const longTasks = await page.evaluate(
+      () => (window as unknown as { longTasks: number[] }).longTasks,
+    );
+    const worst = Math.max(0, ...longTasks);
+    test.info().annotations.push({
+      type: 'performance (4× CPU throttling, 390 px viewport)',
+      description: JSON.stringify({
+        msPerDragStep: Math.round(dragMs),
+        msPerTypedCharacter: Math.round(typeMs),
+        longTasks: longTasks.length,
+        worstLongTaskMs: Math.round(worst),
+      }),
+    });
+    // Generous bounds: an interaction that blocks for a quarter second is noticeable.
+    expect(worst).toBeLessThan(250);
+    expect(dragMs).toBeLessThan(100);
   });
 });

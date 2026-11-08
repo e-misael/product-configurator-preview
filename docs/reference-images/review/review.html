@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="utf-8" />
+    <title>Placa cerâmica — revisão</title>
+    <style>
+      body {
+        margin: 24px;
+        font:
+          14px/1.4 system-ui,
+          -apple-system,
+          sans-serif;
+        color: #222;
+        background: #fff;
+        width: 1000px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+      }
+      h2 {
+        font-size: 16px;
+        margin: 24px 0 8px;
+      }
+      p {
+        margin: 4px 0;
+      }
+      .grid {
+        display: grid;
+        gap: 16px;
+      }
+      .two {
+        grid-template-columns: repeat(2, 480px);
+      }
+      .three {
+        grid-template-columns: repeat(3, 320px);
+      }
+      figure {
+        margin: 0;
+      }
+      figcaption {
+        margin-top: 4px;
+      }
+      canvas {
+        display: block;
+      }
+      .chip {
+        display: inline-block;
+        width: 22px;
+        height: 14px;
+        border-radius: 3px;
+        vertical-align: -2px;
+        margin-right: 6px;
+        border: 1px solid #0002;
+      }
+      .warn {
+        color: #8a3b00;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Placa cerâmica — 10 × 10 cm · revisão visual (M1.3b-1)</h1>
+    <p>
+      <strong>Proposta para aprovação.</strong> Foto da Taavi (<code>plate-no-text.png</code>,
+      letras removidas), sem tingimento e sem remoção de fundo. Fonte provisória do sistema.
+    </p>
+
+    <h2>1. Recorte, área de texto e posição padrão (centralizada)</h2>
+    <div class="grid two">
+      <figure>
+        <canvas id="crop" width="480" height="480"></canvas>
+        <figcaption>Recorte proposto: 640 × 640 px, peça centralizada.</figcaption>
+      </figure>
+      <figure>
+        <canvas id="calib" width="480" height="480"></canvas>
+        <figcaption>
+          Vermelho: peça <code>{ x 0.0781, y 0.0891, l 0.8422, a 0.8219 }</code>.<br />
+          Azul tracejado: área de texto <code>{ x 0.145, y 0.155, l 0.71, a 0.69 }</code>, ~8% para
+          dentro da borda arredondada. Texto centralizado na horizontal e na vertical.
+        </figcaption>
+      </figure>
+    </div>
+
+    <h2>2. Cores propostas sobre a peça</h2>
+    <p>Contraste medido contra a face da peça na foto (#c19669). Referência de leitura: ≥ 3:1.</p>
+    <div class="grid three" id="tiles"></div>
+    <p class="warn" style="margin-top: 12px">
+      Amarelo e Laranja aparecem nos tons naturais, sem escurecer; têm pouco contraste sobre o bege
+      da peça. A Taavi decide se o tom representa as letras reais.
+    </p>
+
+    <script>
+      const FACE = '#c19669';
+      const AREA = { x: 0.145, y: 0.155, width: 0.71, height: 0.69 };
+      const BOUNDS = { x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 };
+      const TEXT = ['Casa da Ana', 'Desde 2024'];
+      const FONT = 'system-ui, -apple-system, "Segoe UI", sans-serif';
+      const COLORS = [
+        ['Marrom', '#4a2a14', 'amostra das letras da peça real'],
+        ['Azul', '#2b4a7a', 'sugestão'],
+        ['Verde', '#2f4a36', 'amostra das letras do Quadro'],
+        ['Amarelo', '#e0b225', 'sugestão, tom natural'],
+        ['Laranja', '#e07a1f', 'sugestão, tom natural'],
+        ['Vermelho escuro', '#7a1f1f', 'sugestão'],
+      ];
+
+      const lin = (v) => {
+        v /= 255;
+        return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+      };
+      const lum = (hex) => {
+        const n = parseInt(hex.slice(1), 16);
+        return 0.2126 * lin(n >> 16) + 0.7152 * lin((n >> 8) & 255) + 0.0722 * lin(n & 255);
+      };
+      const contrast = (a, b) => {
+        const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p);
+        return (x + 0.05) / (y + 0.05);
+      };
+      const box = (b, s) => ({ x: b.x * s, y: b.y * s, w: b.width * s, h: b.height * s });
+
+      /** Lines centered horizontally, block centered vertically in the area. */
+      function drawCentered(ctx, size, color) {
+        const a = box(AREA, size);
+        let fs = a.h / 6;
+        ctx.font = `600 ${fs}px ${FONT}`;
+        const widest = Math.max(...TEXT.map((t) => ctx.measureText(t).width));
+        fs = Math.min(fs, (fs * a.w * 0.9) / widest);
+        ctx.font = `600 ${fs}px ${FONT}`;
+        const lh = fs * 1.25;
+        const top = a.y + (a.h - lh * TEXT.length) / 2;
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'top';
+        TEXT.forEach((t, i) => ctx.fillText(t, a.x + a.w / 2, top + i * lh + (lh - fs) / 2));
+      }
+
+      const img = new Image();
+      img.onload = () => {
+        document.getElementById('crop').getContext('2d').drawImage(img, 0, 0, 480, 480);
+
+        const c = document.getElementById('calib').getContext('2d');
+        c.drawImage(img, 0, 0, 480, 480);
+        drawCentered(c, 480, COLORS[0][1]);
+        const b = box(BOUNDS, 480);
+        const a = box(AREA, 480);
+        c.lineWidth = 2;
+        c.strokeStyle = '#d0021b';
+        c.strokeRect(b.x, b.y, b.w, b.h);
+        c.setLineDash([8, 6]);
+        c.strokeStyle = '#0057d9';
+        c.strokeRect(a.x, a.y, a.w, a.h);
+        c.setLineDash([3, 4]);
+        c.lineWidth = 1;
+        c.beginPath();
+        c.moveTo(a.x + a.w / 2, a.y);
+        c.lineTo(a.x + a.w / 2, a.y + a.h);
+        c.moveTo(a.x, a.y + a.h / 2);
+        c.lineTo(a.x + a.w, a.y + a.h / 2);
+        c.stroke();
+
+        const tiles = document.getElementById('tiles');
+        for (const [name, hex, origin] of COLORS) {
+          const fig = document.createElement('figure');
+          const cv = document.createElement('canvas');
+          cv.width = cv.height = 320;
+          const ctx = cv.getContext('2d');
+          ctx.drawImage(img, 0, 0, 320, 320);
+          drawCentered(ctx, 320, hex);
+          const ratio = contrast(hex, FACE);
+          const cap = document.createElement('figcaption');
+          cap.innerHTML =
+            `<span class="chip" style="background:${hex}"></span><strong>${name}</strong> ` +
+            `<code>${hex}</code> — ${ratio.toFixed(1)}:1` +
+            (ratio < 3 ? ' <span class="warn">baixa leitura</span>' : '') +
+            `<br /><small>${origin}</small>`;
+          fig.append(cv, cap);
+          tiles.append(fig);
+        }
+        document.body.dataset.ready = 'true';
+      };
+      img.src = 'placa-ceramica-10-crop.png';
+    </script>
+  </body>
+</html>

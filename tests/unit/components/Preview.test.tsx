@@ -41,10 +41,12 @@ function settle() {
 }
 
 /** What was painted on the displayed canvas, in order, with image file names. */
+/** Painted layers: photographs by source, text by content, the deboss shading layer as 'deboss'. */
 function painted(ctx: FakeContext) {
-  return ctx.drawn.map((call) =>
-    call.op === 'fillText' ? `text:${call.text}` : (call.image as { src: string }).src,
-  );
+  return ctx.drawn.map((call) => {
+    if (call.op === 'fillText') return `text:${call.text}`;
+    return call.image instanceof HTMLCanvasElement ? 'deboss' : (call.image as { src: string }).src;
+  });
 }
 
 function currentContext(): FakeContext {
@@ -159,7 +161,7 @@ describe('Preview', () => {
 
       await user.type(screen.getByLabelText('Texto'), 'Ana');
 
-      expect(painted(currentContext())).toEqual([SQUARE_PLATE, 'text:Ana']);
+      expect(painted(currentContext())).toEqual([SQUARE_PLATE, 'text:Ana', 'deboss']);
     });
 
     it('keeps the stored text exactly as typed', async () => {

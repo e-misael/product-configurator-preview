@@ -195,6 +195,7 @@ Status values:
 - **Alternatives:** Vector-only rendering; tinting a single photograph per plate (rejected: misrepresents ceramic color).
 - **Impact:** D-007 (SVG) was superseded by D-035 (Canvas 2D) in M3.1; D-009 (shared composition) is implemented for the preview and confirmed for export in M4. Adds pending items P-06–P-08.
 - **Update (M4.1a):** Each model has one fixed color, so "color/finish variation" now means the model's own photograph (D-041); the no-tint rule is unchanged.
+- **Update (D-050):** The preview is illustrative, not a photorealistic guarantee. Real Taavi photographs are still required and preferred over synthetic images; AI-assisted removal of existing lettering from Taavi's own photographs is acceptable. The no-tint and no-invented-product rules are unchanged.
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -381,6 +382,48 @@ Status values:
 - **Status:** Approved; implemented and accepted (2026-11-08).
 - **Date:** 2026-11-08.
 
+### D-048 — Confirmed product facts for M1.3b-1 (2026-11-08)
+
+- **Context:** Taavi answered part of the M1.3b-1 input list. These are product facts supplied by the store, recorded verbatim; nothing is derived from them.
+- **Confirmed:** (1) Taavi has permission to use its product photographs. (2) The official product name is "Placa cerâmica (tamanho 10 x 10 cm)", verbatim (with "x", not "×"). (3) ~~The available lettering colors for now are Preto, Marrom, Azul, Verde~~ — superseded by D-049. (4) Lettering may be applied across the ceramic surface, never on the wooden frame.
+- **Rules that follow:** No hex value is assigned to any lettering color until Taavi supplies or approves one, so `Catalog.textColors` stays empty (P-02). The Quadro's text area is restricted to the ceramic part of its assembled photograph (consistent with D-046). The Placa's text area is set only after inspecting the actual catalog photograph; curved or rounded edges, bevels, and physical margins are not assumed printable. Reference photographs already shared are not catalog assets until inspected and approved (`docs/07-product-assets.md`).
+- **Not yet applied:** the catalog still shows "Placa cerâmica — 10 × 10 cm" (D-046). Resolved by D-051: the customer-facing label stays "Placa cerâmica — 10 × 10 cm".
+- **Status:** Approved (facts confirmed by Taavi); recorded only, not implemented.
+- **Date:** 2026-11-08.
+
+### D-049 — Revised lettering-color names (2026-11-08)
+
+- **Context:** Taavi replaced the palette confirmed in D-048 (3).
+- **Decision:** The approved lettering-color names are **Marrom, Azul, Verde, Amarelo, Laranja, Vermelho escuro**, in the order supplied. Preto is no longer approved and is not registered unless Taavi approves it again.
+- **Rules that follow:** Names only. No `#rrggbb` value is invented or approved automatically; any proposed digital value is reviewed and approved by Taavi before it becomes a production color. `Catalog.textColors` stays empty until then (P-02).
+- **Status:** Approved (names confirmed by Taavi); recorded only, not implemented.
+- **Date:** 2026-11-08.
+
+### D-050 — Preview fidelity: illustrative, from Taavi's own photographs (2026-11-08)
+
+- **Context:** The product owner clarified that the preview illustrates the personalized piece; it is not a photorealistic guarantee of a handmade product. D-027's "visual accuracy" rationale was being read as pixel fidelity to the original photograph.
+- **Decision:** (1) Real Taavi product photographs are preferred over synthetic images. (2) AI-assisted removal of existing lettering is acceptable when preparing Taavi's own photographs. (3) Minor differences in ceramic texture, lighting, color, shape, and finish are acceptable; an image is rejected only when artifacts materially harm its appearance or misrepresent the product. (4) Pixel-level fidelity to the original photograph is not required. (5) Priorities are useful and attractive previews, correct text placement, readable lettering colors, and reliable PNG export. (6) The disclaimer that personalization requests are subject to Taavi's review and that handmade pieces may vary from the preview stays in the interface.
+- **Unchanged:** no CSS tinting or recoloring of photographs to fake a ceramic color; no generated or substituted product images; no customer image uploads; no invented product data, including lettering-color values (D-049).
+- **Applied:** `plate-no-text.png` (lettering removed from Taavi's "Um passo de cada vez" photograph) is accepted as the candidate catalog image for the Placa cerâmica after a basic visual quality check (`docs/07-product-assets.md`).
+- **Status:** Approved (product owner, 2026-11-08); recorded, not implemented.
+- **Date:** 2026-11-08.
+
+### D-051 — Placa cerâmica identity, label, and default placement (2026-11-08)
+
+- **Decision:** (1) The permanent model ID is `placa-ceramica-10`. (2) The customer-facing label is "Placa cerâmica — 10 × 10 cm" (`displayName` "Placa cerâmica", `sizeLabel` "10 × 10 cm", unchanged). (3) The official supplied name, "Placa cerâmica (tamanho 10 x 10 cm)", is kept verbatim in product documentation (D-048). (4) The default text placement is centered horizontally and vertically in the text area (`text.align` `center`, block centered when the configuration has no custom layout). (5) The text-safe area stays within the usable ceramic surface.
+- **Pending approval:** the final crop, the exact normalized calibration, and the six lettering-color values (review sheet: `docs/reference-images/review/review-sheet.png`).
+- **Status:** Approved (product owner, 2026-11-08); not yet implemented.
+- **Date:** 2026-11-08.
+
+### D-052 — Debossed lettering (2026-11-08)
+
+- **Context:** The lettering should look subtly engraved into the ceramic: an inner shadow, never an outer one, with the chosen colors staying dominant.
+- **Decision:** `drawScene` paints the lettering colors exactly as before, then draws a shading layer over them (`src/preview/deboss.ts`). (1) An inverse mask: an opaque sheet with every glyph run cut out (`destination-out`). (2) A layer twice the mask's width: the mask is drawn whole in its right half with a shadow offset by one mask width, so the blurred shadow lands in the left half; a dark shadow offset down (top inner edge), then a light one offset up (bottom inner edge). (3) The same mask over the left half with `destination-out` removes the shading wherever there is no glyph, in one draw for all lines and colors. (4) The left half is drawn over the lettering. Offset and blur are fractions of the font size in device pixels (canvas shadows ignore the transform), so preview and export match; below 9 device pixels the effect is skipped. Offscreen canvases are pooled between frames. No drop shadow, stroke, halo, or `ctx.filter`; no customer controls; photographs untouched.
+- **Strength:** offset 0.02, blur 0.025, shadow 0.25, highlight 0.14 of the font size: half of the first candidates (0.04, 0.05, 0.5, 0.28). At the Placa's text sizes the first candidates changed stroke centers by up to 59 of 255 levels (lettering visibly darkened throughout); half strength changes them by at most 4.
+- **Engine notes:** WebKit casts no shadow for an image drawn fully off-canvas or for a sub-rectangle of a larger canvas, and per-call `destination-in` erases earlier runs; the technique avoids all three.
+- **Status:** Architecture approved (2026-11-08) and implemented; the strength and the final look await visual approval. Pixel tests guard the technique, not the look.
+- **Date:** 2026-11-08.
+
 ## Proposed
 
 ### D-007 — SVG preview rendering
@@ -390,7 +433,7 @@ Status values:
 ## Pending
 
 - **P-01:** Real plate dimensions and aspect ratios per shape.
-- **P-02:** The production lettering-color palette (names and `#rrggbb` values) for `Catalog.textColors`; until supplied, a configuration cannot be completed in production once the text color is required. The ceramic color is resolved by D-041.
+- **P-02:** Partly resolved by D-049: the color names are Marrom, Azul, Verde, Amarelo, Laranja, Vermelho escuro. Still pending: a `#rrggbb` value for each (supplied or approved by Taavi), whether each may also be the second color, and their display order. Proposed values for review: `docs/reference-images/review/review-sheet.png` (not approved). Until then `Catalog.textColors` stays empty and no production configuration can be completed or exported.
 - **P-03:** Resolved by D-046: no separate frames; the Quadro is photographed assembled.
 - **P-04:** Production typography rules and text limits (max length, lines).
 - **P-05:** Export resolution, transparency, background, file naming.
@@ -398,8 +441,8 @@ Status values:
 - **P-07:** Placement metadata per photograph: object bounds and text safe area (inside the ceramic for the Quadro), scale relative to real dimensions.
 - **P-08:** Source image format, resolution, and consistency requirements (framing, lighting, background). Conventions and recommendations: `docs/07-product-assets.md`.
 - **P-09:** Resolved by D-046: no frame choice, so no frame finish variations.
-- **P-10:** Location and naming of original photographs in Taavi's source archive, for provenance records.
+- **P-10:** Partly resolved by D-048: usage rights confirmed. Still pending: the original file name or location of each catalog photograph, for provenance records.
 - **P-11:** Resolved by D-040: the scalloped dishes are the Bandeja ondulada M models. No circular model is registered.
-- **P-12:** Confirmation of the four permanent model IDs.
+- **P-12:** Confirmation of the four permanent model IDs. The Placa's ID `placa-ceramica-10` is confirmed (D-051); the other three are not yet.
 - **P-13:** Resolved by D-046: no model takes an optional frame.
 - **P-14:** Real serif and sans-serif typefaces for the text (system stacks are provisional) and the per-line text-length limit.

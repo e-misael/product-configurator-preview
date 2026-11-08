@@ -94,6 +94,12 @@ Status: **Partly done**: the four supplied models are registered without images 
 - Calibrated `objectBounds` and text areas (for the Quadro, inside the ceramic); visual verification against the originals.
 - Checklist: [07-product-assets.md](07-product-assets.md#m13b-checklist).
 
+### M1.3b-1 — First real product (vertical slice)
+
+Status: **Implemented; awaiting visual approval** (2026-11-08). Delivered: the Placa photograph (640 × 640 crop) in `public/catalog/plates/placa-ceramica-10/bege.png` with its provisional calibration in the production catalog; debossed lettering (D-052) in the shared Canvas renderer, so preview and PNG export match; the six proposed colors in the demo catalog only. Production still has no lettering colors, so production export stays blocked. Checks: 446 unit tests; Playwright 91 passed, 3 skipped, including Chromium and WebKit pixel tests (no pixel outside the glyphs changes; stroke centers keep their color) and a throttled drag test. Open: visual approval of crop, calibration, and effect strength; Taavi's production color values.
+
+History: inputs confirmed so far (D-048): photo usage rights, the official name "Placa cerâmica (tamanho 10 x 10 cm)", the color names Marrom, Azul, Verde, Amarelo, Laranja, Vermelho escuro (D-049), and the text-area rule (ceramic only, never the frame). Candidate photograph `plate-no-text.png` accepted under D-050 after a basic quality check; crop and calibration proposed and a color review sheet prepared (`docs/07-product-assets.md`). ID, label, and centered default placement approved (D-051). Crop, calibration, and centered alignment provisionally accepted for the first iteration; the six proposed `#rrggbb` values are for review and demo only. Implementation approved on 2026-11-08 with the inner-shadow conditions of D-052.
+
 ## M2 — Configuration interface
 
 Status: Done (validated against the demo catalog; production catalog still empty). The color controls and the "Placa"/"Quadro" wording below were superseded by M4.1a (D-040, D-041).

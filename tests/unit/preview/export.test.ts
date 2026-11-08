@@ -132,8 +132,11 @@ describe('renderPng', () => {
     const calls = contextOf(canvas).calls;
     expect(calls[2]).toMatchObject({ op: 'fillRect', fillStyle: '#ffffff' });
     expect(
-      contextOf(canvas).drawn.map((call) => (call.op === 'fillText' ? call.fillStyle : 'image')),
-    ).toEqual(['image', '#aa2200', '#112233']);
+      contextOf(canvas).drawn.map((call) => {
+        if (call.op === 'fillText') return call.fillStyle;
+        return call.image instanceof HTMLCanvasElement ? 'deboss' : 'image';
+      }),
+    ).toEqual(['image', '#aa2200', '#112233', 'deboss']);
   });
 
   const failing = async (scene: Scene, create: () => HTMLCanvasElement) =>

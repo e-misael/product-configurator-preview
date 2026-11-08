@@ -111,5 +111,22 @@ export const demoCatalog: Catalog = deepFreeze({
       displayName: '(demonstração) Letra vinho',
       hex: '#8c1f3d',
     },
+    // Proposed values for Taavi's six lettering colors (D-049), for review only:
+    // not approved, so they never enter src/catalog/data.ts until Taavi approves them.
+    ...(
+      [
+        ['marrom', 'Marrom', '#4a2a14'],
+        ['azul-proposta', 'Azul', '#2b4a7a'],
+        ['verde', 'Verde', '#2f4a36'],
+        ['amarelo', 'Amarelo', '#e0b225'],
+        ['laranja', 'Laranja', '#e07a1f'],
+        ['vermelho-escuro', 'Vermelho escuro', '#7a1f1f'],
+      ] as const
+    ).map(([id, name, hex]) => ({
+      id: `demo-letra-${id}`,
+      type: 'text-color' as const,
+      displayName: `(demonstração) ${name} (proposta)`,
+      hex,
+    })),
   ],
 });

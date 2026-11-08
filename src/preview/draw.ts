@@ -1,12 +1,14 @@
 /**
  * Canvas 2D painting of a scene (D-035). The only code that touches a canvas
  * context; export (export.ts) calls `drawScene` on another canvas so preview
- * and exported image come from the same path (D-008, D-009). No CSS filters, tinting, or
- * blending: each layer is the real image of its variation.
+ * and exported image come from the same path (D-008, D-009). Photographs are
+ * never filtered, tinted, or blended: each image layer is the real image of its
+ * variation. The lettering gets a debossed look inside its glyphs only (D-052).
  */
 
 import type { FontFamily } from '../domain';
-import type { ImageSize, Scene } from './scene';
+import { DEBOSS, paintDeboss, type DebossStyle, type GlyphRun } from './deboss';
+import type { ImageSize, Scene, TextBlock } from './scene';
 import type { MeasureText } from './text-fit';
 import { FALLBACK_TEXT_COLOR, FONT_STACKS } from './text-style';
 
@@ -52,11 +54,48 @@ export function createTextMeasurer(family: FontFamily = 'sans-serif'): MeasureTe
 
 const TEXT_ANCHOR = { left: 0, center: 0.5, right: 1 } as const;
 
-/** Paints `scene` scaled so its logical width spans `pixelWidth` canvas pixels. */
+interface ColoredRun extends GlyphRun {
+  readonly color: string;
+}
+
+/**
+ * Where each single-color run of a text block is painted. The lettering color
+ * and the deboss shading both use these runs, so the shading lines up with
+ * the glyphs exactly.
+ */
+function layoutRuns(ctx: CanvasRenderingContext2D, block: TextBlock): ColoredRun[] {
+  const { lines, segments, lineHeight, align, bounds } = block;
+  // Lines are aligned inside the block; the block itself is placed by the scene (D-044).
+  const x = bounds.x + bounds.width * TEXT_ANCHOR[align];
+  return lines.flatMap((line, index) => {
+    const y = bounds.y + (index + 0.5) * lineHeight;
+    const runs = segments[index] ?? [{ text: line, color: FALLBACK_TEXT_COLOR }];
+    const [only] = runs;
+    // One color: let the canvas align the whole line.
+    if (runs.length === 1 && only !== undefined)
+      return [{ text: line, x, y, align, color: only.color }];
+    // Mixed colors: lay the runs out left to right from the aligned start of the line.
+    const widths = runs.map((run) => ctx.measureText(run.text).width);
+    const total = widths.reduce((sum, width) => sum + width, 0);
+    let cursor = x - total * TEXT_ANCHOR[align];
+    return runs.map((run, runIndex) => {
+      const placed = { text: run.text, x: cursor, y, align: 'left' as const, color: run.color };
+      cursor += widths[runIndex] ?? 0;
+      return placed;
+    });
+  });
+}
+
+/**
+ * Paints `scene` scaled so its logical width spans `pixelWidth` canvas pixels.
+ * `deboss` is the lettering effect strength; preview and export both use the
+ * default, `null` paints flat lettering (comparisons and tests only).
+ */
 export function drawScene(
   ctx: CanvasRenderingContext2D,
   scene: Scene<CanvasImageSource & ImageSize>,
   pixelWidth: number,
+  deboss: DebossStyle | null = DEBOSS,
 ): void {
   const scale = pixelWidth / scene.width;
   ctx.setTransform(scale, 0, 0, scale, 0, 0);
@@ -72,33 +111,26 @@ export function drawScene(
       ctx.drawImage(layer.image, x, y, width, height);
       continue;
     }
-    const { lines, segments, fontFamily, fontSize, lineHeight, align, bounds } = layer.block;
-    ctx.font = fontFor(fontSize, fontFamily);
+    const { block } = layer;
+    const font = fontFor(block.fontSize, block.fontFamily);
+    ctx.font = font;
     ctx.textBaseline = 'middle';
-    // Lines are aligned inside the block; the block itself is placed by the scene (D-044).
-    const x = bounds.x + bounds.width * TEXT_ANCHOR[align];
-    const top = bounds.y;
-    lines.forEach((line, index) => {
-      const y = top + (index + 0.5) * lineHeight;
-      const runs = segments[index] ?? [{ text: line, color: FALLBACK_TEXT_COLOR }];
-      const [only] = runs;
-      if (runs.length === 1 && only !== undefined) {
-        // One color: let the canvas align the whole line.
-        ctx.fillStyle = only.color;
-        ctx.textAlign = align;
-        ctx.fillText(line, x, y);
-        return;
-      }
-      // Mixed colors: lay the runs out left to right from the aligned start of the line.
-      const widths = runs.map((run) => ctx.measureText(run.text).width);
-      const total = widths.reduce((sum, width) => sum + width, 0);
-      let cursor = x - total * TEXT_ANCHOR[align];
-      ctx.textAlign = 'left';
-      runs.forEach((run, runIndex) => {
-        ctx.fillStyle = run.color;
-        ctx.fillText(run.text, cursor, y);
-        cursor += widths[runIndex] ?? 0;
-      });
-    });
+    const runs = layoutRuns(ctx, block);
+    for (const run of runs) {
+      ctx.fillStyle = run.color;
+      ctx.textAlign = run.align;
+      ctx.fillText(run.text, run.x, run.y);
+    }
+    if (deboss === null) continue;
+    // Room around the block for glyphs that overhang their line box.
+    const overhang = block.fontSize * 0.5;
+    const { x, y, width, height } = block.bounds;
+    const region = {
+      x: x - overhang,
+      y: y - overhang,
+      width: width + overhang * 2,
+      height: height + overhang * 2,
+    };
+    paintDeboss(ctx, runs, font, block.fontSize, scale, region, deboss);
   }
 }

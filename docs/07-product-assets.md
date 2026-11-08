@@ -2,7 +2,7 @@
 
 How Taavi's real product photographs become catalog imagery (FR-08, D-027, D-031–D-034). This guide covers **M1.3a** (conventions and catalog contract, implemented) and the steps for **M1.3b** (registering real assets, pending until photographs and measurements arrive).
 
-> No production photographs exist in the repository yet. The preview renderer (M3.1) works, but has only been verified with synthetic demonstration images; export is M4.
+> One production photograph is registered: the Placa cerâmica (`public/catalog/plates/placa-ceramica-10/bege.png`, M1.3b-1), with provisional calibration pending final visual review. Store reference photographs in `docs/reference-images/` are not assets. The other three models have no photograph yet.
 
 ## Provenance and originals
 
@@ -21,6 +21,51 @@ The lifestyle photographs shared so far are **visual references only**. They con
 - the wooden shadowbox-style frame holding a smaller square ceramic plaque is the Quadro as sold; the real asset is a clean photograph of it assembled, not separate layers (D-046);
 - the standalone square plaque with lettering is not a blank plate image;
 - the scalloped dishes are the Bandeja ondulada M models (`scalloped` classification only, D-040); no circular model is registered.
+
+Photographs shared for reference (and any supplied later) become catalog assets only after a basic visual quality check and approval by the product owner (D-048, D-050). Usage rights are confirmed by Taavi.
+
+## Asset acceptance criteria (D-050)
+
+The preview is illustrative, not a photorealistic guarantee. A catalog image is accepted when:
+
+- it is a photograph of Taavi's own product (lettering may have been removed, including with AI-assisted retouching);
+- the whole piece is visible, upright, and close to frontal, with no lettering left on it;
+- it is attractive at preview size and holds up in the exported PNG;
+- the lettering surface is clear enough to place readable text.
+
+Minor differences in texture, lighting, color, shape, or finish are acceptable, and pixel fidelity to the original photograph is not required. Reject an image only when artifacts materially harm its appearance or misrepresent the product (wrong shape, missing or added features, visible smears or seams on the lettering surface). Never tint or recolor a photograph, and never substitute a generated or other product's image. The disclaimer about Taavi's review and handmade variation stays in the interface.
+
+### Inspection of the shared references (2026-11-08)
+
+Three store photographs are kept in `docs/reference-images/` (WebP or PNG, 1024 × 1366 px each, although the file names say `1024-1024`). They are documentation only and are never served or registered.
+
+| File (prefix)                          | Product          | Finding                                                                                                                                                                                                                                |
+| -------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `um-passo-de-cada-vez-…`               | Placa cerâmica   | Not usable as an asset: existing lettering, props (vase), marble background, raking light and shadows, slight perspective, and the piece fills only about half the frame width. Shows square corners with slightly rounded edges.      |
+| `quadro-rastico-a-luz-dourada-…`       | Quadro           | Not usable as an asset: existing lettering, props, and strong window shadows. Close to frontal and shows the whole product: a small square ceramic plate mounted at the center of a deep wooden frame with a wooden back panel.        |
+| `travessa-artesanal-da-prosperidade-…` | Bandeja ondulada | Not usable as an asset: existing lettering, oblique top-down angle, textile background. The lettering on this piece is embossed in the clay, not colored; whether the bandejas take colored lettering is not confirmed by these files. |
+
+### Candidate: `plate-no-text.png` (2026-11-08)
+
+- **File:** PNG, 1086 × 1449 px, 8-bit RGB, no alpha, portrait, upright.
+- **Provenance:** it is the `um-passo-de-cada-vez-…` photograph with the lettering removed and the image enlarged by about 6%. Outside the former lettering the two match closely; inside it they differ strongly. The speckle texture on the face shows regular dotted streaks not present in the original, consistent with retouching or generated fill. Under D-050 this retouching is acceptable.
+- **Framing:** the plate spans roughly x 290–830 and y 745–1270 px (about half the width, a third of the height), nearly frontal with slight perspective. The rest is the lifestyle scene: vase, marble table, wall, and diagonal window shadows.
+- **Background and light:** opaque and busy, not white; warm, raking light. Rendered lettering is flat-colored, so it will not share the photograph's light and shadows.
+- **Quality check (D-050): passed.** No residue of the removed lettering, no smears or seams on the face; the shape, rounded edges, and speckled finish match the product. The plate face is about 540 px wide, enough for preview and a modest export.
+- **Crop (provisionally accepted for the first iteration, 2026-11-08):** a 640 × 640 px crop at offset x 240, y 687 of the original, plate centered with the marble table around it; no tint, no background removal. File: `docs/reference-images/review/placa-ceramica-10-crop.png`. Proposed path once approved: `/catalog/plates/placa-ceramica-10/bege.png` (`widthPx` 640, `heightPx` 640).
+- **Calibration (provisionally accepted for the first iteration), relative to the crop:** `objectBounds` `{ x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 }` (measured plate edges, 539 × 526 px); `text.area` `{ x: 0.145, y: 0.155, width: 0.71, height: 0.69 }`, an inset of about 8% of the plate on each side, which is the margin of the lettering on Taavi's real stamped piece and keeps text off the rounded edge (~10 px); default placement centered horizontally and vertically (`text.align` `center`, D-051).
+- **Review sheet:** `docs/reference-images/review/review-sheet.png` (source `review.html`) shows the crop with both boxes and sample lettering in every proposed color.
+
+### Lettering-color review (proposals, not approved)
+
+Review page: `review.html` and `review-sheet.png` in `docs/reference-images/review/` (also shared as a private page). Proposed values for review and demo use only: Marrom `#4a2a14`, Azul `#2b4a7a`, Verde `#2f4a36`, Amarelo `#e0b225`, Laranja `#e07a1f`, Vermelho escuro `#7a1f1f`. Marrom and Verde are seeded from lettering sampled in Taavi's photographs (`#3f1f04`, `#333d2e`, under warm light); the others are suggestions with no Taavi reference. Amarelo and Laranja are shown in their natural hues and are not darkened to meet a contrast target; against the plate face in the photograph (`#c19669`) they measure about 1.3:1 and 1.1:1, versus 3.3–4.8:1 for the others. The goal is a representative illustration of Taavi's real lettering options. None of these values enters the production catalog until Taavi approves it.
+
+None of the shared files can be calibrated without approval: the text area must be measured on the final, lettering-free catalog photograph, because a different photograph changes the coordinates.
+
+## Text-safe area rules confirmed by Taavi (D-048)
+
+- Lettering may be applied across the ceramic surface, never on the wooden frame. For the Quadro, the text area lies only on the ceramic part of the assembled photograph.
+- For the Placa cerâmica, the area is set by inspecting the actual catalog photograph. Curved or rounded edges, bevels, and physical margins are not assumed printable; when in doubt the area stays inside the flat face, pending Taavi's approval of the calibration overlay.
 
 ## Expected source photographs (M1.3b inputs)
 

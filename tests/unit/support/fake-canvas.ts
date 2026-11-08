@@ -15,7 +15,15 @@ export type PaintCall =
       readonly y: number;
       readonly width: number;
       readonly height: number;
+      readonly composite: string;
+      readonly shadow: {
+        readonly color: string;
+        readonly blur: number;
+        readonly dx: number;
+        readonly dy: number;
+      };
     }
+  | { readonly op: 'save' | 'restore' }
   | {
       readonly op: 'fillText';
       readonly text: string;
@@ -24,6 +32,7 @@ export type PaintCall =
       readonly font: string;
       readonly textAlign: string;
       readonly fillStyle: string;
+      readonly composite: string;
     };
 
 export class FakeContext {
@@ -38,6 +47,32 @@ export class FakeContext {
   filter = 'none';
   globalCompositeOperation = 'source-over';
   globalAlpha = 1;
+  shadowColor = 'rgba(0, 0, 0, 0)';
+  shadowBlur = 0;
+  shadowOffsetX = 0;
+  shadowOffsetY = 0;
+  private readonly stack: Record<string, unknown>[] = [];
+  private static readonly STATE = [
+    'font',
+    'fillStyle',
+    'textAlign',
+    'textBaseline',
+    'globalCompositeOperation',
+    'shadowColor',
+    'shadowBlur',
+    'shadowOffsetX',
+    'shadowOffsetY',
+  ] as const;
+
+  save() {
+    this.calls.push({ op: 'save' });
+    this.stack.push(Object.fromEntries(FakeContext.STATE.map((key) => [key, this[key]])));
+  }
+
+  restore() {
+    this.calls.push({ op: 'restore' });
+    Object.assign(this, this.stack.pop());
+  }
 
   setTransform(...args: number[]) {
     this.calls.push({ op: 'setTransform', args });
@@ -51,8 +86,26 @@ export class FakeContext {
     this.calls.push({ op: 'fillRect', args, fillStyle: this.fillStyle });
   }
 
-  drawImage(image: unknown, x: number, y: number, width: number, height: number) {
-    this.calls.push({ op: 'drawImage', image, x, y, width, height });
+  /** Records the destination rectangle of the 3-, 5-, or 9-argument form. */
+  drawImage(image: unknown, ...args: number[]) {
+    const natural = image as { width?: number; height?: number };
+    const [x = 0, y = 0, width = natural.width ?? 0, height = natural.height ?? 0] =
+      args.length === 8 ? args.slice(4) : args;
+    this.calls.push({
+      op: 'drawImage',
+      image,
+      x,
+      y,
+      width,
+      height,
+      composite: this.globalCompositeOperation,
+      shadow: {
+        color: this.shadowColor,
+        blur: this.shadowBlur,
+        dx: this.shadowOffsetX,
+        dy: this.shadowOffsetY,
+      },
+    });
   }
 
   fillText(text: string, x: number, y: number) {
@@ -64,6 +117,7 @@ export class FakeContext {
       font: this.font,
       textAlign: this.textAlign,
       fillStyle: this.fillStyle,
+      composite: this.globalCompositeOperation,
     });
   }
 

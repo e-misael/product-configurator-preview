@@ -37,6 +37,17 @@ export default defineConfig({
       testMatch: ['configurator.spec.ts', 'preview.spec.ts', 'export.spec.ts'],
       use: { ...devices['Pixel 7'], baseURL: demo },
     },
+    // Debossed lettering painted by the real drawing code (no app server needed).
+    {
+      name: 'rendering-chromium',
+      testMatch: 'rendering.spec.ts',
+      use: { ...devices['Desktop Chrome'] },
+    },
+    {
+      name: 'rendering-webkit',
+      testMatch: 'rendering.spec.ts',
+      use: { ...devices['iPhone 14'] },
+    },
     // Lightweight WebKit coverage: smoke tests only.
     {
       name: 'demo-mobile-webkit',
