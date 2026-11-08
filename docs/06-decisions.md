@@ -521,6 +521,11 @@ Status values:
 - Requested by the product owner (2026-11-08): the Taavi signature 50% larger, with no background. Height 0.055 → 0.0825 of the shorter side (× 1.5); the light pill is no longer painted; the mark and "© Taavi" keep opacity 0.72 and the same relative layout. It still sits below and right of every model's text area (top at 0.8955 of the height; the lowest area ends at 0.845). Without the pill its contrast depends on the photograph behind it.
 - **Status:** Approved (product owner, 2026-11-08). Implementation pending acceptance.
 
+### D-067 — Production palette revised and extended (2026-11-08)
+
+- Supplied by the product owner (2026-11-08): Marrom `#802b00` (was `#4a2a14`), Azul `#002b80` (was `#2b4a7a`), Verde `#006600` (was `#2f4a36`), and new colors Laranja escuro `#b25900`, Amarelo queimado `#b38f00` (replacing the proposed `#a87a10`), Preto `#000000`. Vermelho escuro `#7a1f1f` was not mentioned and is kept. Display order: Marrom, Azul, Verde, Vermelho escuro, Laranja escuro, Amarelo queimado, Preto; IDs `laranja-escuro`, `amarelo-queimado`, `preto` are new, existing IDs unchanged. Each may be the second color. Marrom stays the default (D-064). The demo catalog is unchanged.
+- **Status:** Approved (product owner, 2026-11-08). Implementation pending acceptance.
+
 ## Proposed
 
 ### D-066 — Lettering font evaluation: Georgia Bold and Century Gothic Bold (2026-11-08)
@@ -541,7 +546,7 @@ Status values:
 ## Pending
 
 - **P-01:** Resolved (product owner, 2026-11-08): Placa cerâmica 100 × 100 mm; Quadro 200 × 200 mm outside, holding a 100 × 100 mm ceramic plate; Bandeja ondulada M 80 × 80 mm; Bandeja ondulada G 110 × 110 mm. Recorded as `dimensions` (outer size; the Quadro's ceramic is noted in the catalog comments and D-055). The Bandeja labels changed from "Aprox. 8 cm" / "Aprox. 11 cm" to the nominal "8 × 8 cm" / "11 × 11 cm" (D-054); the handmade-variation disclaimer stays.
-- **P-02:** Resolved for the first production palette by D-056: Marrom `#4a2a14`, Azul `#2b4a7a`, Verde `#2f4a36`, Vermelho escuro `#7a1f1f`, in that order, each also usable as the second color. Still open: Amarelo queimado (proposed `#a87a10`, pending visual approval) and Laranja (excluded for now, reversible). Earlier history: the names came from D-049, and the empty production palette was why the site showed "As cores do texto ainda não foram definidas." (a data dependency, not a rendering defect).
+- **P-02:** Resolved: the palette was revised and extended by D-067 (Marrom `#802b00`, Azul `#002b80`, Verde `#006600`, Vermelho escuro `#7a1f1f`, Laranja escuro `#b25900`, Amarelo queimado `#b38f00`, Preto `#000000`). First resolved by D-056: Marrom `#4a2a14`, Azul `#2b4a7a`, Verde `#2f4a36`, Vermelho escuro `#7a1f1f`, in that order, each also usable as the second color. Still open: Amarelo queimado (proposed `#a87a10`, pending visual approval) and Laranja (excluded for now, reversible). Earlier history: the names came from D-049, and the empty production palette was why the site showed "As cores do texto ainda não foram definidas." (a data dependency, not a rendering defect).
 - **P-03:** Resolved by D-046: no separate frames; the Quadro is photographed assembled.
 - **P-04:** Production typography rules and text limits (max length, lines).
 - **P-05:** Export resolution, transparency, background, file naming.

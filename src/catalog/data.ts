@@ -120,14 +120,16 @@ export const catalogData: Catalog = {
       image: bandejaImage('bandeja-ondulada-g-11', 0.0851),
     },
   ],
-  // First production palette (D-056), in the approved display order. Amarelo
-  // queimado is pending visual approval and Laranja is excluded for now; neither
-  // is listed. Every color may also be the second color, never equal to the first.
+  // Production palette (D-056, values revised and colors added by D-067), in
+  // display order. Every color may also be the second color, never equal to the first.
   textColors: [
-    { id: 'marrom', type: 'text-color', displayName: 'Marrom', hex: '#4a2a14' },
-    { id: 'azul', type: 'text-color', displayName: 'Azul', hex: '#2b4a7a' },
-    { id: 'verde', type: 'text-color', displayName: 'Verde', hex: '#2f4a36' },
+    { id: 'marrom', type: 'text-color', displayName: 'Marrom', hex: '#802b00' },
+    { id: 'azul', type: 'text-color', displayName: 'Azul', hex: '#002b80' },
+    { id: 'verde', type: 'text-color', displayName: 'Verde', hex: '#006600' },
     { id: 'vermelho-escuro', type: 'text-color', displayName: 'Vermelho escuro', hex: '#7a1f1f' },
+    { id: 'laranja-escuro', type: 'text-color', displayName: 'Laranja escuro', hex: '#b25900' },
+    { id: 'amarelo-queimado', type: 'text-color', displayName: 'Amarelo queimado', hex: '#b38f00' },
+    { id: 'preto', type: 'text-color', displayName: 'Preto', hex: '#000000' },
   ],
   // Selected when the configurator opens (product owner, 2026-11-08, D-064).
   defaultTextColorId: 'marrom',

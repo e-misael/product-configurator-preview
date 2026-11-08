@@ -34,16 +34,24 @@ describe('production catalog', () => {
     ).toBe('Marrom');
   });
 
-  it('lists exactly the four approved lettering colors, in order (D-056)', () => {
+  it('lists exactly the approved lettering colors, in order (D-056, D-067)', () => {
     expect(getCatalog().textColors).toEqual([
-      { id: 'marrom', type: 'text-color', displayName: 'Marrom', hex: '#4a2a14' },
-      { id: 'azul', type: 'text-color', displayName: 'Azul', hex: '#2b4a7a' },
-      { id: 'verde', type: 'text-color', displayName: 'Verde', hex: '#2f4a36' },
+      { id: 'marrom', type: 'text-color', displayName: 'Marrom', hex: '#802b00' },
+      { id: 'azul', type: 'text-color', displayName: 'Azul', hex: '#002b80' },
+      { id: 'verde', type: 'text-color', displayName: 'Verde', hex: '#006600' },
       { id: 'vermelho-escuro', type: 'text-color', displayName: 'Vermelho escuro', hex: '#7a1f1f' },
+      { id: 'laranja-escuro', type: 'text-color', displayName: 'Laranja escuro', hex: '#b25900' },
+      {
+        id: 'amarelo-queimado',
+        type: 'text-color',
+        displayName: 'Amarelo queimado',
+        hex: '#b38f00',
+      },
+      { id: 'preto', type: 'text-color', displayName: 'Preto', hex: '#000000' },
     ]);
   });
 
-  it('contains no demo-only, pending, or excluded colors (D-028, D-056)', () => {
+  it('contains no demo-only colors (D-028, D-056)', () => {
     const colors = getCatalog().textColors;
     const demoIds = new Set(demoCatalog.textColors.map((color) => color.id));
     for (const color of colors) {
@@ -51,11 +59,6 @@ describe('production catalog', () => {
       expect(color.displayName).not.toMatch(/demonstração|proposta/i);
       expect(demoIds.has(color.id)).toBe(false);
     }
-    // Amarelo queimado is pending visual approval; Laranja is excluded for now.
-    expect(colors.map((color) => color.id)).not.toContain('amarelo-queimado');
-    expect(colors.map((color) => color.displayName.toLowerCase()).join(' ')).not.toMatch(
-      /amarelo|laranja/,
-    );
   });
 
   it('records the confirmed outer dimensions; every model is Bege and has a photograph', () => {

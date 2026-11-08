@@ -272,7 +272,7 @@ Status: **Done** (2026-11-08). Accepted by the product owner (D-057).
 
 ## M4.6 — Mobile-first layout, identity, alignment, signature
 
-Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decisions D-058–D-065; D-066 proposed.
+Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decisions D-058–D-065, D-067; D-066 proposed.
 
 - [x] Preview first; four steps; collapsible WAI-ARIA accordion on phones (one open, state kept, focus on the header, scroll only when needed, reduced motion); all open on wide screens
 - [x] Sticky preview band: compact, reduced while editing text, larger while positioning; scroll padding keeps focus below it; no horizontal scroll at 320/375/393/430 px
@@ -286,7 +286,7 @@ Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decisio
 - [x] Optional "Observação" before export, stored as typed, never drawn (D-062)
 - [x] Export reasons named one by one; overflow shown as an error under "Texto" and in the preview; line breaks past the area refused (D-063)
 - [x] Marrom selected by default (`defaultTextColorId`, D-064); spacing before "Usar segunda cor"
-- [ ] Preto and Laranja escuro lettering colors: waiting for approved HEX values
+- [x] Palette revised and extended (D-067): Marrom, Azul, Verde with new values; Laranja escuro, Amarelo queimado, Preto added; Vermelho escuro kept
 - [ ] Lettering fonts: evaluation recorded (D-066); production unchanged pending visual approval
 - [x] Tests: unit (alignment model, presets, reset, modes, accordion, signature geometry and factors, illustration flow, image reuse); Playwright on real photographs (alignment edges and signature placement per model, both engines), demo flows, export PNG signature pixels and missing-mark blocking, mobile layout at four widths by touch in Chromium and WebKit, production tray transition
 - Remaining: product-owner review on real phones (LAN); the signature over the Quadro frame rail; whether M and G should share one image file; where the "Observação" goes (D-062).

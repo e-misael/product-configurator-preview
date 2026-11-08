@@ -11,10 +11,13 @@ async function expectNoHorizontalScroll(page: Page) {
 
 /** The approved production palette, in display order (D-056). */
 const COLORS = [
-  ['Marrom', [0x4a, 0x2a, 0x14]],
-  ['Azul', [0x2b, 0x4a, 0x7a]],
-  ['Verde', [0x2f, 0x4a, 0x36]],
+  ['Marrom', [0x80, 0x2b, 0x00]],
+  ['Azul', [0x00, 0x2b, 0x80]],
+  ['Verde', [0x00, 0x66, 0x00]],
   ['Vermelho escuro', [0x7a, 0x1f, 0x1f]],
+  ['Laranja escuro', [0xb2, 0x59, 0x00]],
+  ['Amarelo queimado', [0xb3, 0x8f, 0x00]],
+  ['Preto', [0x00, 0x00, 0x00]],
 ] as const;
 type Rgb = readonly [number, number, number];
 
@@ -136,7 +139,7 @@ test.describe('Production build @smoke', () => {
     await expectNoHorizontalScroll(page);
   });
 
-  test('offers the four approved lettering colors, and shows the disclaimer', async ({ page }) => {
+  test('offers the approved lettering colors, and shows the disclaimer', async ({ page }) => {
     await page.goto('/');
     await openStep(page, 'Texto e cores');
 
@@ -156,7 +159,7 @@ test.describe('Production build @smoke', () => {
       );
     }
     await expect(page.getByText('As cores do texto ainda não foram definidas.')).toHaveCount(0);
-    await expect(page.getByText(/amarelo|laranja|demonstração|proposta/i)).toHaveCount(0);
+    await expect(page.getByText(/demonstração|proposta/i)).toHaveCount(0);
     // The second color stays behind its disclosure until asked for.
     await expect(page.getByRole('button', { name: 'Usar segunda cor' })).toHaveAttribute(
       'aria-expanded',
@@ -567,7 +570,7 @@ test.describe('Bandeja ondulada before its size (M4.6)', () => {
         let count = 0;
         for (let i = 0; i < data.length; i += 4) {
           const [r = 0, g = 0, b = 0] = [data[i], data[i + 1], data[i + 2]];
-          if (Math.abs(r - 0x2b) < 14 && Math.abs(g - 0x4a) < 14 && Math.abs(b - 0x7a) < 14) {
+          if (Math.abs(r - 0x00) < 14 && Math.abs(g - 0x2b) < 14 && Math.abs(b - 0x80) < 14) {
             count += 1;
           }
         }

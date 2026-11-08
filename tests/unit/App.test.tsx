@@ -23,13 +23,21 @@ describe('App shell', () => {
     expect(screen.queryByText(/demonstração/i)).not.toBeInTheDocument();
   });
 
-  it('offers the four approved lettering colors in order, the second color, and the disclaimer', () => {
+  it('offers the approved lettering colors in order, the second color, and the disclaimer', () => {
     render(<App />);
 
     const colors = within(screen.getByRole('group', { name: 'Cor do texto' }));
     expect(
       colors.getAllByRole('radio').map((radio) => radio.closest('label')?.textContent),
-    ).toEqual(['✓Marrom', '✓Azul', '✓Verde', '✓Vermelho escuro']);
+    ).toEqual([
+      '✓Marrom',
+      '✓Azul',
+      '✓Verde',
+      '✓Vermelho escuro',
+      '✓Laranja escuro',
+      '✓Amarelo queimado',
+      '✓Preto',
+    ]);
     expect(
       screen.queryByText('As cores do texto ainda não foram definidas.'),
     ).not.toBeInTheDocument();
