@@ -78,7 +78,8 @@ const wordCount = (count: number) => (count === 1 ? '1 palavra' : `${count} pala
 /**
  * "Cores do texto" (D-071): the required primary color, always visible, and
  * "Destacar parte(s) do texto". With highlighting on, a highlight color and
- * the text's words as toggle buttons; each tap highlights or restores one word
+ * the text's words as toggle buttons right after the switch, then the
+ * highlight color; each tap highlights or restores one word
  * occurrence, and the preview follows at once. Turning highlighting off draws
  * one color but keeps the highlight color and words for when it is on again.
  */
@@ -170,6 +171,7 @@ export function TextColorsField({
       <div id="highlight-panel" className="colors__panel" hidden={!highlightEnabled}>
         {highlightEnabled && (
           <>
+            <WordPicker text={text} ranges={ranges} hex={highlightHex} onToggle={onToggleWord} />
             <fieldset
               className="field colors__group"
               aria-describedby={secondaryIssue ? 'secondary-color-issue' : undefined}
@@ -205,7 +207,6 @@ export function TextColorsField({
                   </p>
                 )}
             </fieldset>
-            <WordPicker text={text} ranges={ranges} hex={highlightHex} onToggle={onToggleWord} />
             {rangeIssue?.kind === 'invalid' && (
               <p className="field__error">{invalidMessage(rangeIssue)}</p>
             )}

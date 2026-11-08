@@ -198,6 +198,11 @@ describe('Configurator', () => {
       expect(highlight()).toBeChecked();
       expect(group('Cor de destaque')).toBeVisible();
       expect(words()).toBeVisible();
+      // The words come right after the switch, then the highlight color.
+      const follows = (a: Element, b: Element) =>
+        (a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) !== 0;
+      expect(follows(highlight(), words())).toBe(true);
+      expect(follows(words(), group('Cor de destaque'))).toBe(true);
     });
 
     it('shows the name only on the selected highlight color, and disables the primary', async () => {

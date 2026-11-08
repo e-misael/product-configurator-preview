@@ -870,7 +870,12 @@ body {
 }
 
 .colors__words {
-  margin-top: 0.75rem;
+  margin-top: 0;
+}
+
+/* The highlight color comes after the words. */
+.colors__panel .colors__group {
+  margin-top: 1rem;
 }
 
 .switch {
