@@ -110,8 +110,8 @@ Acceptance criteria:
 4. Missing assets are handled gracefully and visibly.
 5. The final preview is composed from real product images (FR-08); generic vector shapes are acceptable only as temporary, clearly marked demonstration output.
 6. Layers are painted in this order: the model's photograph, then the personalized text (D-037, revised by D-046).
-7. Each reason an image is not shown — model not selected or invalid, image not yet registered, loading, file failed to load, text area not calibrated, text too long — is stated in text and distinct from the others; nothing else is substituted.
-8. Text keeps its line breaks, is never altered, truncated, or silently clipped, and shrinks only to a documented minimum before a visible warning (D-038).
+7. Each reason an image is not shown — model not selected or invalid, image not yet registered, loading, file failed to load, text area not calibrated, lettering size not yet defined, text too long — is stated in text and distinct from the others; nothing else is substituted.
+8. Text keeps its line breaks, is never altered, truncated, or silently clipped, and is drawn at the model's fixed lettering size whatever its length, wrapping, alignment, or position (D-055); text that does not fit shows a visible warning and cannot be exported. A model without an approved lettering size shows no text on the image, says so, and cannot be exported with text.
 
 Status: UI (M3.1) — implemented and verified with synthetic demonstration images only. Real product images and calibration (M1.3b) and masking of non-rectangular outlines are pending (M3.2).
 

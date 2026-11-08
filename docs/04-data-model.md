@@ -37,11 +37,11 @@ Assets may be missing at runtime; consumers must handle that gracefully. Convent
 
 ### `PlateImage`
 
-| Field          | Required | Notes                                                                                            |
-| -------------- | -------- | ------------------------------------------------------------------------------------------------ |
-| `image`        | yes      | `AssetRef` in `/catalog/plates/{plate-id}/`.                                                     |
-| `objectBounds` | no       | Bounding box of the product in the photograph (the Quadro's includes its frame). Pending = omit. |
-| `text`         | no       | `TextLayout`: `area` (`NormalizedBox`) and optional `align` (`left`, `center`, `right`).         |
+| Field          | Required | Notes                                                                                                                                                                                                   |
+| -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `image`        | yes      | `AssetRef` in `/catalog/plates/{plate-id}/`.                                                                                                                                                            |
+| `objectBounds` | no       | Bounding box of the product in the photograph (the Quadro's includes its frame). Pending = omit.                                                                                                        |
+| `text`         | no       | `TextLayout`: `area` (`NormalizedBox`), optional `align` (`left`, `center`, `right`), optional `fontSize` (fixed lettering size, fraction of the image width, in (0, 1]; omitted while pending, D-055). |
 
 Each model has at most one photograph: its ceramic color is fixed, so there are no color variations (D-041). The Quadro's photograph shows it assembled with its frame, and its `text.area` lies inside the ceramic, clear of the frame (D-046).
 

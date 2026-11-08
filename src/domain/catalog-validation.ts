@@ -153,6 +153,19 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
         if (text.align !== undefined && !TEXT_ALIGNMENTS.includes(text.align)) {
           report('invalid-placement', `${imagePath}.text.align`, plate.id);
         }
+        // Optional (pending until approved), but never zero, negative, or wider than the image.
+        const { fontSize } = text;
+        if (
+          fontSize !== undefined &&
+          !(
+            typeof fontSize === 'number' &&
+            Number.isFinite(fontSize) &&
+            fontSize > 0 &&
+            fontSize <= 1
+          )
+        ) {
+          report('invalid-placement', `${imagePath}.text.fontSize`, plate.id);
+        }
       }
     }
   });

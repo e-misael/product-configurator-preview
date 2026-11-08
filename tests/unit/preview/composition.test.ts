@@ -50,6 +50,7 @@ describe('composePreview: text', () => {
     expect(compose({ text: '  Casa\nda Ana ' }).text).toEqual({
       text: '  Casa\nda Ana ',
       area: { x: 0.2, y: 0.3, width: 0.6, height: 0.4 },
+      fontSize: 0.1,
       align: 'center',
       x: 0.5,
       y: 0.5,
@@ -57,6 +58,16 @@ describe('composePreview: text', () => {
       primaryColor: '#112233',
       secondary: undefined,
     });
+  });
+
+  it('draws no text, never a guessed size, while the lettering size is pending (D-055)', () => {
+    const composition = compose({ plateId: 'test-plate-size-pending' });
+
+    expect(composition.text).toBeUndefined();
+    expect(composition.plate?.src).toBe('/catalog/plates/test-plate-size-pending/beige.webp');
+    expect(composition.notices).toEqual(['text-size-pending']);
+    // Without text there is nothing to size.
+    expect(compose({ plateId: 'test-plate-size-pending', text: '' }).notices).toEqual([]);
   });
 
   it('marks the text color as provisional until a usable color is chosen', () => {

@@ -9,9 +9,11 @@ export const NOTICE_MESSAGES: Record<PreviewNoticeCode, string> = {
   'plate-image-error': 'Não foi possível carregar a imagem do modelo.',
   'text-area-pending':
     'A área do texto deste modelo ainda não foi calibrada; o texto não aparece na imagem.',
+  'text-size-pending':
+    'O tamanho das letras deste modelo ainda não foi definido; o texto não aparece na imagem.',
   'text-color-provisional':
     'Cor do texto ainda não escolhida: o texto aparece em uma cor provisória, que não é uma das cores disponíveis.',
-  'text-overflow': 'O texto não cabe na área do modelo, mesmo no tamanho mínimo. Reduza o texto.',
+  'text-overflow': 'O texto não cabe na área do modelo. Reduza o texto ou use menos linhas.',
 };
 
 /** pt-BR wording for PNG export (D-008). */

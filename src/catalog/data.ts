@@ -13,7 +13,8 @@ import type { Catalog } from '../domain';
  * The Placa cerâmica (official name "Placa cerâmica (tamanho 10 x 10 cm)",
  * D-048, D-051) has Taavi's photograph with the lettering removed (D-050),
  * cropped to 640 × 640, and its measured placement; crop and placement are
- * approved for the first production iteration (M1.3b-1, D-053).
+ * approved for the first production iteration (M1.3b-1, D-053), with a fixed
+ * lettering size (D-055).
  * Everything else is pending and must not be invented: no other photographs or
  * placement (`image` omitted) and no physical dimensions.
  * Every change must keep `validateCatalog` passing (tests/unit/catalog).
@@ -36,8 +37,14 @@ export const catalogData: Catalog = {
           heightPx: 640,
         },
         objectBounds: { x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 },
-        // About 8% inside the plate edge, clear of the rounded rim.
-        text: { area: { x: 0.145, y: 0.155, width: 0.71, height: 0.69 }, align: 'center' },
+        // About 8% inside the plate edge, clear of the rounded rim. Fixed lettering
+        // size: half the former starting size, 0.5 × 0.25 × 0.69 = 0.08625 of the
+        // image width (55.2 px); an initial visual reference, not a mold measurement (D-055).
+        text: {
+          area: { x: 0.145, y: 0.155, width: 0.71, height: 0.69 },
+          align: 'center',
+          fontSize: 0.08625,
+        },
       },
     },
     {

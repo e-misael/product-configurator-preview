@@ -290,7 +290,7 @@ Status values:
 - **Context:** Typography and text limits are pending (P-04); the preview still needs readable, honest text.
 - **Decision:** Explicit line breaks (`\n`, `\r\n`, `\r`) are kept, including empty lines. Lines wrap at spaces; a word wider than the area is split between grapheme clusters (emoji sequences and accents stay intact). The font starts at 25% of the text area's height and shrinks by a factor of 0.9 per step down to a minimum of 8% of the area's height; line height is 1.2. If the text still does not fit at the minimum, it is drawn at the minimum size, unclipped, and a visible warning is shown; text is never truncated or clipped. Font (`system-ui`) and color (`#2b2b2b`) are provisional, alignment comes from the catalog (default center), and no stamped or raised effect is simulated. The constants live in `src/preview/text-fit.ts` and `src/preview/draw.ts`.
 - **Alternatives:** Clipping to the area (rejected: silently hides text); a fixed font size (rejected: ignores the area).
-- **Status:** Approved (provisional until P-04).
+- **Status:** Approved (provisional until P-04). The shrinking is superseded by D-055 (fixed lettering size); line breaks, wrapping, line height, and the overflow warning are kept.
 - **Date:** 2026-11-07.
 
 ### D-039 — M4.1 in two slices; text styling is part of M4 acceptance
@@ -434,6 +434,17 @@ Status values:
 - **Status:** Approved (product owner, 2026-11-08).
 - **Date:** 2026-11-08.
 
+### D-055 — Fixed lettering size (2026-11-08)
+
+- **Context:** Taavi letters the pieces with physical molds of one size, so text that grows or shrinks with its length misrepresents the product.
+- **Decision:** Each model's text placement carries a fixed `fontSize` as a fraction of its photograph's width (`TextLayout.fontSize`, per model, not per photograph: models sharing a photograph can differ in physical size). The size never depends on the text, its wrapping or line breaks, the alignment, or the position; text is never shrunk, enlarged, clipped, or truncated. Text taller or wider than the area is drawn at the same size with the `text-overflow` warning ("O texto não cabe na área do modelo. Reduza o texto ou use menos linhas."), and export is blocked. There is no customer size control.
+- **Placa value:** 0.08625 = 50% of the former starting size (25% of the text-area height, 0.69 × 640 px = 441.6 px → 110.4 px) = 55.2 px on the 640 px photograph. An initial visual specification, not a measurement of the molds.
+- **Pending state:** `fontSize` is optional, so a model without an approved size keeps the catalog valid. When such a model has text, nothing is drawn on the image, the `text-size-pending` notice says so ("O tamanho das letras deste modelo ainda não foi definido; o texto não aparece na imagem."), and export is blocked like any preview notice. There is no fallback to fitting and no guessed size. Validation rejects a `fontSize` that is not a finite number in (0, 1].
+- **Other models:** no size is set for the Quadro or the Bandejas ondulada M and G (P-15). Demo models use the same rule on their synthetic areas (demo-only values).
+- **Alternatives:** Halving the fitted size (rejected: still resizes with the text); a size per photograph (rejected: Bandeja M and G share one photograph at different physical sizes).
+- **Status:** Approved (product owner, 2026-11-08) for the Placa.
+- **Date:** 2026-11-08.
+
 ## Proposed
 
 ### D-007 — SVG preview rendering
@@ -443,7 +454,7 @@ Status values:
 ## Pending
 
 - **P-01:** Real plate dimensions and aspect ratios per shape.
-- **P-02:** Partly resolved by D-049: the color names are Marrom, Azul, Verde, Amarelo, Laranja, Vermelho escuro. Still pending: a `#rrggbb` value for each (supplied or approved by Taavi), whether each may also be the second color, and their display order. Proposed values for review: `docs/reference-images/review/review-sheet.png` (not approved). Until then `Catalog.textColors` stays empty and no production configuration can be completed or exported.
+- **P-02:** Partly resolved by D-049: the color names are Marrom, Azul, Verde, Amarelo, Laranja, Vermelho escuro. Still pending: a `#rrggbb` value for each (supplied or approved by Taavi), whether each may also be the second color, and their display order. Proposed values for review: `docs/reference-images/review/review-sheet.png` (not approved). Until then `Catalog.textColors` stays empty and no production configuration can be completed or exported. This empty palette is why the production site shows "As cores do texto ainda não foram definidas." instead of swatches: a missing production-data dependency, not a rendering defect (verified 2026-11-08; the swatches render in demo mode). Demo values are never copied into production.
 - **P-03:** Resolved by D-046: no separate frames; the Quadro is photographed assembled.
 - **P-04:** Production typography rules and text limits (max length, lines).
 - **P-05:** Export resolution, transparency, background, file naming.
@@ -455,4 +466,5 @@ Status values:
 - **P-11:** Resolved by D-040: the scalloped dishes are the Bandeja ondulada M models. No circular model is registered.
 - **P-12:** Confirmation of the four permanent model IDs. The Placa's ID `placa-ceramica-10` is confirmed (D-051); the other three are not yet.
 - **P-13:** Resolved by D-046: no model takes an optional frame.
+- **P-15:** Fixed lettering sizes (D-055) for the Quadro, Bandeja ondulada M, and Bandeja ondulada G: need the real ceramic dimensions (P-01) or an approved model-specific reference; the physical letter size of Taavi's molds would replace the Placa's visual reference. Until then those models show the `text-size-pending` notice and cannot be exported with text.
 - **P-14:** Real serif and sans-serif typefaces for the text (system stacks are provisional) and the per-line text-length limit.

@@ -51,6 +51,12 @@ export type TextAlignment = (typeof TEXT_ALIGNMENTS)[number];
 export interface TextLayout {
   readonly area: NormalizedBox;
   readonly align?: TextAlignment;
+  /**
+   * Fixed lettering size as a fraction of the image width (D-055): Taavi's
+   * lettering molds have one size, so text is never resized to fit. Omitted
+   * until approved for the model; the text is then not drawn and export is blocked.
+   */
+  readonly fontSize?: number;
 }
 
 /**

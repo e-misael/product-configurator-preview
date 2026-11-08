@@ -52,8 +52,19 @@ describe('production catalog', () => {
         heightPx: 640,
       },
       objectBounds: { x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 },
-      text: { area: { x: 0.145, y: 0.155, width: 0.71, height: 0.69 }, align: 'center' },
+      text: {
+        area: { x: 0.145, y: 0.155, width: 0.71, height: 0.69 },
+        align: 'center',
+        fontSize: 0.08625,
+      },
     });
+  });
+
+  it('fixes the Placa lettering at half its former starting size (D-055)', () => {
+    const text = getCatalog().plates.find((plate) => plate.id === 'placa-ceramica-10')?.image?.text;
+    // Former start: 25% of the text-area height (0.69 of the 640 px image) = 110.4 px.
+    expect(text?.fontSize).toBeCloseTo(0.5 * 0.25 * 0.69, 10);
+    expect((text?.fontSize ?? 0) * 640).toBeCloseTo(55.2, 10);
   });
 
   it('returns the same deeply frozen instance on every call', () => {

@@ -1,10 +1,10 @@
 /**
- * Provisional text fitting for the preview (D-038). A deliberately simple
- * strategy: explicit line breaks are kept, lines wrap at spaces (and between
- * whole characters inside a word that is wider than the area), and the font
- * shrinks by a fixed factor down to a minimum. Below the minimum the text
- * stays at the minimum size and is reported as overflowing; it is never
- * clipped or truncated. Typography is pending (P-04).
+ * Text layout at a fixed lettering size (D-055, replacing the shrinking of
+ * D-038): Taavi's lettering molds have one size, so the font size comes from
+ * the catalog and never depends on the text. Explicit line breaks are kept,
+ * lines wrap at spaces (and between whole characters inside a word that is
+ * wider than the area). Text that does not fit is reported as overflowing; it
+ * is never resized, clipped, or truncated.
  */
 
 import type { Rect } from './scene';
@@ -12,12 +12,6 @@ import type { Rect } from './scene';
 /** Width of `text` in logical units when drawn at `fontSize`. */
 export type MeasureText = (text: string, fontSize: number) => number;
 
-/** Starting font size, as a fraction of the text area's height. */
-export const START_FONT_RATIO = 0.25;
-/** Smallest font size, as a fraction of the text area's height. */
-export const MIN_FONT_RATIO = 0.08;
-/** Each shrink step multiplies the font size by this factor. */
-export const SHRINK_FACTOR = 0.9;
 /** Line height as a multiple of the font size. */
 export const LINE_HEIGHT = 1.2;
 
@@ -28,7 +22,7 @@ export interface TextFit {
   readonly starts: readonly number[];
   readonly fontSize: number;
   readonly lineHeight: number;
-  /** True when the text does not fit even at the minimum font size. */
+  /** True when the lines are taller or wider than the area. */
   readonly overflow: boolean;
 }
 
@@ -115,23 +109,22 @@ export function wrapText(
   return wrapTextWithOffsets(text, maxWidth, widthOf).map((line) => line.text);
 }
 
-export function fitText(text: string, area: Rect, measure: MeasureText): TextFit {
-  const start = area.height * START_FONT_RATIO;
-  const min = area.height * MIN_FONT_RATIO;
-  let fontSize = start;
-
-  for (;;) {
-    const wrapped = wrapTextWithOffsets(text, area.width, (candidate) =>
-      measure(candidate, fontSize),
-    );
-    const lines = wrapped.map((line) => line.text);
-    const starts = wrapped.map((line) => line.start);
-    const lineHeight = fontSize * LINE_HEIGHT;
-    const fits =
-      lines.length * lineHeight <= area.height &&
-      lines.every((line) => measure(line, fontSize) <= area.width);
-    if (fits) return { lines, starts, fontSize, lineHeight, overflow: false };
-    if (fontSize <= min) return { lines, starts, fontSize, lineHeight, overflow: true };
-    fontSize = Math.max(min, fontSize * SHRINK_FACTOR);
-  }
+/** Lays `text` out in `area` at `fontSize`, the same size whatever the text. */
+export function layoutText(
+  text: string,
+  area: Rect,
+  fontSize: number,
+  measure: MeasureText,
+): TextFit {
+  const wrapped = wrapTextWithOffsets(text, area.width, (candidate) =>
+    measure(candidate, fontSize),
+  );
+  const lines = wrapped.map((line) => line.text);
+  const starts = wrapped.map((line) => line.start);
+  const lineHeight = fontSize * LINE_HEIGHT;
+  // A single character wider than the area still overflows horizontally.
+  const overflow =
+    lines.length * lineHeight > area.height ||
+    lines.some((line) => measure(line, fontSize) > area.width);
+  return { lines, starts, fontSize, lineHeight, overflow };
 }

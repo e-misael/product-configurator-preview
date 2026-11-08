@@ -221,6 +221,18 @@ Status: **Done** (accepted 2026-11-08, D-046, D-047). Evidence: typecheck, lint,
 - [x] "Usar segunda cor" disclosure; secondary swatches and selection actions only when relevant; collapsing keeps the color and trechos; "Remover segunda cor" clears both; invalid second color stays visible
 - [x] Unit, component, and Playwright tests updated; preview/export consistency verified on the assembled Quadro
 
+## M4.3 — Fixed lettering size
+
+Status: **Done** (implemented 2026-11-08, not committed). Taavi's lettering molds have one size (D-055).
+
+- [x] `TextLayout.fontSize`: fixed size per model as a fraction of the image width; validated in (0, 1]; optional, so pending models keep the catalog valid
+- [x] Placa: 0.08625 (55.2 px on 640 px), half the former starting size; an initial visual reference, not a mold measurement
+- [x] Shrinking removed: `layoutText` keeps line breaks and wrapping at the fixed size; vertical and horizontal overflow show the warning and block export
+- [x] `text-size-pending`: a model with a text area but no approved size draws no text, says so, and blocks export; no fallback to fitting
+- [x] Demo models use the same rule on their synthetic areas
+- [x] Unit, component, and Chromium/WebKit tests: fixed size for short, long, wrapped, Unicode, and overflowing text; positions, drag, two colors, deboss, and preview/export consistency unchanged
+- Pending: sizes for the Quadro and the Bandejas (P-15). Lettering colors stay a production-data dependency (P-02).
+
 ## M5 — Quality and usability
 
 Status: Planned.

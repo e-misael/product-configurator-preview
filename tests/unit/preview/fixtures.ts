@@ -7,7 +7,11 @@ import type { Size } from '../support/fake-image';
  * is an invented test value; no files exist for them.
  */
 const BOUNDS = { x: 0.1, y: 0.1, width: 0.8, height: 0.8 };
-const TEXT = { area: { x: 0.2, y: 0.3, width: 0.6, height: 0.4 }, align: 'center' } as const;
+const TEXT = {
+  area: { x: 0.2, y: 0.3, width: 0.6, height: 0.4 },
+  align: 'center',
+  fontSize: 0.1,
+} as const;
 
 export const previewCatalog: Catalog = {
   plates: [
@@ -49,7 +53,22 @@ export const previewCatalog: Catalog = {
       image: {
         image: { src: '/catalog/plates/test-plate-circle/beige.webp' },
         objectBounds: BOUNDS,
-        text: { area: { x: 0.25, y: 0.35, width: 0.5, height: 0.3 } },
+        text: { area: { x: 0.25, y: 0.35, width: 0.5, height: 0.3 }, fontSize: 0.075 },
+      },
+    },
+    {
+      // Text area calibrated, lettering size not yet approved (D-055).
+      id: 'test-plate-size-pending',
+      type: 'plate',
+      displayName: 'Test plate size pending',
+      sizeLabel: 'Test size',
+      ceramicColor: 'Test beige',
+      shape: 'square',
+      dimensions: { status: 'pending' },
+      image: {
+        image: { src: '/catalog/plates/test-plate-size-pending/beige.webp', alt: 'Size pending' },
+        objectBounds: BOUNDS,
+        text: { area: { x: 0.2, y: 0.3, width: 0.6, height: 0.4 }, align: 'center' },
       },
     },
     {
@@ -74,6 +93,7 @@ export const previewSizes: Record<string, Size> = {
   '/catalog/plates/test-plate-square/beige.webp': { width: 400, height: 400 },
   '/catalog/plates/test-plate-rectangle/beige.webp': { width: 600, height: 400 },
   '/catalog/plates/test-plate-circle/beige.webp': { width: 400, height: 400 },
+  '/catalog/plates/test-plate-size-pending/beige.webp': { width: 400, height: 400 },
 };
 
 export function config(overrides: Partial<Configuration> = {}): Configuration {

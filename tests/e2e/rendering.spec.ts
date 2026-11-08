@@ -223,10 +223,8 @@ test.describe('Debossed lettering on the Placa photograph', () => {
     });
   }
 
-  test('keeps the original color in the stroke centers at the largest text size', async ({
-    page,
-  }) => {
-    // Two short lines: the text fit gives them the largest size the Placa area allows.
+  test('keeps the original color in the stroke centers', async ({ page }) => {
+    // At the Placa's fixed lettering size (D-055), the size of every text on it.
     const result = await compare(page, 'Ana\nLuz', null, 'default');
     test.info().annotations.push({ type: 'centers', description: JSON.stringify(result) });
 
@@ -247,6 +245,48 @@ test.describe('Debossed lettering on the Placa photograph', () => {
     expect(chosen.meanChange).toBeLessThan(proposed.meanChange);
     expect(chosen.interiorMaxDelta).toBeLessThan(proposed.interiorMaxDelta);
     expect(chosen.changedOutside).toBe(0);
+  });
+
+  test('draws every text at the fixed Placa size, with real font metrics (D-055)', async ({
+    page,
+  }) => {
+    const texts = [
+      'A',
+      'Casa da Ana e do Pedro, desde 2024',
+      'Rua das Flores, 123\nApartamento 45\nFamília Souza',
+      'Ação 👩‍👩‍👧 João',
+      Array.from({ length: 12 }, (_, i) => `Linha ${i}`).join('\n'),
+    ];
+    const results = await page.evaluate((texts) => {
+      const R = window.Render;
+      const photo = (window as unknown as { photo: HTMLImageElement }).photo;
+      const catalog = R.getCatalog();
+      const images = new Map([
+        ['/catalog/plates/placa-ceramica-10/bege.png', { status: 'loaded' as const, image: photo }],
+      ]);
+      return texts.map((text) => {
+        const config = { ...R.createEmptyConfiguration(), plateId: 'placa-ceramica-10', text };
+        const validation = R.validateConfiguration(config, catalog);
+        const scene = R.buildScene(
+          R.composePreview(catalog, config, validation),
+          images,
+          R.createTextMeasurer(),
+        );
+        const layer = scene.layers.find((candidate) => candidate.kind === 'text');
+        return {
+          fontSize: layer?.kind === 'text' ? layer.block.fontSize : null,
+          lines: layer?.kind === 'text' ? layer.block.lines.length : null,
+          overflow: scene.notices.includes('text-overflow'),
+        };
+      });
+    }, texts);
+
+    // 0.08625 of the 640 px photograph, whatever the text.
+    for (const result of results) expect(result.fontSize).toBeCloseTo(55.2, 6);
+    expect(results.map((result) => result.overflow)).toEqual([false, false, false, false, true]);
+    // Wrapping, not shrinking: one typed line wider than the area draws as several.
+    expect(results[1]?.lines).toBeGreaterThan(1);
+    expect(results[4]?.lines).toBe(12);
   });
 
   test('keeps Unicode text and its colored ranges intact', async ({ page }) => {

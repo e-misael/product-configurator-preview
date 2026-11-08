@@ -2,18 +2,23 @@ import { deepFreeze } from '../catalog/deep-freeze';
 import type { AssetRef, Catalog, NormalizedBox, Plate, PlateShape, TextLayout } from '../domain';
 
 const OBJECT_BOUNDS: NormalizedBox = { x: 0.1, y: 0.1, width: 0.8, height: 0.8 };
+// Synthetic lettering sizes, by the production rule (D-055): half of the former
+// starting size, 0.5 × 0.25 × the area height. Not physical, not Taavi's.
 const TEXT: TextLayout = {
   area: { x: 0.2, y: 0.3, width: 0.6, height: 0.4 },
   align: 'center',
+  fontSize: 0.05,
 };
 const SCALLOPED_TEXT: TextLayout = {
   area: { x: 0.25, y: 0.35, width: 0.5, height: 0.3 },
   align: 'center',
+  fontSize: 0.0375,
 };
 /** Inside the ceramic of the assembled Quadro image, clear of its wooden frame. */
 const QUADRO_TEXT: TextLayout = {
   area: { x: 0.25, y: 0.35, width: 0.5, height: 0.3 },
   align: 'center',
+  fontSize: 0.0375,
 };
 
 interface ModelSpec {

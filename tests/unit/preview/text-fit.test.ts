@@ -1,7 +1,6 @@
 import {
-  fitText,
-  MIN_FONT_RATIO,
-  START_FONT_RATIO,
+  layoutText,
+  LINE_HEIGHT,
   wrapText,
   wrapTextWithOffsets,
 } from '../../../src/preview/text-fit';
@@ -53,45 +52,56 @@ describe('wrapText', () => {
   });
 });
 
-describe('fitText', () => {
-  it('starts at the documented fraction of the area height', () => {
-    const fit = fitText('Ana', area(200, 100), measure);
+describe('layoutText (fixed size, D-055)', () => {
+  it('uses the given size for short and long text alike', () => {
+    const short = layoutText('Ana', area(200, 100), 10, measure);
+    const long = layoutText('Casa da Ana e do Pedro desde 2024', area(200, 100), 10, measure);
 
-    expect(fit.fontSize).toBeCloseTo(100 * START_FONT_RATIO);
-    expect(fit.overflow).toBe(false);
-    expect(fit.lines).toEqual(['Ana']);
+    expect([short.fontSize, long.fontSize]).toEqual([10, 10]);
+    expect(short.lineHeight).toBe(10 * LINE_HEIGHT);
+    expect(short).toMatchObject({ lines: ['Ana'], overflow: false });
+    expect(long.overflow).toBe(false);
   });
 
-  it('shrinks until the text fits, never below the minimum', () => {
-    const long = 'Casa da Ana e do Pedro desde dois mil e vinte e quatro';
-    const fit = fitText(long, area(200, 100), measure);
+  it('keeps explicit line breaks and wraps long lines without resizing', () => {
+    // 5 units per character at size 10: 40 wide fits 8 characters.
+    const fit = layoutText('Casa da Ana\nDesde 2024', area(40, 100), 10, measure);
 
-    expect(fit.fontSize).toBeLessThan(100 * START_FONT_RATIO);
-    expect(fit.fontSize).toBeGreaterThanOrEqual(100 * MIN_FONT_RATIO);
-    expect(fit.lines.length * fit.lineHeight).toBeLessThanOrEqual(100);
+    expect(fit.lines).toEqual(['Casa da', 'Ana', 'Desde', '2024']);
+    expect(fit.fontSize).toBe(10);
     expect(fit.overflow).toBe(false);
   });
 
-  it('reports overflow at the minimum size instead of truncating', () => {
-    const lines = Array.from({ length: 30 }, (_, i) => `linha ${i}`);
-    const fit = fitText(lines.join('\n'), area(200, 100), measure);
+  it('reports vertical overflow instead of shrinking or truncating', () => {
+    // 100 high at line height 12 holds 8 lines.
+    const lines = Array.from({ length: 9 }, (_, i) => `l${i}`);
+    const fit = layoutText(lines.join('\n'), area(200, 100), 10, measure);
 
     expect(fit.overflow).toBe(true);
-    expect(fit.fontSize).toBeCloseTo(100 * MIN_FONT_RATIO);
+    expect(fit.fontSize).toBe(10);
     expect(fit.lines).toEqual(lines);
+    expect(layoutText(lines.slice(1).join('\n'), area(200, 100), 10, measure).overflow).toBe(false);
   });
 
-  it('keeps every visible character when text is wrapped and shrunk', () => {
-    const text = 'Ação\nbrasileira 🇧🇷 é ÜBER';
-    const fit = fitText(text, area(60, 60), measure);
+  it('reports horizontal overflow when one character is wider than the area', () => {
+    const fit = layoutText('W', area(4, 100), 10, measure);
+
+    expect(fit.overflow).toBe(true);
+    expect(fit.lines).toEqual(['W']);
+  });
+
+  it('keeps every visible character of accented and Unicode text', () => {
+    const text = 'Ação\nbrasileira 🇧🇷 é ÜBER';
+    const fit = layoutText(text, area(60, 200), 10, measure);
 
     const visible = (value: string) => value.replace(/\s/g, '');
     expect(visible(fit.lines.join(''))).toBe(visible(text));
+    expect(fit.fontSize).toBe(10);
   });
 
   it('does not change the text it is given', () => {
     const text = '  a\nb ';
-    fitText(text, area(100, 100), measure);
+    layoutText(text, area(100, 100), 10, measure);
     expect(text).toBe('  a\nb ');
   });
 });
@@ -134,8 +144,8 @@ describe('wrapTextWithOffsets', () => {
     );
   });
 
-  it('exposes the offsets through fitText', () => {
-    const fit = fitText('Casa\nda Ana', area(1000, 400), measure);
+  it('exposes the offsets through layoutText', () => {
+    const fit = layoutText('Casa\nda Ana', area(1000, 400), 10, measure);
     expect(fit.lines).toEqual(['Casa', 'da Ana']);
     expect(fit.starts).toEqual([0, 5]);
   });

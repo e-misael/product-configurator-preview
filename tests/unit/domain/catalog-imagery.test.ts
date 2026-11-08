@@ -175,6 +175,32 @@ describe('catalog imagery', () => {
       expect(validateCatalog(catalog)).toEqual({ status: 'valid' });
     });
 
+    it.each([
+      ['zero', 0],
+      ['negative', -0.05],
+      ['wider than the image', 1.5],
+      ['NaN', Number.NaN],
+      ['Infinity', Number.POSITIVE_INFINITY],
+      ['a string from malformed runtime data', '0.1'],
+    ])('reports a fixed lettering size that is %s (D-055)', (_label, fontSize) => {
+      const text = { area: BOX, fontSize } as unknown as TextLayout;
+      expectOnly(withPlateImage(plateImage({ src: PLATE_SRC }, { text })), {
+        code: 'invalid-placement',
+        path: 'plates[0].image.text.fontSize',
+        id: 'test-plate-a',
+      });
+    });
+
+    it.each([
+      ['a fixed lettering size', { area: BOX, fontSize: 0.08625 }],
+      ['the full image width', { area: BOX, fontSize: 1 }],
+      ['no lettering size yet (pending, D-055)', { area: BOX }],
+    ])('accepts a text area with %s', (_label, text) => {
+      expect(validateCatalog(withPlateImage(plateImage({ src: PLATE_SRC }, { text })))).toEqual({
+        status: 'valid',
+      });
+    });
+
     it('reports an unknown text alignment from malformed runtime data', () => {
       const text = { area: BOX, align: 'justify' } as unknown as TextLayout;
       expectOnly(withPlateImage(plateImage({ src: PLATE_SRC }, { text })), {

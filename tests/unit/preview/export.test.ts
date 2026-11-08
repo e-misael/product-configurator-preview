@@ -73,8 +73,9 @@ describe('exportBlockers', () => {
     expect(codes({}, loaded({ [plate]: { status: 'error' } }))).toEqual(['plate-image-error']);
   });
 
-  it('blocks text without a calibrated area and text that overflows', () => {
+  it('blocks text without a calibrated area or lettering size, and text that overflows', () => {
     expect(codes({ plateId: 'test-plate-rectangle' })).toEqual(['text-area-pending']);
+    expect(codes({ plateId: 'test-plate-size-pending' })).toEqual(['text-size-pending']);
     const lines = Array.from({ length: 40 }, (_, i) => `linha ${i}`).join('\n');
     expect(codes({ text: lines })).toEqual(['text-overflow']);
   });

@@ -165,6 +165,13 @@ describe('buildScene: text', () => {
     expect(textBlock(scene).lines).toEqual(lines);
   });
 
+  it('has no text layer, and keeps the notice, when the lettering size is pending', () => {
+    const scene = sceneFor({ plateId: 'test-plate-size-pending' });
+
+    expect(order(scene)).toEqual(['image']);
+    expect(scene.notices).toEqual(['text-size-pending']);
+  });
+
   it('has no text layer, and keeps the notice, when the area is not calibrated', () => {
     const scene = sceneFor({ plateId: 'test-plate-rectangle' });
 
@@ -204,6 +211,34 @@ describe('buildScene: text placement (D-044)', () => {
       }
     }
     expect(seen.size).toBe(9);
+  });
+
+  it('uses the fixed catalog size whatever the text length, wrapping, or overflow (D-055)', () => {
+    // 0.1 of the 400 px image width.
+    const texts = [
+      'A',
+      'Ana',
+      'Casa da Ana Maria e do Pedro',
+      'Casa\nda\nAna',
+      'Ação 🇧🇷 é',
+      Array.from({ length: 40 }, (_, i) => `l${i}`).join('\n'),
+      'W'.repeat(200),
+    ];
+    for (const text of texts) expect(textBlock(sceneFor({ text })).fontSize).toBe(40);
+    // On another model the size follows that model's own value: 0.075 × 400.
+    expect(textBlock(sceneFor({ plateId: 'test-plate-circle' })).fontSize).toBe(30);
+  });
+
+  it('wraps long lines at the fixed size and reports lines that do not fit', () => {
+    // 240 wide at font 40 holds 12 characters per line.
+    const wrapped = sceneFor({ text: 'Casa da Ana Maria' });
+    expect(textBlock(wrapped).lines).toEqual(['Casa da Ana', 'Maria']);
+    expect(wrapped.notices).not.toContain('text-overflow');
+
+    // 160 high at line height 48 holds 3 lines.
+    const tall = sceneFor({ text: Array.from({ length: 4 }, () => 'linha').join('\n') });
+    expect(tall.notices).toContain('text-overflow');
+    expect(textBlock(tall).slack.y).toBeLessThan(0);
   });
 
   it('never enlarges the text to fill the area: the size does not depend on the position', () => {

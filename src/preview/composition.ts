@@ -29,6 +29,7 @@ export type PreviewNoticeCode =
   | 'plate-image-loading'
   | 'plate-image-error'
   | 'text-area-pending'
+  | 'text-size-pending'
   | 'text-color-provisional'
   | 'text-overflow';
 
@@ -42,6 +43,8 @@ export interface TextLayer {
   readonly text: string;
   /** Text area in the plate image's own coordinates. */
   readonly area: NormalizedBox;
+  /** Fixed lettering size as a fraction of the plate image width (D-055). */
+  readonly fontSize: number;
   /** Line alignment inside the text block. */
   readonly align: TextAlignment;
   /** Block position as fractions of the free space in the area (D-044). */
@@ -106,12 +109,16 @@ export function composePreview(
   if (plateLayer !== undefined && hasText) {
     if (textLayout === undefined) {
       notices.push('text-area-pending');
+    } else if (textLayout.fontSize === undefined) {
+      // No approved lettering size: nothing is drawn rather than a guessed or fitted size (D-055).
+      notices.push('text-size-pending');
     } else {
       // An invalid stored placement is reported by validation and drawn at the catalog default.
       const placement = resolvePlacement(config.textLayout, textLayout.align);
       textLayer = {
         text: config.text,
         area: textLayout.area,
+        fontSize: textLayout.fontSize,
         align: placement.align,
         x: placement.x,
         y: placement.y,

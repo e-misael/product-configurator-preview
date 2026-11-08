@@ -10,7 +10,7 @@
 
 import { ALIGN_ANCHOR, type FontFamily, type NormalizedBox, type TextAlignment } from '../domain';
 import type { Composition, PlateLayer, PreviewNoticeCode } from './composition';
-import { fitText, type MeasureText } from './text-fit';
+import { layoutText, type MeasureText } from './text-fit';
 import { FALLBACK_TEXT_COLOR, segmentLine, type TextSegment, type TextStyle } from './text-style';
 
 export interface Rect {
@@ -154,8 +154,8 @@ function assemble<I extends ImageSize>(
   const { text } = composition;
   if (text !== undefined) {
     const area = scaleBox(text.area, plateRect.width, plateRect.height, plateRect);
-    // The font size never depends on the position, and the text is never enlarged to fill the area.
-    const fit = fitText(text.text, area, measure);
+    // Fixed lettering size (D-055): never depends on the text, its position, or the area.
+    const fit = layoutText(text.text, area, text.fontSize * plateRect.width, measure);
     if (fit.overflow) notices.push('text-overflow');
     const lineWidths = fit.lines.map((line) => measure(line, fit.fontSize));
     const style: TextStyle = {

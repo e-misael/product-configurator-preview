@@ -182,11 +182,32 @@ describe('Preview', () => {
 
       expect(
         within(preview()).getByText(
-          'O texto não cabe na área do modelo, mesmo no tamanho mínimo. Reduza o texto.',
+          'O texto não cabe na área do modelo. Reduza o texto ou use menos linhas.',
         ),
       ).toBeVisible();
       const texts = painted(currentContext()).filter((entry) => entry.startsWith('text:'));
       expect(texts).toHaveLength(40);
+    });
+
+    it('explains why text is not drawn while the lettering size is pending', async () => {
+      const { user } = setup();
+      await choosePlate(user, /^Test plate size pending /);
+      settle();
+
+      await user.type(screen.getByLabelText('Texto'), 'Ana');
+      await choose(user, 'Cor do texto', 'Test ink A');
+
+      const message =
+        'O tamanho das letras deste modelo ainda não foi definido; o texto não aparece na imagem.';
+      expect(within(preview()).getByText(message)).toBeVisible();
+      expect(painted(currentContext()).some((entry) => entry.startsWith('text:'))).toBe(false);
+      expect(preview().querySelector('.preview__text')).toHaveTextContent('Ana');
+      // A complete configuration still cannot be exported without an approved size.
+      const exportButton = within(preview()).getByRole('button', { name: 'Exportar imagem' });
+      expect(exportButton).toHaveAttribute('aria-disabled', 'true');
+      expect(preview().querySelector('#export-reasons')).toHaveTextContent(
+        'Resolva os avisos da pré-visualização acima.',
+      );
     });
 
     it('explains why text is not drawn when the plate has no calibrated text area', async () => {
