@@ -558,6 +558,7 @@ Status values:
 - Validation: off, or on with no word → only the primary is validated (never blocks export); with words → a highlight color is required and must be available and different from the primary; ranges must be whole words.
 - Conflict: choosing the highlight color as the primary swaps the two and keeps the words, announced as "As cores foram trocadas: destaque agora em {cor}." (silent while highlighting is off).
 - Off keeps the color and words; on restores them (if their words were not edited).
+- Selected word tokens are filled in the highlight color with white or black letters, whichever contrasts more (WCAG 2 ratio); every production color reaches at least 4.5:1 (Amarelo queimado: black, 6.85:1; Laranja escuro: white, 4.86:1). The check mark and `aria-pressed` are unchanged.
 - **Status:** Approved (product owner, 2026-11-08). Implementation pending acceptance.
 
 ## Proposed

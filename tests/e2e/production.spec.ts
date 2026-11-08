@@ -302,6 +302,27 @@ test.describe('Production customization to PNG export (D-056)', () => {
   });
 });
 
+test('selected words keep readable letters on every highlight color (D-071)', async ({ page }) => {
+  await page.goto('/');
+  const field = await textField(page);
+  await field.fill('Ana');
+  await page.getByRole('switch', { name: 'Destacar parte(s) do texto' }).check();
+  const word = page
+    .getByRole('group', { name: 'Toque nas palavras que deseja destacar' })
+    .getByRole('button', { name: 'ANA' });
+  await word.click();
+  // Light Amarelo queimado gets black letters; the darker colors keep white ones.
+  for (const [name, ink] of [
+    ['Amarelo queimado', 'rgb(0, 0, 0)'],
+    ['Laranja escuro', 'rgb(255, 255, 255)'],
+    ['Azul', 'rgb(255, 255, 255)'],
+  ] as const) {
+    await page.getByRole('group', { name: 'Cor de destaque' }).getByRole('radio', { name }).check();
+    await expect(word).toHaveCSS('color', ink);
+    await expect(word).toHaveAttribute('aria-pressed', 'true');
+  }
+});
+
 test.describe('Quadro and Bandeja photographs (M1.3b-2)', () => {
   for (const [name, path] of [
     ['Quadro — 20 × 20 cm', 'quadro-20'],

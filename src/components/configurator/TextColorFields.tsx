@@ -8,6 +8,7 @@ import {
   type TextRange,
   type ValidationIssue,
 } from '../../domain';
+import { readableInk } from './contrast';
 import { InvalidSelection } from './InvalidSelection';
 import { invalidMessage } from './messages';
 
@@ -268,7 +269,9 @@ function WordPicker({ text, ranges, hex, onToggle }: WordPickerProps) {
         aria-pressed={pressed}
         aria-label={total > 1 ? `${letters} (${occurrence}ª de ${total})` : undefined}
         style={
-          pressed && hex !== undefined ? { backgroundColor: hex, borderColor: hex } : undefined
+          pressed && hex !== undefined
+            ? { backgroundColor: hex, borderColor: hex, color: readableInk(hex) }
+            : undefined
         }
         onClick={() => onToggle(word)}
       >

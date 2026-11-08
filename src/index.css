@@ -960,7 +960,8 @@ body {
   cursor: pointer;
 }
 
-/* Selected: filled in the highlight color, solid border, white letters, check mark. */
+/* Selected: filled in the highlight color, with white or black letters (whichever contrasts
+   more, D-071), solid border, check mark. */
 .words__token[aria-pressed='true'] {
   border-style: solid;
   border-color: var(--color-text);

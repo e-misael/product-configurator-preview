@@ -218,6 +218,9 @@ describe('Configurator', () => {
       await user.click(word('ANA'));
 
       expect(pressed()).toEqual(['CASA', 'ANA']);
+      // Filled in the highlight color, with readable letters.
+      expect(word('CASA')).toHaveStyle({ backgroundColor: '#aa2200', color: '#ffffff' });
+      expect(word('DA')).not.toHaveAttribute('style');
       expect(screen.getByLabelText('Texto')).toHaveValue('Casa da Ana');
       expect(screen.getByText('2 palavras destacadas.')).toBeInTheDocument();
       expect(highlightRow()).toHaveTextContent('Test ink B: CASA, ANA');
