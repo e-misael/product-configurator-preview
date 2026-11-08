@@ -120,8 +120,10 @@ describe('exportFileName', () => {
 describe('renderPng', () => {
   it('paints the preview scene at the export size and encodes PNG', async () => {
     const { scene } = sceneFor({
+      text: 'Ana Luz',
+      highlightEnabled: true,
       secondaryColorId: 'test-text-color-b',
-      secondaryRanges: [{ start: 0, end: 1 }],
+      secondaryRanges: [{ start: 0, end: 3 }],
       textLayout: { align: 'right', x: 1, y: 0 },
     });
     let canvas: HTMLCanvasElement | undefined;

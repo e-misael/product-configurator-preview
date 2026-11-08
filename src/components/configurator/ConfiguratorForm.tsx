@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo } from 'react';
 import {
   catalogTextAlign,
   effectivePlacement,
@@ -23,7 +23,7 @@ import { FontField } from './FontField';
 import { FORMATTING_REMOVED_NOTICE } from './messages';
 import { sizeLabel, type ModelGroup } from './model-groups';
 import { ModelField } from './ModelField';
-import { SecondaryColorField, TextColorField } from './TextColorFields';
+import { TextColorsField } from './TextColorFields';
 import { TextField } from './TextField';
 
 export type StepId = 'model' | 'text' | 'position' | 'review';
@@ -64,9 +64,6 @@ export function ConfiguratorForm({
   onRestart,
 }: ConfiguratorFormProps) {
   const { config, validation } = state;
-  const [secondaryOpen, setSecondaryOpen] = useState(false);
-  const textField = useRef<HTMLTextAreaElement>(null);
-  const secondaryIssue = issueFor(validation, 'secondaryColorId');
   // As lettered: capitals for "Sem serifa", the stored text unchanged (D-068).
   const lettered = letteringText(config.text, config.fontFamily);
   // The Bandejas' lettering is always centered, also while their size is still to be chosen (D-068).
@@ -155,7 +152,6 @@ export function ConfiguratorForm({
               : undefined
           }
           lineLimit={lineLimit}
-          fieldRef={textField}
           uppercase={config.fontFamily === 'sans-serif'}
         />
         {/* Always rendered so assistive technology announces changes. */}
@@ -163,27 +159,21 @@ export function ConfiguratorForm({
           {state.notice === 'formatting-removed' && FORMATTING_REMOVED_NOTICE}
         </p>
         <FontField fontFamily={config.fontFamily} onChoose={state.setFontFamily} />
-        <TextColorField
+        <TextColorsField
           catalog={catalog}
           colorId={config.textColorId}
-          issue={issueFor(validation, 'textColorId')}
-          onChoose={state.chooseTextColor}
-        />
-        <SecondaryColorField
-          catalog={catalog}
-          colorId={config.secondaryColorId}
-          primaryColorId={config.textColorId}
+          colorIssue={issueFor(validation, 'textColorId')}
+          highlightEnabled={config.highlightEnabled}
+          secondaryColorId={config.secondaryColorId}
+          secondaryIssue={issueFor(validation, 'secondaryColorId')}
           ranges={config.secondaryRanges}
-          issue={secondaryIssue}
           rangeIssue={issueFor(validation, 'secondaryRanges')}
           text={lettered}
-          fieldRef={textField}
-          open={secondaryOpen}
-          onToggle={() => setSecondaryOpen((open) => !open)}
-          onChoose={state.chooseSecondaryColor}
-          onApply={state.applySecondaryColor}
-          onUnapply={state.unapplySecondaryColor}
-          onRemove={state.removeSecondaryColor}
+          swapped={state.notice === 'colors-swapped'}
+          onChoose={state.chooseTextColor}
+          onChooseSecondary={state.chooseSecondaryColor}
+          onHighlight={state.setHighlightEnabled}
+          onToggleWord={state.toggleHighlightWord}
         />
       </Step>
 

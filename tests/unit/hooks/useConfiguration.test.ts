@@ -15,6 +15,7 @@ describe('useConfiguration', () => {
       text: '',
       fontFamily: 'sans-serif',
       textColorId: null,
+      highlightEnabled: false,
       secondaryColorId: null,
       secondaryRanges: [],
       textLayout: null,
@@ -43,6 +44,7 @@ describe('useConfiguration', () => {
       text: '  Linha 1\nLinha 2 ',
       fontFamily: 'sans-serif',
       textColorId: 'test-text-color-a',
+      highlightEnabled: false,
       secondaryColorId: null,
       secondaryRanges: [],
       textLayout: null,
@@ -122,69 +124,90 @@ describe('useConfiguration: lettering', () => {
     expect(result.current.config.textColorId).toBe('test-text-color-b');
   });
 
-  it('applies and removes the secondary color without touching the text', () => {
+  it('starts with highlighting off and keeps its words when turned off (D-071)', () => {
     const { result } = withText('Casa da Ana');
+    expect(result.current.config.highlightEnabled).toBe(false);
 
-    act(() => result.current.applySecondaryColor(0, 4));
+    act(() => result.current.setHighlightEnabled(true));
+    act(() => result.current.toggleHighlightWord({ start: 0, end: 4 }));
+    act(() => result.current.setHighlightEnabled(false));
     expect(result.current.config.secondaryRanges).toEqual([{ start: 0, end: 4 }]);
-    expect(result.current.config.text).toBe('Casa da Ana');
-
-    act(() => result.current.unapplySecondaryColor(0, 4));
-    expect(result.current.config.secondaryRanges).toEqual([]);
-    expect(result.current.config.text).toBe('Casa da Ana');
-  });
-
-  it('keeps the secondary color when its last range is removed', () => {
-    const { result } = withText('Casa');
-
-    act(() => result.current.applySecondaryColor(0, 2));
-    act(() => result.current.unapplySecondaryColor(0, 2));
-
     expect(result.current.config.secondaryColorId).toBe('test-text-color-b');
-    expect(result.current.config.secondaryRanges).toEqual([]);
+
+    act(() => result.current.setHighlightEnabled(true));
+    expect(result.current.config.secondaryRanges).toEqual([{ start: 0, end: 4 }]);
   });
 
-  it('clears the color and every range only on "Remover segunda cor"', () => {
-    const { result } = withText('Casa');
-    act(() => result.current.applySecondaryColor(0, 2));
+  it('toggles word occurrences independently, without touching the text', () => {
+    const { result } = withText('Ana e Ana');
+    act(() => result.current.setHighlightEnabled(true));
 
-    act(() => result.current.chooseSecondaryColor('test-text-color-a'));
-    expect(result.current.config.secondaryRanges).toEqual([{ start: 0, end: 2 }]);
-
-    act(() => result.current.removeSecondaryColor());
-    expect(result.current.config.secondaryColorId).toBeNull();
-    expect(result.current.config.secondaryRanges).toEqual([]);
+    act(() => result.current.toggleHighlightWord({ start: 6, end: 9 }));
+    act(() => result.current.toggleHighlightWord({ start: 0, end: 3 }));
+    expect(result.current.config.secondaryRanges).toEqual([
+      { start: 0, end: 3 },
+      { start: 6, end: 9 },
+    ]);
+    act(() => result.current.toggleHighlightWord({ start: 0, end: 3 }));
+    expect(result.current.config.secondaryRanges).toEqual([{ start: 6, end: 9 }]);
+    expect(result.current.config.text).toBe('Ana e Ana');
   });
 
-  it('moves ranges with the edit when the caret identifies it', () => {
+  it('swaps the colors when the highlight color is chosen as primary (D-071)', () => {
+    const { result } = withText('Casa da Ana');
+    act(() => result.current.setHighlightEnabled(true));
+    act(() => result.current.toggleHighlightWord({ start: 0, end: 4 }));
+
+    act(() => result.current.chooseTextColor('test-text-color-b'));
+
+    expect(result.current.config.textColorId).toBe('test-text-color-b');
+    expect(result.current.config.secondaryColorId).toBe('test-text-color-a');
+    expect(result.current.config.secondaryRanges).toEqual([{ start: 0, end: 4 }]);
+    expect(result.current.notice).toBe('colors-swapped');
+    expect(result.current.validation.status).not.toBe('invalid');
+  });
+
+  it('swaps silently while highlighting is off', () => {
     const { result } = withText('Casa');
-    act(() => result.current.applySecondaryColor(2, 4));
-
-    // Type "XY" at the start; caret ends after the insertion.
-    act(() => result.current.setText('XYCasa', 2));
-
-    expect(result.current.config.secondaryRanges).toEqual([{ start: 4, end: 6 }]);
+    act(() => result.current.chooseTextColor('test-text-color-b'));
+    expect(result.current.config.secondaryColorId).toBe('test-text-color-a');
     expect(result.current.notice).toBeNull();
   });
 
-  it('removes the affected formatting and says so when the edit is ambiguous', () => {
-    const { result } = withText('aaaa');
-    act(() => result.current.applySecondaryColor(0, 4));
+  it('moves highlights with the edit when the caret identifies it', () => {
+    const { result } = withText('Casa da Ana');
+    act(() => result.current.toggleHighlightWord({ start: 8, end: 11 }));
 
-    // Without caret metadata, "aaaa" -> "aaa" cannot say which "a" went away.
-    act(() => result.current.setText('aaa'));
+    // Type "Oi " at the start; caret ends after the insertion.
+    act(() => result.current.setText('Oi Casa da Ana', 3));
+
+    expect(result.current.config.secondaryRanges).toEqual([{ start: 11, end: 14 }]);
+    expect(result.current.notice).toBeNull();
+  });
+
+  it('removes the affected highlight and says so when the edit is ambiguous', () => {
+    const { result } = withText('Ana Ana');
+    act(() => result.current.toggleHighlightWord({ start: 4, end: 7 }));
+
+    // Without caret metadata, "Ana Ana" -> "Ana" cannot say which "Ana" went away.
+    act(() => result.current.setText('Ana'));
 
     expect(result.current.config.secondaryRanges).toEqual([]);
     expect(result.current.config.secondaryColorId).toBe('test-text-color-b');
     expect(result.current.notice).toBe('formatting-removed');
 
-    act(() => result.current.setText('aaab', 4));
+    act(() => result.current.setText('Ana b', 5));
     expect(result.current.notice).toBeNull();
   });
 
-  it('reports the secondary color as invalid when equal to the primary', () => {
+  it('reports a highlight color equal to the primary once words are highlighted', () => {
     const { result } = withText('Casa');
     act(() => result.current.chooseSecondaryColor('test-text-color-a'));
+    // Off, or on without words, the highlight color is not checked (D-071).
+    expect(issueFor(result.current.validation, 'secondaryColorId')).toBeUndefined();
+    act(() => result.current.setHighlightEnabled(true));
+    expect(issueFor(result.current.validation, 'secondaryColorId')).toBeUndefined();
+    act(() => result.current.toggleHighlightWord({ start: 0, end: 4 }));
 
     expect(issueFor(result.current.validation, 'secondaryColorId')).toMatchObject({
       kind: 'invalid',

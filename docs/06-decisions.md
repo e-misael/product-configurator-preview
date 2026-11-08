@@ -549,6 +549,17 @@ Status values:
 - Requested by the product owner (2026-11-08): an option that resets every field and choice. "Reiniciar configurações" sits in "Revisar personalização", under the summary, so "Exportar imagem" stays the last action (D-058). It asks first ("Reiniciar apaga o modelo, o texto, as cores, a posição e a observação. Deseja continuar?", "Sim, reiniciar" / "Cancelar", focus on "Cancelar"). Confirming mounts a fresh configurator: the configuration returns to its initial state (catalog default lettering color, D-064), and the open step, second-color section, size pending, and messages reset too; focus goes to the first step and "Configurações reiniciadas." is announced.
 - **Status:** Approved (product owner, 2026-11-08). Implementation pending acceptance.
 
+### D-071 — Unified "Cores do texto" with whole-word highlighting (2026-11-08)
+
+- Approved by the product owner (M4.7c, 2026-11-08), superseding the character selection of D-042, D-068, and D-069 and the "Usar segunda cor" disclosure of D-047. Individual-letter highlighting is no longer offered.
+- One "Cores do texto" section: "Cor do texto" always visible; a switch "Destacar parte(s) do texto" (off by default, `Configuration.highlightEnabled`); with it on, "Cor de destaque" (the primary disabled; at most two colors) and "Toque nas palavras que deseja destacar" with the text as compact word toggles. Each word occurrence is independent; a second tap restores the primary color; the preview updates at once.
+- Words: `[\p{L}\p{M}\p{N}]+` joined by an inner hyphen or apostrophe; never cutting a grapheme. Punctuation, spaces, line breaks, and emoji stay primary. Highlights are stored in `secondaryRanges` (one range per word), so the renderer, preview, and PNG are unchanged.
+- Edits: each highlight is followed on its own through the edit's position (`remapRanges`: caret, else prefix/suffix); it survives only as the same letters on a whole word, so it is never moved to another identical word. Edited words and ambiguous positions lose their highlight, with the formatting-removal notice.
+- Validation: off, or on with no word → only the primary is validated (never blocks export); with words → a highlight color is required and must be available and different from the primary; ranges must be whole words.
+- Conflict: choosing the highlight color as the primary swaps the two and keeps the words, announced as "As cores foram trocadas: destaque agora em {cor}." (silent while highlighting is off).
+- Off keeps the color and words; on restores them (if their words were not edited).
+- **Status:** Approved (product owner, 2026-11-08). Implementation pending acceptance.
+
 ## Proposed
 
 ### D-066 — Lettering font evaluation: Georgia Bold and Century Gothic Bold (2026-11-08)

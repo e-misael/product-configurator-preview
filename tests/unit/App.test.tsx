@@ -23,7 +23,7 @@ describe('App shell', () => {
     expect(screen.queryByText(/demonstração/i)).not.toBeInTheDocument();
   });
 
-  it('offers the approved lettering colors in order, the second color, and the disclaimer', () => {
+  it('offers the approved lettering colors in order, highlighting, and the disclaimer', () => {
     render(<App />);
 
     const colors = within(screen.getByRole('group', { name: 'Cor do texto' }));
@@ -41,7 +41,7 @@ describe('App shell', () => {
     expect(
       screen.queryByText('As cores do texto ainda não foram definidas.'),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Usar segunda cor' })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Destacar parte(s) do texto' })).not.toBeChecked();
     expect(screen.getByText(/sujeitas à análise e aprovação da Taavi/)).toBeVisible();
   });
 

@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/App';
 import { testCatalog } from '../domain/fixtures';
@@ -22,14 +22,12 @@ const ink = (name: string) =>
 /** Every kind of input: model, text, font, both colors with a trecho, and the note. */
 async function customize(user: ReturnType<typeof userEvent.setup>) {
   await user.click(square());
-  const field = screen.getByLabelText<HTMLTextAreaElement>('Texto');
-  await user.type(field, 'Casa da Ana');
+  await user.type(screen.getByLabelText('Texto'), 'Casa da Ana');
   await user.click(within(group('Fonte')).getByRole('radio', { name: 'Com serifa' }));
   await user.click(ink('ink A'));
-  await user.click(screen.getByRole('button', { name: 'Usar segunda cor' }));
-  field.setSelectionRange(0, 4);
-  fireEvent.select(field);
-  await user.click(within(group('Segunda cor')).getByRole('radio', { name: 'Test ink B' }));
+  await user.click(screen.getByRole('switch', { name: 'Destacar parte(s) do texto' }));
+  await user.click(within(group('Cor de destaque')).getByRole('radio', { name: 'Test ink B' }));
+  await user.click(screen.getByRole('button', { name: 'Casa' }));
   await user.type(screen.getByLabelText('Observação'), 'Presente');
 }
 
@@ -74,7 +72,7 @@ describe('Reiniciar configurações', () => {
   it('resets every field and choice to the initial state', async () => {
     const { user } = setup();
     await customize(user);
-    expect(within(review()).getByText(/1 trecho/)).toBeInTheDocument();
+    expect(within(review()).getByText('Test ink B: Casa')).toBeInTheDocument();
 
     await user.click(restart());
     await user.click(confirmRestart());
@@ -88,13 +86,17 @@ describe('Reiniciar configurações', () => {
     for (const radio of within(group('Cor do texto')).getAllByRole('radio')) {
       expect(radio).not.toBeChecked();
     }
-    // The second color is closed again, with no color and no trechos.
-    expect(screen.getByRole('button', { name: 'Usar segunda cor' })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
-    expect(screen.queryByText(/Segunda cor em uso/)).toBeNull();
-    expect(within(review()).queryByText(/trecho/)).toBeNull();
+    // Highlighting is off again, with no color and no words kept.
+    const highlight = screen.getByRole('switch', { name: 'Destacar parte(s) do texto' });
+    expect(highlight).not.toBeChecked();
+    expect(screen.queryByText(/Destaque desativado/)).toBeNull();
+    await user.click(highlight);
+    expect(
+      within(group('Cor de destaque'))
+        .getAllByRole('radio')
+        .some((radio) => (radio as HTMLInputElement).checked),
+    ).toBe(false);
+    expect(screen.getByText('Digite o texto para escolher as palavras.')).toBeInTheDocument();
     expect(
       within(screen.getByRole('region', { name: 'Pré-visualização' })).getByText(
         'Selecione um modelo',

@@ -95,8 +95,9 @@ The production palette is empty until Taavi supplies it (P-02); the demo catalog
 | `text`             | `string`                | yes      | Raw, never trimmed or normalized.                                 |
 | `fontFamily`       | `FontFamily`            | yes      | Default `sans-serif` ("Sem serifa").                              |
 | `textColorId`      | `string \| null`        | yes      | References `TextColor.id`. Starts at the catalog default (D-064). |
-| `secondaryColorId` | `string \| null`        | no       | Optional second lettering color.                                  |
-| `secondaryRanges`  | `readonly TextRange[]`  | no       | Characters drawn in the second color.                             |
+| `highlightEnabled` | `boolean`               | yes      | "Destacar parte(s) do texto"; off by default (D-071).             |
+| `secondaryColorId` | `string \| null`        | no       | Highlight color; kept while highlighting is off.                  |
+| `secondaryRanges`  | `readonly TextRange[]`  | no       | Highlighted word occurrences, one range each, in order (D-071).   |
 | `textLayout`       | `TextPlacement \| null` | no       | `null` = catalog default alignment and position (D-044).          |
 | `note`             | `string`                | no       | "Observação", exactly as typed; never validated or drawn (D-062). |
 
@@ -127,20 +128,20 @@ Implemented in [`src/domain/validation.ts`](../src/domain/validation.ts) (D-005,
 
 Every field is evaluated. Each field reports **at most one issue**: the first failing rule in the order below. Later rules for the same field are not reported until the earlier issue is resolved.
 
-| Field              | Precedence (first failure wins)                                                                                                                          |
-| ------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plateId`          | 1. `null` → missing · 2. not in catalog → `unknown-reference` · 3. `available: false` → `unavailable`                                                    |
-| `text`             | 1. `''` → missing · 2. only whitespace/invisible characters → `blank`                                                                                    |
-| `fontFamily`       | not `serif`/`sans-serif` → `unsupported-font`                                                                                                            |
-| `textColorId`      | 1. `null` → missing · 2. not in catalog → `unknown-reference` · 3. unavailable → `unavailable`                                                           |
-| `secondaryColorId` | Optional. 1. not in catalog → `unknown-reference` · 2. unavailable → `unavailable` · 3. same ID as `textColorId` → `same-as-primary`                     |
-| `secondaryRanges`  | Only when non-empty. 1. `secondaryColorId` is `null` → `ranges-without-color` · 2. not valid ranges for the text → `invalid-ranges`                      |
-| `textLayout`       | Optional. Not `null` and not a placement with a known `align` and finite `x`/`y` in 0–1 → `invalid-layout` (never clamped; drawn at the catalog default) |
+| Field              | Precedence (first failure wins)                                                                                                                                                                                    |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `plateId`          | 1. `null` → missing · 2. not in catalog → `unknown-reference` · 3. `available: false` → `unavailable`                                                                                                              |
+| `text`             | 1. `''` → missing · 2. only whitespace/invisible characters → `blank`                                                                                                                                              |
+| `fontFamily`       | not `serif`/`sans-serif` → `unsupported-font`                                                                                                                                                                      |
+| `textColorId`      | 1. `null` → missing · 2. not in catalog → `unknown-reference` · 3. unavailable → `unavailable`                                                                                                                     |
+| `secondaryColorId` | Only while `highlightEnabled` and `secondaryRanges` is non-empty. 1. `null` → missing · 2. not in catalog → `unknown-reference` · 3. unavailable → `unavailable` · 4. same ID as `textColorId` → `same-as-primary` |
+| `secondaryRanges`  | Only while `highlightEnabled` and non-empty: each range must be a whole word occurrence of the text (`wordsOf`), distinct and in order → otherwise `invalid-ranges`                                                |
+| `textLayout`       | Optional. Not `null` and not a placement with a known `align` and finite `x`/`y` in 0–1 → `invalid-layout` (never clamped; drawn at the catalog default)                                                           |
 
 Conditional rules:
 
 - There is no ceramic color rule: the ceramic color is a fixed catalog property (D-041). The lettering color rules above concern the text only.
-- An empty `secondaryRanges` with a chosen `secondaryColorId` is valid: the color is kept when its last range is removed (D-043).
+- Highlighting off, or on with no word, is a valid one-color configuration whatever `secondaryColorId` holds; the color and words are kept for when it is turned on again (D-071). Choosing the highlight color as the primary swaps the two.
 
 ### Blank text
 
@@ -152,7 +153,7 @@ Choosing a model only sets `plateId`; nothing else in the configuration changes 
 
 ### Result status
 
-Any invalid issue → `invalid`; otherwise any missing issue → `incomplete`; otherwise `valid`. Issues are listed in field order: `plateId`, `text`, `fontFamily`, `textColorId`, `secondaryColorId`, `secondaryRanges`, `textLayout` (`note` is never validated).
+Any invalid issue → `invalid`; otherwise any missing issue → `incomplete`; otherwise `valid`. Issues are listed in field order: `plateId`, `text`, `fontFamily`, `textColorId`, `highlightEnabled` (never reported), `secondaryColorId`, `secondaryRanges`, `textLayout` (`note` is never validated).
 
 ## Catalog integrity rules
 

@@ -7,8 +7,9 @@ export const FIELD_LABELS: Record<ConfigurationField, string> = {
   text: 'Texto',
   fontFamily: 'Fonte',
   textColorId: 'Cor do texto',
-  secondaryColorId: 'Segunda cor',
-  secondaryRanges: 'Trechos com a segunda cor',
+  highlightEnabled: 'Destacar parte(s) do texto',
+  secondaryColorId: 'Cor de destaque',
+  secondaryRanges: 'Palavras destacadas',
   textLayout: 'Posição do texto',
   note: 'Observação',
 };
@@ -31,12 +32,12 @@ const INVALID_MESSAGES: Record<ConfigurationField, Partial<Record<InvalidCode, s
   secondaryColorId: {
     'unknown-reference': 'Esta cor não está no catálogo.',
     unavailable: 'Esta cor está indisponível no momento.',
-    'same-as-primary': 'A segunda cor deve ser diferente da cor do texto.',
+    'same-as-primary': 'A cor de destaque deve ser diferente da cor do texto.',
   },
   secondaryRanges: {
-    'ranges-without-color': 'Escolha a segunda cor para aplicá-la aos trechos.',
-    'invalid-ranges': 'Os trechos com a segunda cor não correspondem ao texto.',
+    'invalid-ranges': 'As palavras destacadas não correspondem ao texto.',
   },
+  highlightEnabled: {},
   textLayout: {
     'invalid-layout': 'A posição do texto não é válida. Use "Redefinir posição".',
   },
@@ -62,4 +63,4 @@ export function modelLabel(plate: Pick<Plate, 'displayName' | 'sizeLabel'>): str
 }
 
 export const FORMATTING_REMOVED_NOTICE =
-  'A segunda cor foi removida dos trechos afetados porque a edição não pôde ser localizada com segurança.';
+  'O destaque foi removido das palavras alteradas ou que não puderam ser localizadas com segurança.';

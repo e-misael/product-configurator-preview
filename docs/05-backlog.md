@@ -303,6 +303,7 @@ Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decisio
 - [x] Tests: letter-case unit tests, fixed placement (domain, composition, catalog), component flows, Playwright on real photographs and demo in Chromium and WebKit (desktop and phone), including a touch-style selection and tray centering
 - [x] M4.7b (D-069): second color applied by tapping it; names only on the selected chip; list of trechos with "Remover"; "Aplicar segunda cor à seleção" removed
 - [x] "Reiniciar configurações" in the review, with confirmation (D-070)
+- [x] M4.7c (D-071): unified "Cores do texto"; "Destacar parte(s) do texto" switch; whole-word toggles (repeated words independent, all words allowed); position-based highlight reconciliation on edits; color swap on conflict; character-selection UI and hook removed
 - Remaining: lowercase manufacturability (P-04/P-14); real-phone review of selection on iOS and Android.
 
 ## M5 — Quality and usability

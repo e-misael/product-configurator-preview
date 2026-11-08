@@ -1,14 +1,13 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
-  addRange,
   alignPlacement,
   catalogTextAlign,
   createEmptyConfiguration,
   effectivePlacement,
   nudgePlacement,
-  remapRanges,
-  removeRange,
+  remapWords,
   resetPosition,
+  toggleWord,
   validateConfiguration,
   type Catalog,
   type Configuration,
@@ -16,12 +15,13 @@ import {
   type FontFamily,
   type TextAlignment,
   type TextPlacement,
+  type TextRange,
   type ValidationIssue,
   type ValidationResult,
 } from '../domain';
 
 /** A one-off message about a change the app made on the user's behalf. */
-export type Notice = 'formatting-removed';
+export type Notice = 'formatting-removed' | 'colors-swapped';
 
 interface State {
   readonly config: Configuration;
@@ -49,16 +49,16 @@ export function useConfiguration(catalog: Catalog) {
   /** No model selected, e.g. while a model group waits for its size (D-057). */
   const clearPlate = useCallback(() => update({ plateId: null }), [update]);
   /**
-   * The secondary-color ranges follow the edit (D-042). `caret` is the textarea
-   * selection after the edit; when the edit cannot be located the affected
-   * formatting is removed and a notice says so.
+   * The highlighted words follow the edit by position (D-071). `caret` is the
+   * textarea selection after the edit; a highlight whose word changed or could
+   * not be located is removed and a notice says so.
    */
   const setText = useCallback((text: string, caret?: number) => {
     setState(({ config }) => {
-      const { ranges, ambiguous } = remapRanges(config.text, text, config.secondaryRanges, caret);
+      const { ranges, removed } = remapWords(config.text, text, config.secondaryRanges, caret);
       return {
         config: { ...config, text, secondaryRanges: ranges },
-        notice: ambiguous ? 'formatting-removed' : null,
+        notice: removed ? 'formatting-removed' : null,
       };
     });
   }, []);
@@ -66,38 +66,39 @@ export function useConfiguration(catalog: Catalog) {
   /** The optional note, kept exactly as typed (D-062). */
   const setNote = useCallback((note: string) => update({ note }), [update]);
   const setFontFamily = useCallback((fontFamily: FontFamily) => update({ fontFamily }), [update]);
+  /**
+   * Choosing the highlight color as the primary swaps the two (D-071): the
+   * highlighted words keep a different color, and the swap is announced while
+   * highlighting is on.
+   */
   const chooseTextColor = useCallback(
-    (textColorId: string | null) => update({ textColorId }),
-    [update],
+    (textColorId: string | null) =>
+      setState(({ config }) => {
+        const swap = textColorId !== null && textColorId === config.secondaryColorId;
+        return {
+          config: swap
+            ? { ...config, textColorId, secondaryColorId: config.textColorId }
+            : { ...config, textColorId },
+          notice: swap && config.highlightEnabled ? 'colors-swapped' : null,
+        };
+      }),
+    [],
   );
-  /** Changing the second color keeps its ranges: they are drawn in the new color. */
+  /** Changing the highlight color keeps the highlighted words. */
   const chooseSecondaryColor = useCallback(
     (secondaryColorId: string) => update({ secondaryColorId }),
     [update],
   );
-  /** "Remover segunda cor": the only action that clears the color and all its ranges. */
-  const removeSecondaryColor = useCallback(
-    () => update({ secondaryColorId: null, secondaryRanges: [] }),
+  /** Turning highlighting off keeps its color and words for when it is turned on again. */
+  const setHighlightEnabled = useCallback(
+    (highlightEnabled: boolean) => update({ highlightEnabled }),
     [update],
   );
-  const applySecondaryColor = useCallback(
-    (start: number, end: number) =>
+  /** Highlights one word occurrence, or removes its highlight (D-071). */
+  const toggleHighlightWord = useCallback(
+    (word: TextRange) =>
       setState(({ config }) => ({
-        config: {
-          ...config,
-          secondaryRanges: addRange(config.text, config.secondaryRanges, start, end),
-        },
-        notice: null,
-      })),
-    [],
-  );
-  const unapplySecondaryColor = useCallback(
-    (start: number, end: number) =>
-      setState(({ config }) => ({
-        config: {
-          ...config,
-          secondaryRanges: removeRange(config.text, config.secondaryRanges, start, end),
-        },
+        config: { ...config, secondaryRanges: toggleWord(config.secondaryRanges, word) },
         notice: null,
       })),
     [],
@@ -162,9 +163,8 @@ export function useConfiguration(catalog: Catalog) {
     setFontFamily,
     chooseTextColor,
     chooseSecondaryColor,
-    applySecondaryColor,
-    unapplySecondaryColor,
-    removeSecondaryColor,
+    setHighlightEnabled,
+    toggleHighlightWord,
     placeText,
     nudgeText,
     alignText,

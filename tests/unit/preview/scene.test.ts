@@ -160,26 +160,26 @@ describe('buildScene: text', () => {
   it('colors the segments of each line from the source offsets, across line breaks', () => {
     const block = textBlock(
       sceneFor({
-        text: 'Casa\nda Ana',
+        text: 'Casa, sol\nda Ana!',
         textColorId: 'test-text-color-a',
+        highlightEnabled: true,
         secondaryColorId: 'test-text-color-b',
-        // "sa" on the first line and "An" on the second.
+        // "sol" on the first line and "da" on the second (whole words, D-071).
         secondaryRanges: [
-          { start: 2, end: 4 },
-          { start: 8, end: 10 },
+          { start: 6, end: 9 },
+          { start: 10, end: 12 },
         ],
       }),
     );
 
     expect(block.segments).toEqual([
       [
-        { text: 'Ca', color: '#112233' },
-        { text: 'sa', color: '#aa2200' },
+        { text: 'Casa, ', color: '#112233' },
+        { text: 'sol', color: '#aa2200' },
       ],
       [
-        { text: 'da ', color: '#112233' },
-        { text: 'An', color: '#aa2200' },
-        { text: 'a', color: '#112233' },
+        { text: 'da', color: '#aa2200' },
+        { text: ' Ana!', color: '#112233' },
       ],
     ]);
     expect(block.segments.map((line) => line.map((s) => s.text).join(''))).toEqual(block.lines);

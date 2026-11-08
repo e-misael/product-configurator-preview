@@ -34,6 +34,7 @@ describe('configuration validation is independent of imagery', () => {
   const style = {
     fontFamily: 'sans-serif',
     textColorId: 'test-text-color-a',
+    highlightEnabled: false,
     secondaryColorId: null,
     secondaryRanges: [],
     textLayout: null,

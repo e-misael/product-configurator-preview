@@ -153,9 +153,11 @@ describe('composePreview: lettering style', () => {
     expect(compose({ textColorId: 'test-text-color-gone' }).text?.primaryColor).toBeUndefined();
   });
 
-  it('carries the secondary color with its ranges', () => {
-    const ranges = [{ start: 1, end: 3 }];
+  it('carries the highlight color with its words while highlighting is on (D-071)', () => {
+    const ranges = [{ start: 4, end: 7 }];
     const { text } = compose({
+      text: 'Ana Luz',
+      highlightEnabled: true,
       textColorId: 'test-text-color-a',
       secondaryColorId: 'test-text-color-b',
       secondaryRanges: ranges,
@@ -165,14 +167,18 @@ describe('composePreview: lettering style', () => {
   });
 
   it.each([
-    ['no ranges', { secondaryRanges: [] }],
+    ['highlighting off', { highlightEnabled: false }],
+    ['no words', { secondaryRanges: [] }],
     ['ranges outside the text', { secondaryRanges: [{ start: 0, end: 99 }] }],
-    ['an unknown secondary color', { secondaryColorId: 'test-text-color-gone' }],
-  ])('applies no secondary style with %s', (_label, override) => {
+    ['part of a word', { secondaryRanges: [{ start: 0, end: 1 }] }],
+    ['no highlight color', { secondaryColorId: null }],
+    ['an unknown highlight color', { secondaryColorId: 'test-text-color-gone' }],
+  ])('applies no highlight with %s', (_label, override) => {
     const { text } = compose({
+      highlightEnabled: true,
       textColorId: 'test-text-color-a',
       secondaryColorId: 'test-text-color-b',
-      secondaryRanges: [{ start: 0, end: 1 }],
+      secondaryRanges: [{ start: 0, end: 3 }],
       ...override,
     });
 

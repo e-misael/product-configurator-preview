@@ -155,13 +155,20 @@ function usableColor(
   return color !== undefined && isAvailable(color) ? color.hex : undefined;
 }
 
-/** The secondary color is drawn only when it and its ranges are valid; nothing is guessed. */
+/**
+ * The highlight color is drawn only while highlighting is on and it and its
+ * words are valid (D-071); nothing is guessed.
+ */
 function secondaryStyle(
   catalog: Catalog,
   config: Configuration,
   validation: ValidationResult,
 ): TextLayer['secondary'] {
-  if (config.secondaryRanges.length === 0 || hasIssue(validation, 'secondaryRanges', 'invalid')) {
+  if (
+    !config.highlightEnabled ||
+    config.secondaryRanges.length === 0 ||
+    hasIssue(validation, 'secondaryRanges', 'invalid')
+  ) {
     return undefined;
   }
   const color = usableColor(catalog, config.secondaryColorId, validation, 'secondaryColorId');

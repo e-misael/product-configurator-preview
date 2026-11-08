@@ -96,7 +96,7 @@ test('completes a configuration @smoke', async ({ page }) => {
   await expectNoHorizontalScroll(page);
 });
 
-test('applies the second color to a keyboard selection without changing the text', async ({
+test('highlights several words by tapping them, without changing the text (D-071)', async ({
   page,
 }) => {
   await model(page, CERAMIC_PLATE).check();
@@ -105,73 +105,73 @@ test('applies the second color to a keyboard selection without changing the text
   await inks(page, 'Cor do texto')
     .getByRole('radio', { name: /Letra grafite/ })
     .check();
-  const toggle = page.getByRole('button', { name: 'Usar segunda cor' });
-  const secondary = inks(page, 'Segunda cor');
-  await expect(secondary).toBeHidden();
-  await toggle.click();
-  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  const highlight = page.getByRole('switch', { name: 'Destacar parte(s) do texto' });
+  const secondary = inks(page, 'Cor de destaque');
+  const words = page.getByRole('group', { name: 'Toque nas palavras que deseja destacar' });
+  await expect(highlight).not.toBeChecked();
+  await expect(secondary).toHaveCount(0);
+  await highlight.check();
   await expect(secondary.getByRole('radio', { name: /Letra grafite/ })).toBeDisabled();
-  const wine = secondary.getByRole('radio', { name: /Letra vinho/ });
-  // Without a selection a tap only chooses the color and says what to do (D-069).
-  await wine.check();
-  await expect(page.getByText(/^Segunda cor: .*Letra vinho\. Selecione as letras/)).toBeVisible();
-  await expect(page.getByRole('button', { name: /segunda cor à seleção/ })).toHaveCount(0);
-  await field.focus();
-  // Caret at the start (Home is not portable across platforms), then select by keyboard.
-  await field.evaluate((element) => (element as HTMLTextAreaElement).setSelectionRange(0, 0));
-  for (let i = 0; i < 4; i += 1) await field.press('Shift+ArrowRight');
-  await expect(page.getByText('Seleção: “CASA”')).toBeVisible();
-  // Tapping the chosen color again applies it to the selection.
-  await wine.click();
+  await secondary.getByRole('radio', { name: /Letra vinho/ }).check();
+  await expect(page.getByRole('button', { name: /Aplicar/ })).toHaveCount(0);
 
+  await words.getByRole('button', { name: 'CASA' }).click();
+  await words.getByRole('button', { name: 'ANA' }).click();
+  await expect(words.getByRole('button', { name: 'CASA' })).toHaveAttribute('aria-pressed', 'true');
+  await expect(words.getByRole('button', { name: 'DA' })).toHaveAttribute('aria-pressed', 'false');
+  await expect(page.getByText('2 palavras destacadas.')).toBeVisible();
   await expect(field).toHaveValue('Casa da Ana');
-  await expect(page.getByText(/Letra vinho aplicado a “CASA”\.$/)).toBeVisible();
-  const remove = page.getByRole('button', { name: 'Remover segunda cor de “CASA”' });
-  await expect(remove).toBeVisible();
+  await expect(await summary(page, 'Destaque')).toHaveText(/Letra vinho: CASA, ANA$/);
 
-  // Collapsing only hides the options; the color and its trecho stay.
-  await toggle.click();
-  await expect(remove).toBeHidden();
-  await expect(page.getByText(/Segunda cor em uso: .*Letra vinho.*\(1 trecho\)/)).toBeVisible();
+  // Off draws one color but keeps the words; on restores them.
+  await openStep(page, 'Texto e cores');
+  await highlight.uncheck();
+  await expect(await summary(page, 'Destaque')).toHaveText('—');
+  await openStep(page, 'Texto e cores');
+  await highlight.check();
+  await expect(words.getByRole('button', { name: 'ANA' })).toHaveAttribute('aria-pressed', 'true');
 
-  await toggle.click();
-  await page.getByRole('button', { name: 'Remover segunda cor', exact: true }).click();
-  await expect(remove).toHaveCount(0);
-  await expect(secondary.getByRole('radio', { name: /Letra vinho/ })).not.toBeChecked();
-  await expect(await summary(page, 'Segunda cor')).toHaveText('—');
+  // Tapping again restores the primary color.
+  await words.getByRole('button', { name: 'CASA' }).click();
+  await expect(await summary(page, 'Destaque')).toHaveText(/Letra vinho: ANA$/);
   await expectNoHorizontalScroll(page);
 });
 
-test('applies the second color on tap to a touch-style selection (D-068, D-069)', async ({
+test('selects repeated words independently and swaps colors on conflict (D-071)', async ({
   page,
 }) => {
   await model(page, CERAMIC_PLATE).check();
   const field = await textField(page);
-  await field.fill('Casa da Ana');
+  await field.fill('Ana e Ana');
   await inks(page, 'Cor do texto')
     .getByRole('radio', { name: /Letra grafite/ })
     .check();
-  // A selection made without a mouse or key release, as with touch handles; then focus moves away.
-  await field.evaluate((element) => {
-    const area = element as HTMLTextAreaElement;
-    area.focus();
-    area.setSelectionRange(8, 11);
-  });
-  await page.getByRole('button', { name: 'Usar segunda cor' }).click();
-  await expect(field).not.toBeFocused();
-  await expect(page.getByText('Seleção: “ANA”')).toBeVisible();
-  await inks(page, 'Segunda cor')
+  await page.getByRole('switch', { name: 'Destacar parte(s) do texto' }).check();
+  await inks(page, 'Cor de destaque')
     .getByRole('radio', { name: /Letra vinho/ })
     .check();
+  const words = page.getByRole('group', { name: 'Toque nas palavras que deseja destacar' });
+  await words.getByRole('button', { name: 'ANA (2ª de 2)' }).click();
+  await expect(words.getByRole('button', { name: 'ANA (1ª de 2)' })).toHaveAttribute(
+    'aria-pressed',
+    'false',
+  );
 
-  await expect(page.getByText(/aplicado a “ANA”\.$/)).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Remover segunda cor de “ANA”' })).toBeVisible();
-  await expect(field).toHaveValue('Casa da Ana');
-
-  // Removing the trecho from the list keeps the color.
-  await page.getByRole('button', { name: 'Remover segunda cor de “ANA”' }).click();
-  await expect(page.getByText('Segunda cor removida de “ANA”.')).toBeVisible();
-  await expect(inks(page, 'Segunda cor').getByRole('radio', { name: /Letra vinho/ })).toBeChecked();
+  // The highlight color chosen as the text color: the two are swapped.
+  await inks(page, 'Cor do texto')
+    .getByRole('radio', { name: /Letra vinho/ })
+    .check();
+  await expect(
+    page.getByText(/^As cores foram trocadas: destaque agora em .*Letra grafite\.$/),
+  ).toBeVisible();
+  await expect(
+    inks(page, 'Cor de destaque').getByRole('radio', { name: /Letra grafite/ }),
+  ).toBeChecked();
+  await expect(words.getByRole('button', { name: 'ANA (2ª de 2)' })).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await expect(field).toHaveValue('Ana e Ana');
   await expectNoHorizontalScroll(page);
 });
 

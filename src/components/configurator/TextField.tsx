@@ -1,14 +1,12 @@
-import { useState, type RefObject } from 'react';
+import { useState } from 'react';
 import type { ValidationIssue } from '../../domain';
 import { invalidMessage } from './messages';
 
 interface TextFieldProps {
   readonly text: string;
   readonly issue: ValidationIssue | undefined;
-  /** `caret` is the selection after the edit; it lets the ranges follow the edit exactly. */
+  /** `caret` is the selection after the edit; it lets the highlights follow the edit exactly. */
   readonly onChange: (text: string, caret?: number) => void;
-  /** The textarea, read by the second-color actions (D-068). */
-  readonly fieldRef: RefObject<HTMLTextAreaElement | null>;
   /** "Sem serifa": the field shows capitals; the stored text keeps the case as typed (D-068). */
   readonly uppercase: boolean;
   /** The overflow warning while the text does not fit; shown under the field (D-063). */
@@ -27,14 +25,13 @@ interface TextFieldProps {
 
 /**
  * The text is stored exactly as typed; nothing is trimmed or normalized.
- * The second color is applied to the selected characters from the second-color
- * section (D-068); the textarea stays plain text (no rich-text editor).
+ * Words are highlighted in "Cores do texto" (D-071); the textarea stays plain
+ * text (no rich-text editor).
  */
 export function TextField({
   text,
   issue,
   onChange,
-  fieldRef,
   uppercase,
   overflow,
   lineLimit,
@@ -61,7 +58,6 @@ export function TextField({
         As quebras de linha são mantidas.
       </p>
       <textarea
-        ref={fieldRef}
         id="text"
         className={uppercase ? 'textarea textarea--uppercase' : 'textarea'}
         rows={3}

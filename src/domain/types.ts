@@ -161,9 +161,14 @@ export interface Configuration {
   readonly fontFamily: FontFamily;
   /** Required lettering color; references `TextColor.id`. Starts at the catalog default, if any (D-064). */
   readonly textColorId: string | null;
-  /** Optional second lettering color. Kept when its last range is removed. */
+  /**
+   * "Destacar parte(s) do texto" (D-071). Off: only the primary color is
+   * validated and drawn, but the highlight color and words below are kept.
+   */
+  readonly highlightEnabled: boolean;
+  /** Highlight color. Required only while highlighting is on with highlighted words. */
   readonly secondaryColorId: string | null;
-  /** Characters drawn in the secondary color. Sorted, non-overlapping, grapheme-aligned. */
+  /** Highlighted word occurrences (D-071), one range each, in order. */
   readonly secondaryRanges: readonly TextRange[];
   /** `null` = the catalog default for the model's text area (D-044). */
   readonly textLayout: TextPlacement | null;
@@ -182,7 +187,6 @@ export type InvalidCode =
   | 'blank'
   | 'unsupported-font'
   | 'same-as-primary'
-  | 'ranges-without-color'
   | 'invalid-ranges'
   | 'invalid-layout';
 

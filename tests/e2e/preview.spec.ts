@@ -272,34 +272,38 @@ test.describe('personalized text', () => {
     await expect.poll(() => textPixels(page)).not.toBe(sans);
   });
 
-  test('paints the selected characters in the second color', async ({ page }) => {
+  test('paints the highlighted words in the highlight color at once (D-071)', async ({ page }) => {
     await chooseModel(page, CERAMIC_PLATE);
     const field = await textField(page);
-    await field.fill('HHHH');
+    await field.fill('HH HH');
     await page
       .getByRole('group', { name: 'Cor do texto' })
       .getByRole('radio', { name: /Letra azul/ })
       .check();
-    await page.getByRole('button', { name: 'Usar segunda cor' }).click();
+    await page.getByRole('switch', { name: 'Destacar parte(s) do texto' }).check();
     await page
-      .getByRole('group', { name: 'Segunda cor' })
+      .getByRole('group', { name: 'Cor de destaque' })
       .getByRole('radio', { name: /Letra vinho/ })
       .check();
     const WINE = [0x8c, 0x1f, 0x3d] as const;
     const BLUE = [0x1f, 0x4e, 0x8c] as const;
     await expect.poll(() => textPixels(page, WINE)).toBe(0);
 
-    await field.focus();
-    await field.press('End');
-    for (let i = 0; i < 2; i += 1) await field.press('Shift+ArrowLeft');
-    // Tapping the chosen color applies it to the selection (D-069).
-    await page
-      .getByRole('group', { name: 'Segunda cor' })
-      .getByRole('radio', { name: /Letra vinho/ })
-      .click();
+    const words = page.getByRole('group', { name: 'Toque nas palavras que deseja destacar' });
+    await words.getByRole('button', { name: 'HH (2ª de 2)' }).click();
 
     await expect.poll(() => textPixels(page, WINE)).toBeGreaterThan(20);
     expect(await textPixels(page, BLUE)).toBeGreaterThan(20);
+
+    // Off: one color, the word kept; on again: highlighted again.
+    const highlight = page.getByRole('switch', { name: 'Destacar parte(s) do texto' });
+    await highlight.uncheck();
+    await expect.poll(() => textPixels(page, WINE)).toBe(0);
+    await highlight.check();
+    await expect.poll(() => textPixels(page, WINE)).toBeGreaterThan(20);
+    // Tapping the word again restores the primary color.
+    await words.getByRole('button', { name: 'HH (2ª de 2)' }).click();
+    await expect.poll(() => textPixels(page, WINE)).toBe(0);
   });
 
   test('warns about text that does not fit instead of clipping it', async ({ page }) => {

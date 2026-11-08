@@ -121,6 +121,7 @@ test.describe('Lettering on the catalog photographs', () => {
           plateId,
           text,
           textColorId: 'demo-letra-marrom',
+          highlightEnabled: secondary !== null,
           secondaryColorId: secondary ? 'demo-letra-laranja' : null,
           secondaryRanges: secondary ? [secondary] : [],
         };

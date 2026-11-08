@@ -220,16 +220,17 @@ test('exports font, both lettering colors, alignment, and position as previewed'
   page,
 }) => {
   await chooseModel(page, /Placa cerâmica/);
-  await ready(page, 'HHHH\nHH', /Letra azul/);
+  await ready(page, 'HH HH\nHH', /Letra azul/);
   const field = await textField(page);
   await radio(page, 'Fonte', 'Com serifa').check();
-  await page.getByRole('button', { name: 'Usar segunda cor' }).click();
-  await radio(page, 'Segunda cor', /Letra vinho/).check();
-  await field.focus();
-  await field.evaluate((element) => (element as HTMLTextAreaElement).setSelectionRange(0, 0));
-  for (let i = 0; i < 2; i += 1) await field.press('Shift+ArrowRight');
-  // Tapping the chosen color applies it to the selection (D-069).
-  await radio(page, 'Segunda cor', /Letra vinho/).click();
+  await page.getByRole('switch', { name: 'Destacar parte(s) do texto' }).check();
+  await radio(page, 'Cor de destaque', /Letra vinho/).check();
+  // The first word highlighted (D-071).
+  await page
+    .getByRole('group', { name: 'Toque nas palavras que deseja destacar' })
+    .getByRole('button', { name: 'HH (1ª de 3)' })
+    .click();
+  await expect(field).toHaveValue('HH HH\nHH');
   await openStep(page, 'Posição do texto');
   const position = page.getByRole('group', { name: 'Posição do texto' });
   await position.getByRole('radio', { name: 'Alinhar à direita' }).check();

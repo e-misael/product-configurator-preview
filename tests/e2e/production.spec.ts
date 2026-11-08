@@ -160,12 +160,11 @@ test.describe('Production build @smoke', () => {
     }
     await expect(page.getByText('As cores do texto ainda não foram definidas.')).toHaveCount(0);
     await expect(page.getByText(/demonstração|proposta/i)).toHaveCount(0);
-    // The second color stays behind its disclosure until asked for.
-    await expect(page.getByRole('button', { name: 'Usar segunda cor' })).toHaveAttribute(
-      'aria-expanded',
-      'false',
-    );
-    await expect(page.getByRole('group', { name: 'Segunda cor' })).toBeHidden();
+    // Highlighting is off until asked for (D-071).
+    await expect(
+      page.getByRole('switch', { name: 'Destacar parte(s) do texto' }),
+    ).not.toBeChecked();
+    await expect(page.getByRole('group', { name: 'Cor de destaque' })).toHaveCount(0);
     // The disclaimer is part of the review, before export (D-058).
     const review = await step(page, 'Revisar personalização');
     for (const paragraph of DISCLAIMER) await expect(review.getByText(paragraph)).toBeVisible();
@@ -239,7 +238,7 @@ test.describe('Production build @smoke', () => {
 });
 
 test.describe('Production customization to PNG export (D-056)', () => {
-  test('two colors, preview, and export agree; removing the second color', async ({ page }) => {
+  test('two colors, preview, and export agree; turning highlighting off', async ({ page }) => {
     await page.goto('/');
     await chooseModel(page, 'Placa cerâmica — 10 × 10 cm');
     const field = await textField(page);
@@ -249,24 +248,23 @@ test.describe('Production customization to PNG export (D-056)', () => {
       .getByRole('radio', { name: 'Verde' })
       .check();
 
-    // Second color: every color except the primary one.
-    const toggle = page.getByRole('button', { name: 'Usar segunda cor' });
-    await toggle.click();
-    const secondary = page.getByRole('group', { name: 'Segunda cor' });
+    // Highlight color: every color except the primary one.
+    const highlight = page.getByRole('switch', { name: 'Destacar parte(s) do texto' });
+    await highlight.check();
+    const secondary = page.getByRole('group', { name: 'Cor de destaque' });
     await expect(secondary.getByRole('radio')).toHaveCount(COLORS.length);
     await expect(secondary.getByRole('radio', { name: 'Verde' })).toBeDisabled();
     for (const name of ['Marrom', 'Azul', 'Vermelho escuro']) {
       await expect(secondary.getByRole('radio', { name })).toBeEnabled();
     }
-    // "Ação" (accented) in the second color, applied by the tap on the color (D-069).
-    await field.focus();
-    // Caret at the start (Home is not portable across platforms), then select by keyboard.
-    await field.evaluate((element) => (element as HTMLTextAreaElement).setSelectionRange(0, 0));
-    for (let i = 0; i < 4; i += 1) await field.press('Shift+ArrowRight');
+    // "Ação" (accented) highlighted by tapping the word (D-071).
     await secondary.getByRole('radio', { name: 'Vermelho escuro' }).check();
+    await page
+      .getByRole('group', { name: 'Toque nas palavras que deseja destacar' })
+      .getByRole('button', { name: 'AÇÃO' })
+      .click();
     await expect(field).toHaveValue('Ação\nJoão');
-    await expect(page.getByText('Vermelho escuro aplicado a “AÇÃO”.')).toBeVisible();
-    await expect(page.getByText('1 trecho em Vermelho escuro:')).toBeVisible();
+    await expect(page.getByText('1 palavra destacada.')).toBeVisible();
 
     const green = COLORS[2][1];
     const red = COLORS[3][1];
@@ -292,12 +290,10 @@ test.describe('Production customization to PNG export (D-056)', () => {
     expect(ratio(exported.counts)).toBeGreaterThan(ratio(shown.counts) * 0.6);
     expect(ratio(exported.counts)).toBeLessThan(ratio(shown.counts) / 0.6);
 
+    await expect(review.getByText('Vermelho escuro: AÇÃO')).toBeVisible();
     await openStep(page, 'Texto e cores');
-    await page.getByRole('button', { name: 'Remover segunda cor', exact: true }).click();
-    await expect(
-      page.getByRole('group', { name: 'Segunda cor' }).getByRole('radio', { checked: true }),
-    ).toHaveCount(0);
-    await expect(review).not.toContainText('trecho');
+    await highlight.uncheck();
+    await expect(review).not.toContainText('Vermelho escuro: AÇÃO');
     await expect
       .poll(async () => (await colorCounts(page, 'preview', [green, red])).counts)
       .toEqual([expect.any(Number), 0]);

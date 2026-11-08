@@ -94,6 +94,7 @@ describe('validateConfiguration', () => {
         'text',
         'fontFamily',
         'textColorId',
+        'highlightEnabled',
         'secondaryColorId',
         'secondaryRanges',
         'textLayout',
@@ -213,68 +214,92 @@ describe('validateConfiguration: lettering (D-042)', () => {
     });
   });
 
-  it('accepts an optional secondary color and its ranges', () => {
-    const config = validConfiguration({
-      text: 'Casa da Ana',
-      secondaryColorId: 'test-text-color-b',
-      secondaryRanges: [{ start: 0, end: 4 }],
-    });
-    expect(validateConfiguration(config, testCatalog)).toEqual({ status: 'valid' });
-  });
+  describe('highlighting (D-071)', () => {
+    const on = (overrides: Partial<Configuration>) =>
+      validConfiguration({ text: 'Casa da Ana', highlightEnabled: true, ...overrides });
 
-  it('keeps a secondary color that has no ranges (valid)', () => {
-    const config = validConfiguration({ secondaryColorId: 'test-text-color-b' });
-    expect(validateConfiguration(config, testCatalog)).toEqual({ status: 'valid' });
-  });
-
-  it.each([
-    ['unknown', 'does-not-exist', 'unknown-reference'],
-    ['unavailable', 'test-text-color-retired', 'unavailable'],
-    ['identical to the primary', 'test-text-color-a', 'same-as-primary'],
-  ] as const)('rejects a secondary color that is %s', (_label, secondaryColorId, code) => {
-    expect(issueOf({ secondaryColorId }, 'secondaryColorId')).toEqual({
-      kind: 'invalid',
-      field: 'secondaryColorId',
-      code,
-    });
-  });
-
-  it('rejects ranges without a secondary color', () => {
-    expect(issueOf({ secondaryRanges: [{ start: 0, end: 2 }] }, 'secondaryRanges')).toEqual({
-      kind: 'invalid',
-      field: 'secondaryRanges',
-      code: 'ranges-without-color',
-    });
-  });
-
-  it.each([
-    ['out of bounds', [{ start: 0, end: 99 }]],
-    [
-      'overlapping',
-      [
-        { start: 0, end: 3 },
-        { start: 2, end: 4 },
-      ],
-    ],
-    ['empty', [{ start: 2, end: 2 }]],
-  ])('rejects %s ranges', (_label, secondaryRanges) => {
-    const issue = issueOf(
-      { secondaryColorId: 'test-text-color-b', secondaryRanges },
-      'secondaryRanges',
-    );
-    expect(issue).toEqual({ kind: 'invalid', field: 'secondaryRanges', code: 'invalid-ranges' });
-  });
-
-  it('rejects ranges that cut a grapheme cluster', () => {
-    const issue = issueOf(
-      {
-        text: 'e\u0301x',
+    it('accepts highlighted words in a different color', () => {
+      const config = on({
         secondaryColorId: 'test-text-color-b',
-        secondaryRanges: [{ start: 0, end: 1 }],
-      },
-      'secondaryRanges',
-    );
-    expect(issue).toMatchObject({ code: 'invalid-ranges' });
+        secondaryRanges: [
+          { start: 0, end: 4 },
+          { start: 8, end: 11 },
+        ],
+      });
+      expect(validateConfiguration(config, testCatalog)).toEqual({ status: 'valid' });
+    });
+
+    it('accepts every word highlighted', () => {
+      const config = on({
+        secondaryColorId: 'test-text-color-b',
+        secondaryRanges: [
+          { start: 0, end: 4 },
+          { start: 5, end: 7 },
+          { start: 8, end: 11 },
+        ],
+      });
+      expect(validateConfiguration(config, testCatalog)).toEqual({ status: 'valid' });
+    });
+
+    it.each([
+      ['off', { highlightEnabled: false, secondaryRanges: [{ start: 0, end: 4 }] }],
+      ['on with no word', { secondaryRanges: [] }],
+    ])('ignores the highlight color while %s, even a missing or equal one', (_label, override) => {
+      for (const secondaryColorId of [null, 'test-text-color-a', 'does-not-exist']) {
+        expect(validateConfiguration(on({ secondaryColorId, ...override }), testCatalog)).toEqual({
+          status: 'valid',
+        });
+      }
+    });
+
+    it('requires a highlight color once a word is highlighted', () => {
+      const config = on({ secondaryRanges: [{ start: 0, end: 4 }] });
+      expect(validateConfiguration(config, testCatalog)).toEqual({
+        status: 'incomplete',
+        issues: [{ kind: 'missing', field: 'secondaryColorId' }],
+      });
+    });
+
+    it.each([
+      ['unknown', 'does-not-exist', 'unknown-reference'],
+      ['unavailable', 'test-text-color-retired', 'unavailable'],
+      ['identical to the primary', 'test-text-color-a', 'same-as-primary'],
+    ] as const)('rejects a highlight color that is %s', (_label, secondaryColorId, code) => {
+      const config = on({ secondaryColorId, secondaryRanges: [{ start: 0, end: 4 }] });
+      expect(issuesOf(validateConfiguration(config, testCatalog))).toContainEqual({
+        kind: 'invalid',
+        field: 'secondaryColorId',
+        code,
+      });
+    });
+
+    it.each([
+      ['out of bounds', [{ start: 0, end: 99 }]],
+      ['part of a word', [{ start: 0, end: 2 }]],
+      ['a space with a word', [{ start: 0, end: 5 }]],
+      [
+        'repeated',
+        [
+          { start: 0, end: 4 },
+          { start: 0, end: 4 },
+        ],
+      ],
+      [
+        'unordered',
+        [
+          { start: 8, end: 11 },
+          { start: 0, end: 4 },
+        ],
+      ],
+      ['empty', [{ start: 2, end: 2 }]],
+    ])('rejects %s highlights', (_label, secondaryRanges) => {
+      const config = on({ secondaryColorId: 'test-text-color-b', secondaryRanges });
+      expect(issuesOf(validateConfiguration(config, testCatalog))).toContainEqual({
+        kind: 'invalid',
+        field: 'secondaryRanges',
+        code: 'invalid-ranges',
+      });
+    });
   });
 
   it('rejects an unknown font family from malformed runtime data', () => {

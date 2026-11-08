@@ -114,24 +114,24 @@ describe('Configurator', () => {
     const ink = (name: string) =>
       within(group('Cor do texto')).getByRole('radio', { name: `Test ${name}` });
     const secondary = (name: string) =>
-      within(group('Segunda cor')).getByRole('radio', { name: `Test ${name}` });
-    const disclosure = () => screen.getByRole('button', { name: 'Usar segunda cor' });
-    const select = (start: number, end: number) => {
-      const field = screen.getByLabelText<HTMLTextAreaElement>('Texto');
-      field.setSelectionRange(start, end);
-      fireEvent.select(field);
-    };
-    const trechos = () => screen.queryByRole('list', { name: 'Trechos com a segunda cor' });
-    const removeTrecho = (letters: string) =>
-      screen.getByRole('button', { name: `Remover segunda cor de “${letters}”` });
-    const removeColor = () => screen.getByRole('button', { name: 'Remover segunda cor' });
+      within(group('Cor de destaque')).getByRole('radio', { name: `Test ${name}` });
+    const highlight = () => screen.getByRole('switch', { name: 'Destacar parte(s) do texto' });
+    const words = () => group('Toque nas palavras que deseja destacar');
+    const word = (name: string) => within(words()).getByRole('button', { name });
+    const pressed = () =>
+      within(words())
+        .getAllByRole('button')
+        .filter((button) => button.getAttribute('aria-pressed') === 'true')
+        .map((button) => button.textContent?.replace('✓ ', ''));
+    const issuesText = () => status().textContent ?? '';
+    const highlightRow = () => within(review()).getByText('Destaque:').nextElementSibling;
 
-    /** Text typed, primary ink A chosen, secondary ink B chosen, and the section open. */
-    async function withSecondary(text: string) {
+    /** Text typed, primary ink A, highlighting on, and highlight ink B. */
+    async function withHighlight(text: string) {
       const context = setup();
       await context.user.type(screen.getByLabelText('Texto'), text);
       await context.user.click(ink('ink A'));
-      await context.user.click(disclosure());
+      await context.user.click(highlight());
       await context.user.click(secondary('ink B'));
       return context;
     }
@@ -184,189 +184,172 @@ describe('Configurator', () => {
       expect(ink('ink A')).toHaveAccessibleName('Test ink A');
     });
 
-    it('hides the second color behind "Usar segunda cor" until requested', async () => {
+    it('shows highlighting as one switch in "Cores do texto", off at first (D-071)', async () => {
       const { user } = setup();
       await user.type(screen.getByLabelText('Texto'), 'Casa');
-      await user.click(ink('ink A'));
 
-      expect(disclosure()).toHaveAttribute('aria-expanded', 'false');
-      expect(screen.queryByRole('group', { name: 'Segunda cor' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /segunda cor à seleção/ })).toBeNull();
+      expect(group('Cores do texto')).toContainElement(group('Cor do texto'));
+      expect(highlight()).not.toBeChecked();
+      expect(screen.queryByRole('group', { name: 'Cor de destaque' })).not.toBeInTheDocument();
+      expect(screen.queryByText('Toque nas palavras que deseja destacar')).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /segunda cor/ })).toBeNull();
 
-      await user.click(disclosure());
-
-      expect(disclosure()).toHaveAttribute('aria-expanded', 'true');
-      expect(document.getElementById(disclosure().getAttribute('aria-controls') ?? '')).toBe(
-        group('Segunda cor').parentElement,
-      );
-      // There is no apply button: tapping a color applies it (D-069).
-      expect(screen.queryByRole('button', { name: /segunda cor à seleção/ })).toBeNull();
-      expect(screen.queryByRole('button', { name: 'Remover segunda cor' })).toBeNull();
-      expect(group('Segunda cor')).toHaveAccessibleDescription(
-        'Selecione as letras no campo Texto e toque em uma cor para destacá-las.',
-      );
+      await user.click(highlight());
+      expect(highlight()).toBeChecked();
+      expect(group('Cor de destaque')).toBeVisible();
+      expect(words()).toBeVisible();
     });
 
-    it('shows the name only on the selected second color (D-069)', async () => {
-      await withSecondary('Casa');
+    it('shows the name only on the selected highlight color, and disables the primary', async () => {
+      await withHighlight('Casa');
       const nameOf = (label: string) =>
-        within(group('Segunda cor')).getByText(label, { selector: 'label span' });
+        within(group('Cor de destaque')).getByText(label, { selector: 'label span' });
 
       expect(nameOf('Test ink B')).toHaveClass('swatch-option__name');
       expect(nameOf('Test ink A')).toHaveClass('visually-hidden');
-      expect(secondary('ink A').closest('label')).toHaveAttribute('title', 'Test ink A');
+      expect(secondary('ink A')).toBeDisabled();
       expect(secondary('ink A')).toHaveAccessibleName('Test ink A');
     });
 
-    it('applies the color as soon as it is tapped, keeping the text unchanged (D-069)', async () => {
+    it('highlights several words at once, keeping the text unchanged', async () => {
+      const { user } = await withHighlight('Casa da Ana');
+
+      await user.click(word('CASA'));
+      await user.click(word('ANA'));
+
+      expect(pressed()).toEqual(['CASA', 'ANA']);
+      expect(screen.getByLabelText('Texto')).toHaveValue('Casa da Ana');
+      expect(screen.getByText('2 palavras destacadas.')).toBeInTheDocument();
+      expect(highlightRow()).toHaveTextContent('Test ink B: CASA, ANA');
+    });
+
+    it('selects repeated words independently, by occurrence', async () => {
+      const { user } = await withHighlight('Ana e Ana');
+
+      await user.click(word('ANA (2ª de 2)'));
+
+      expect(word('ANA (1ª de 2)')).toHaveAttribute('aria-pressed', 'false');
+      expect(word('ANA (2ª de 2)')).toHaveAttribute('aria-pressed', 'true');
+      expect(word('E')).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('restores the primary color when a highlighted word is tapped again', async () => {
+      const { user } = await withHighlight('Casa da Ana');
+      await user.click(word('DA'));
+      await user.click(word('DA'));
+
+      expect(pressed()).toEqual([]);
+      expect(screen.getByText('Nenhuma palavra destacada.')).toBeInTheDocument();
+      expect(highlightRow()).toHaveTextContent('—');
+    });
+
+    it('accepts every word highlighted (D-071)', async () => {
+      const { user } = await withHighlight('Casa da Ana');
+      await user.click(plateRadio('test-plate-square'));
+      for (const name of ['CASA', 'DA', 'ANA']) await user.click(word(name));
+
+      expect(pressed()).toEqual(['CASA', 'DA', 'ANA']);
+      expect(issuesText()).not.toMatch(/destaque/i);
+    });
+
+    it('stays valid with highlighting on and no word, without a highlight color', async () => {
+      const { user } = setup();
+      await user.type(screen.getByLabelText('Texto'), 'Casa');
+      await user.click(ink('ink A'));
+      await user.click(highlight());
+
+      expect(screen.queryByText('Escolha a cor de destaque.')).toBeNull();
+      expect(issuesText()).not.toMatch(/destaque/i);
+
+      // A highlighted word needs a highlight color.
+      await user.click(word('CASA'));
+      expect(screen.getByText('Escolha a cor de destaque.')).toBeInTheDocument();
+      expect(issuesText()).toMatch(/Cor de destaque/);
+      await user.click(secondary('ink B'));
+      expect(screen.queryByText('Escolha a cor de destaque.')).toBeNull();
+    });
+
+    it('keeps accented words and punctuation, with punctuation never selectable', async () => {
+      const { user } = await withHighlight("Ação, d'água e guarda-chuva!");
+
+      expect(
+        within(words())
+          .getAllByRole('button')
+          .map((b) => b.textContent),
+      ).toEqual(['AÇÃO', "D'ÁGUA", 'E', 'GUARDA-CHUVA']);
+      expect(within(words()).getByText('!')).toBeInTheDocument();
+      await user.click(word('AÇÃO'));
+      await user.click(word('GUARDA-CHUVA'));
+      expect(highlightRow()).toHaveTextContent('Test ink B: AÇÃO, GUARDA-CHUVA');
+    });
+
+    it('keeps the line breaks of the text between the words', async () => {
+      const { user } = setup();
+      fireEvent.change(screen.getByLabelText('Texto'), { target: { value: 'Ana\nBia' } });
+      await user.click(ink('ink A'));
+      await user.click(highlight());
+
+      expect(words().querySelectorAll('br')).toHaveLength(1);
+    });
+
+    it('turning highlighting off draws one color but keeps the words for later', async () => {
+      const { user } = await withHighlight('Casa da Ana');
+      await user.click(word('CASA'));
+
+      await user.click(highlight());
+      expect(highlight()).not.toBeChecked();
+      expect(highlightRow()).toHaveTextContent('—');
+      expect(
+        screen.getByText('Destaque desativado: 1 palavra em Test ink B ficam guardadas.'),
+      ).toBeInTheDocument();
+
+      await user.click(highlight());
+      expect(pressed()).toEqual(['CASA']);
+      expect(secondary('ink B')).toBeChecked();
+      expect(highlightRow()).toHaveTextContent('Test ink B: CASA');
+    });
+
+    it('changes the highlight color for every highlighted word', async () => {
       const { user } = setup();
       await user.type(screen.getByLabelText('Texto'), 'Casa da Ana');
-      await user.click(ink('ink A'));
-      await user.click(disclosure());
+      await user.click(ink('ink B'));
+      await user.click(highlight());
+      await user.click(word('CASA'));
+      await user.click(secondary('ink A'));
 
-      select(0, 4);
-      // The selection is named before the colors (D-068).
-      expect(screen.getByText('Seleção: “CASA”')).toBeInTheDocument();
-      await user.click(secondary('ink B'));
-
-      expect(secondary('ink B')).toBeChecked();
-      expect(screen.getByLabelText('Texto')).toHaveValue('Casa da Ana');
-      expect(screen.getByText('Test ink B aplicado a “CASA”.')).toBeInTheDocument();
-      expect(within(trechos() as HTMLElement).getAllByRole('listitem')).toHaveLength(1);
-      expect(removeTrecho('CASA')).toBeInTheDocument();
-      expect(within(review()).getByText(/1 trecho/)).toBeInTheDocument();
+      expect(highlightRow()).toHaveTextContent('Test ink A: CASA');
     });
 
-    it('applies the chosen color again to a new selection when its chip is tapped', async () => {
-      const { user } = await withSecondary('Casa da Ana');
-      select(0, 4);
-      await user.click(secondary('ink B'));
-      select(8, 11);
-      await user.click(secondary('ink B'));
-
-      expect(screen.getByText('Test ink B aplicado a “ANA”.')).toBeInTheDocument();
-      expect(within(trechos() as HTMLElement).getAllByRole('listitem')).toHaveLength(2);
-      expect(
-        screen.getByText('2 trechos em Test ink B. Todos os trechos usam a mesma segunda cor:'),
-      ).toBeInTheDocument();
-    });
-
-    it('only chooses the color without a selection, and says what to do next', async () => {
-      await withSecondary('Casa da Ana');
-
-      expect(secondary('ink B')).toBeChecked();
-      expect(screen.getByText('Nenhuma letra selecionada.')).toBeInTheDocument();
-      expect(
-        screen.getByText(
-          'Segunda cor: Test ink B. Selecione as letras no campo Texto e toque na cor para aplicá-la.',
-        ),
-      ).toBeInTheDocument();
-      expect(trechos()).toBeNull();
-    });
-
-    it('applies a selection made before opening the section, after focus moved away', async () => {
-      const { user } = setup();
-      const field = screen.getByLabelText<HTMLTextAreaElement>('Texto');
-      await user.type(field, 'Casa da Ana');
-      await user.click(ink('ink A'));
-      // Selected without a mouse or key release (as by touch), then focus leaves the field.
-      field.focus();
-      field.setSelectionRange(8, 11);
-      fireEvent(document, new Event('selectionchange'));
-      await user.click(disclosure());
-      expect(field).not.toHaveFocus();
-
-      await user.click(secondary('ink B'));
-      expect(screen.getByText('Test ink B aplicado a “ANA”.')).toBeInTheDocument();
-      expect(removeTrecho('ANA')).toBeInTheDocument();
-    });
-
-    it('removes one trecho from the list but keeps the chosen color', async () => {
-      const { user } = await withSecondary('Casa da Ana');
-      select(0, 4);
-      await user.click(secondary('ink B'));
-      select(8, 11);
-      await user.click(secondary('ink B'));
-
-      await user.click(removeTrecho('CASA'));
-
-      expect(screen.getByText('Segunda cor removida de “CASA”.')).toBeInTheDocument();
-      // Focus stays in the list, on the remaining trecho.
-      expect(removeTrecho('ANA')).toHaveFocus();
-      await user.click(removeTrecho('ANA'));
-      expect(trechos()).toBeNull();
-      expect(removeColor()).toHaveFocus();
-      expect(secondary('ink B')).toBeChecked();
-    });
-
-    it('disables the secondary swatch equal to the primary color', async () => {
-      const { user } = setup();
-      await user.click(ink('ink A'));
-      await user.click(disclosure());
-
-      expect(secondary('ink A')).toBeDisabled();
-      expect(secondary('ink B')).toBeEnabled();
-    });
-
-    it('keeps the color and its trechos when the section is collapsed', async () => {
-      const { user } = await withSecondary('Casa');
-      select(1, 3);
-      await user.click(secondary('ink B'));
-
-      await user.click(disclosure());
-
-      expect(disclosure()).toHaveAttribute('aria-expanded', 'false');
-      expect(screen.queryByRole('group', { name: 'Segunda cor' })).not.toBeInTheDocument();
-      expect(screen.getByText('Segunda cor em uso: Test ink B (1 trecho).')).toBeInTheDocument();
-      expect(within(review()).getByText('Test ink B (1 trecho)')).toBeInTheDocument();
-
-      await user.click(disclosure());
-      expect(secondary('ink B')).toBeChecked();
-      expect(removeTrecho('AS')).toBeInTheDocument();
-    });
-
-    it('clears the color and every trecho with "Remover segunda cor"', async () => {
-      const { user } = await withSecondary('Casa');
-      select(1, 3);
-      await user.click(secondary('ink B'));
-
-      await user.click(removeColor());
-
-      expect(secondary('ink B')).not.toBeChecked();
-      expect(trechos()).toBeNull();
-      expect(screen.queryByRole('button', { name: 'Remover segunda cor' })).toBeNull();
-      expect(disclosure()).toHaveFocus();
-      expect(within(review()).queryByText(/trecho/)).not.toBeInTheDocument();
-    });
-
-    it('keeps an equal-to-primary second color visible and invalid until changed', async () => {
-      const { user } = await withSecondary('Casa');
-      await user.click(disclosure());
+    it('swaps the colors when the highlight color is chosen as the text color', async () => {
+      const { user } = await withHighlight('Casa da Ana');
+      await user.click(word('ANA'));
 
       await user.click(ink('ink B'));
 
-      // The section cannot hide an invalid choice (D-030).
-      expect(screen.queryByRole('button', { name: 'Usar segunda cor' })).toBeNull();
-      expect(group('Segunda cor')).toHaveAccessibleDescription(
-        'A segunda cor deve ser diferente da cor do texto. Selecione as letras no campo Texto e toque em uma cor para destacá-las.',
-      );
-      await user.click(removeColor());
-      expect(screen.queryByRole('group', { name: 'Segunda cor' })).not.toBeInTheDocument();
+      expect(ink('ink B')).toBeChecked();
+      expect(secondary('ink A')).toBeChecked();
+      expect(secondary('ink B')).toBeDisabled();
+      expect(pressed()).toEqual(['ANA']);
+      expect(
+        screen.getByText('As cores foram trocadas: destaque agora em Test ink A.'),
+      ).toBeInTheDocument();
+      expect(highlightRow()).toHaveTextContent('Test ink A: ANA');
     });
 
-    it('keeps the trecho on the same characters when the text is edited', async () => {
-      const { user } = await withSecondary('aaaa');
+    it('keeps a highlight on an unchanged word when the text is edited', async () => {
+      const { user } = await withHighlight('Casa da Ana');
       const field = screen.getByLabelText<HTMLTextAreaElement>('Texto');
-      select(0, 4);
-      await user.click(secondary('ink B'));
+      await user.click(word('ANA'));
 
-      // The caret after the edit locates it: the last character was deleted.
-      // (Ambiguous edits without usable caret data are covered in the hook tests.)
-      fireEvent.change(field, { target: { value: 'aaa' } });
-
-      expect(field).toHaveValue('aaa');
-      expect(removeTrecho('AAA')).toBeInTheDocument();
+      // Typed at the end: "Ana" itself is unchanged.
+      fireEvent.change(field, { target: { value: 'Casa da Ana!', selectionStart: 12 } });
+      expect(pressed()).toEqual(['ANA']);
       expect(formattingNotice()).toBeEmptyDOMElement();
+
+      // Editing the highlighted word removes its highlight, and says so.
+      fireEvent.change(field, { target: { value: 'Casa da Anas!', selectionStart: 12 } });
+      expect(pressed()).toEqual([]);
+      expect(formattingNotice()).toHaveTextContent(/O destaque foi removido/);
     });
 
     it('shows the approved three-paragraph disclaimer (D-056)', () => {

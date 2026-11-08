@@ -197,19 +197,21 @@ describe('drawScene', () => {
   it('paints a mixed-color line as consecutive runs that add up to the same text', () => {
     const { ctx } = paint(
       {
-        text: 'abcd',
+        // "bc" is a highlighted word (D-071).
+        text: 'a bc d',
         textColorId: 'test-text-color-a',
+        highlightEnabled: true,
         secondaryColorId: 'test-text-color-b',
-        secondaryRanges: [{ start: 1, end: 3 }],
+        secondaryRanges: [{ start: 2, end: 4 }],
       },
       400,
     );
     const runs = lines(ctx);
 
     expect(runs.map((run) => [run.text, run.fillStyle])).toEqual([
-      ['a', '#112233'],
+      ['a ', '#112233'],
       ['bc', '#aa2200'],
-      ['d', '#112233'],
+      [' d', '#112233'],
     ]);
     expect(runs.every((run) => run.textAlign === 'left')).toBe(true);
     // Runs are laid out left to right on one baseline with no gaps.
@@ -399,10 +401,12 @@ describe('drawScene: debossed lettering (D-052)', () => {
   it('shades mixed-color runs as one block, keeping each color on the canvas', () => {
     const { ctx } = paint(
       {
-        text: 'abcd',
+        // "bc" is a highlighted word (D-071).
+        text: 'a bc d',
         textColorId: 'test-text-color-a',
+        highlightEnabled: true,
         secondaryColorId: 'test-text-color-b',
-        secondaryRanges: [{ start: 1, end: 3 }],
+        secondaryRanges: [{ start: 2, end: 4 }],
       },
       400,
     );

@@ -284,34 +284,43 @@ test.describe('accordion focus and scrolling (WAI-ARIA)', () => {
     ).toHaveText('Superior à direita');
   });
 
-  test('applies the second color by tapping, after selecting in the field (D-068)', async ({
+  test('highlights words with single taps, keeping the preview in view (D-071)', async ({
     page,
   }) => {
     await toggle(page, 'Texto e cores').tap();
     const field = page.getByLabel('Texto', { exact: true });
-    await field.fill('Casa da Ana');
+    await field.fill('Ana e Ana, João!');
     await page
       .getByRole('group', { name: 'Cor do texto' })
       .getByRole('radio', { name: /Letra azul/ })
       .check();
-    // As with touch handles: no mouse or key release reaches the page.
-    await field.evaluate((element) => {
-      const area = element as HTMLTextAreaElement;
-      area.focus();
-      area.setSelectionRange(0, 4);
-    });
-    await page.getByRole('button', { name: 'Usar segunda cor' }).tap();
-    await expect(page.getByText('Seleção: “CASA”')).toBeVisible();
-    // One tap on the color applies it (D-069).
     await page
-      .getByRole('group', { name: 'Segunda cor' })
+      .locator('label', { has: page.getByRole('switch', { name: 'Destacar parte(s) do texto' }) })
+      .tap();
+    await page
+      .getByRole('group', { name: 'Cor de destaque' })
       .locator('label', { has: page.getByRole('radio', { name: /Letra vinho/ }) })
       .tap();
-    await expect(page.getByText(/aplicado a “CASA”\.$/)).toBeVisible();
-    const remove = page.getByRole('button', { name: 'Remover segunda cor de “CASA”' });
-    await remove.scrollIntoViewIfNeeded();
-    await remove.tap();
-    await expect(page.getByText('Segunda cor removida de “CASA”.')).toBeVisible();
+    const words = page.getByRole('group', { name: 'Toque nas palavras que deseja destacar' });
+    const second = words.getByRole('button', { name: 'ANA (2ª de 2)' });
+    const joao = words.getByRole('button', { name: 'JOÃO' });
+    await second.scrollIntoViewIfNeeded();
+    await second.tap();
+    await joao.tap();
+    await expect(second).toHaveAttribute('aria-pressed', 'true');
+    await expect(joao).toHaveAttribute('aria-pressed', 'true');
+    await expect(words.getByRole('button', { name: 'ANA (1ª de 2)' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    // Compact tokens: two short lines of words, not a tall list.
+    const box = await words.locator('.words').boundingBox();
+    expect(box?.height ?? 999).toBeLessThan(120);
+    // The preview stays at the top while choosing words.
+    const preview = await page.getByRole('region', { name: 'Pré-visualização' }).boundingBox();
+    expect(preview?.y ?? 999).toBeLessThan(10);
+    await joao.tap();
+    await expect(joao).toHaveAttribute('aria-pressed', 'false');
     await expectNoHorizontalScroll(page);
   });
 });

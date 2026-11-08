@@ -67,13 +67,14 @@ export function ReviewPanel({
         <dd>{config.fontFamily === 'serif' ? 'Com serifa' : 'Sem serifa'}</dd>
         <dt>Cor do texto:</dt>
         <dd>{colorName(catalog, config.textColorId, 'Não escolhida')}</dd>
-        <dt>Segunda cor:</dt>
+        {/* What the preview draws: no highlight while it is off or has no word (D-071). */}
+        <dt>Destaque:</dt>
         <dd>
-          {config.secondaryColorId === null
+          {!config.highlightEnabled || config.secondaryRanges.length === 0
             ? '—'
-            : `${colorName(catalog, config.secondaryColorId)} (${config.secondaryRanges.length} ${
-                config.secondaryRanges.length === 1 ? 'trecho' : 'trechos'
-              })`}
+            : `${colorName(catalog, config.secondaryColorId, 'Cor não escolhida')}: ${config.secondaryRanges
+                .map(({ start, end }) => text.slice(start, end))
+                .join(', ')}`}
         </dd>
         <dt>Alinhamento:</dt>
         <dd>{ALIGNMENT_LABELS[placement.align]}</dd>

@@ -126,6 +126,7 @@ export function config(overrides: Partial<Configuration> = {}): Configuration {
     // "Com serifa" letters the text as typed; "Sem serifa" capitals are covered separately (D-068).
     fontFamily: 'serif',
     textColorId: 'test-text-color-a',
+    highlightEnabled: false,
     secondaryColorId: null,
     secondaryRanges: [],
     textLayout: null,

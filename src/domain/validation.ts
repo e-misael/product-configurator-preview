@@ -9,7 +9,7 @@
  */
 
 import { FONT_FAMILIES } from './types';
-import { areValidRanges } from './text-ranges';
+import { areWordRanges } from './text-words';
 import { isValidPlacement } from './text-placement';
 import type {
   Catalog,
@@ -27,6 +27,7 @@ export function createEmptyConfiguration(): Configuration {
     text: '',
     fontFamily: 'sans-serif',
     textColorId: null,
+    highlightEnabled: false,
     secondaryColorId: null,
     secondaryRanges: [],
     textLayout: null,
@@ -99,7 +100,12 @@ export function validateConfiguration(config: Configuration, catalog: Catalog): 
     }
   }
 
-  if (config.secondaryColorId !== null) {
+  // Highlighting (D-071) is checked only while it is on and has words: off, or
+  // with no word, the piece has one color and nothing about the second matters.
+  const highlighting = config.highlightEnabled && config.secondaryRanges.length > 0;
+  if (highlighting && config.secondaryColorId === null) {
+    issues.push({ kind: 'missing', field: 'secondaryColorId' });
+  } else if (highlighting && config.secondaryColorId !== null) {
     const color = findTextColor(catalog, config.secondaryColorId);
     if (color === undefined) {
       issues.push({ kind: 'invalid', field: 'secondaryColorId', code: 'unknown-reference' });
@@ -110,12 +116,8 @@ export function validateConfiguration(config: Configuration, catalog: Catalog): 
     }
   }
 
-  if (config.secondaryRanges.length > 0) {
-    if (config.secondaryColorId === null) {
-      issues.push({ kind: 'invalid', field: 'secondaryRanges', code: 'ranges-without-color' });
-    } else if (!areValidRanges(config.text, config.secondaryRanges)) {
-      issues.push({ kind: 'invalid', field: 'secondaryRanges', code: 'invalid-ranges' });
-    }
+  if (highlighting && !areWordRanges(config.text, config.secondaryRanges)) {
+    issues.push({ kind: 'invalid', field: 'secondaryRanges', code: 'invalid-ranges' });
   }
 
   // Placement is raw user input; it is reported, never clamped (D-044).

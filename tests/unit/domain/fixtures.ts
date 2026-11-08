@@ -44,6 +44,7 @@ export function validConfiguration(overrides: Partial<Configuration> = {}): Conf
     text: 'Casa da Ana',
     fontFamily: 'sans-serif',
     textColorId: 'test-text-color-a',
+    highlightEnabled: false,
     secondaryColorId: null,
     secondaryRanges: [],
     textLayout: null,
