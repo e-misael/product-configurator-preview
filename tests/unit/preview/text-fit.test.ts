@@ -1,5 +1,7 @@
 import {
+  addsLineBeyondCapacity,
   layoutText,
+  lineCapacity,
   LINE_HEIGHT,
   wrapText,
   wrapTextWithOffsets,
@@ -162,5 +164,48 @@ describe('wrapTextWithOffsets', () => {
     const fit = layoutText('Casa\nda Ana', area(1000, 400), 10, measure);
     expect(fit.lines).toEqual(['Casa', 'da Ana']);
     expect(fit.starts).toEqual([0, 5]);
+  });
+});
+
+describe('line limit (D-063)', () => {
+  // Font 10, lines 12 high: 3 lines fit in 40; 8 characters per line in 40 wide.
+  const box = area(40, 40);
+  const adds = (previous: string, next: string) =>
+    addsLineBeyondCapacity(previous, next, box, 10, measure);
+
+  it('counts the whole lines an area holds', () => {
+    expect(lineCapacity(40, 12)).toBe(3);
+    expect(lineCapacity(36, 12)).toBe(3);
+    expect(lineCapacity(11, 12)).toBe(0);
+  });
+
+  it('accepts line breaks up to the capacity', () => {
+    expect(adds('a', 'a\n')).toBe(false);
+    expect(adds('a\nb', 'a\nb\n')).toBe(false);
+  });
+
+  it('refuses a line break past the capacity, whether typed or pasted, LF or CRLF', () => {
+    expect(adds('a\nb\nc', 'a\nb\nc\n')).toBe(true);
+    expect(adds('', 'a\nb\nc\nd')).toBe(true);
+    expect(adds('a\r\nb\r\nc', 'a\r\nb\r\nc\r\n')).toBe(true);
+  });
+
+  it('never refuses deletions or text without new breaks, even when it wraps past the area', () => {
+    expect(adds('a\nb\nc\nd', 'a\nb\nc')).toBe(false);
+    expect(adds('a\nb\nc', 'a\nb\nc casa longa demais')).toBe(false);
+  });
+
+  it('accepts a break that adds no line, such as one at a soft wrap', () => {
+    // "casa da" fills a line; "Ana" already wraps to the next: the break only replaces the space.
+    expect(adds('x\ncasa da Ana', 'x\ncasa da\nAna')).toBe(false);
+  });
+
+  it('refuses a break that makes already overflowing text worse', () => {
+    expect(
+      adds(
+        'a b c d e f g h i j k l m n o p q r s t u v w x y z',
+        'a\nb c d e f g h i j k l m n o p q r s t u v w x y z',
+      ),
+    ).toBe(true);
   });
 });

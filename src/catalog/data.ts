@@ -129,4 +129,6 @@ export const catalogData: Catalog = {
     { id: 'verde', type: 'text-color', displayName: 'Verde', hex: '#2f4a36' },
     { id: 'vermelho-escuro', type: 'text-color', displayName: 'Vermelho escuro', hex: '#7a1f1f' },
   ],
+  // Selected when the configurator opens (product owner, 2026-11-08, D-064).
+  defaultTextColorId: 'marrom',
 };

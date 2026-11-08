@@ -3,11 +3,13 @@ import { FALLBACK_TEXT_COLOR } from '../../../src/preview/text-style';
 import {
   buildScene,
   placeBlock,
+  textFrameOf,
   type ImageSize,
   type ImageState,
   type Scene,
 } from '../../../src/preview/scene';
 import { WATERMARK_SRC } from '../../../src/preview/watermark';
+import { findPlate } from '../../../src/domain';
 import { config, previewCatalog, previewSizes, validate } from './fixtures';
 
 interface TestImage extends ImageSize {
@@ -357,5 +359,32 @@ describe('buildScene: text placement (D-044)', () => {
     const block = textBlock(sceneFor({ textLayout: { align: 'left', x: 7, y: 0 } }));
     expect(block.bounds).toEqual({ x: 170, y: 176, width: 60, height: 48 });
     expect(block.align).toBe('center');
+  });
+});
+
+describe('textFrameOf (D-063)', () => {
+  const plate = (id: string) => findPlate(previewCatalog, id);
+
+  it('gives the same area and lettering size as the drawn text, before any text is entered', () => {
+    const empty = sceneFor({ text: '' });
+    const drawn = sceneFor({ text: 'Ana' }).layers.find((layer) => layer.kind === 'text');
+    if (drawn?.kind !== 'text') throw new Error('no text layer');
+
+    expect(textFrameOf(plate('test-plate-square'), empty)).toEqual({
+      area: drawn.block.area,
+      fontSize: drawn.block.fontSize,
+      lineHeight: drawn.block.lineHeight,
+    });
+  });
+
+  it('is undefined before the photograph is drawn, without a model, or without an approved size', () => {
+    expect(textFrameOf(plate('test-plate-square'), { width: 0, height: 0 })).toBeUndefined();
+    expect(textFrameOf(undefined, sceneFor())).toBeUndefined();
+    expect(
+      textFrameOf(
+        plate('test-plate-size-pending'),
+        sceneFor({ plateId: 'test-plate-size-pending' }),
+      ),
+    ).toBeUndefined();
   });
 });

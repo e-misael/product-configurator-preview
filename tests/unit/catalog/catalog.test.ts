@@ -23,7 +23,15 @@ describe('production catalog', () => {
       ['bandeja-ondulada-m-8', 'Bandeja ondulada M', '8 × 8 cm', 'scalloped'],
       ['bandeja-ondulada-g-11', 'Bandeja ondulada G', '11 × 11 cm', 'scalloped'],
     ]);
-    expect(Object.keys(getCatalog())).toEqual(['plates', 'textColors']);
+    expect(Object.keys(getCatalog())).toEqual(['plates', 'textColors', 'defaultTextColorId']);
+  });
+
+  it('starts with Marrom selected, an available color (D-064)', () => {
+    const catalog = getCatalog();
+    expect(catalog.defaultTextColorId).toBe('marrom');
+    expect(
+      catalog.textColors.find((color) => color.id === catalog.defaultTextColorId)?.displayName,
+    ).toBe('Marrom');
   });
 
   it('lists exactly the four approved lettering colors, in order (D-056)', () => {

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   catalogTextAlign,
   effectivePlacement,
@@ -11,9 +11,12 @@ import {
   type Plate,
 } from '../../domain';
 import { issueFor, type useConfiguration } from '../../hooks/useConfiguration';
+import { createTextMeasurer } from '../../preview/draw';
 import { textBlockOf } from '../../preview/placement';
-import type { Scene } from '../../preview/scene';
+import { textFrameOf, type Scene } from '../../preview/scene';
+import { addsLineBeyondCapacity, lineCapacity } from '../../preview/text-fit';
 import { Step } from '../layout/Step';
+import { lineLimitMessage, overflowMessage } from '../preview/messages';
 import { TextPositionControls, type PositionMode } from '../preview/TextPositionControls';
 import { ReviewPanel } from '../review/ReviewPanel';
 import { FontField } from './FontField';
@@ -69,6 +72,14 @@ export function ConfiguratorForm({
   const showRangeActions =
     config.secondaryColorId !== null && (secondaryOpen || secondaryIssue?.kind === 'invalid');
   const block = textBlockOf(scene);
+  const measure = useMemo(() => createTextMeasurer(config.fontFamily), [config.fontFamily]);
+  // Line breaks beyond the model's text area are refused (D-063); wrapping still overflows.
+  const frame = textFrameOf(plate, scene);
+  const lineLimit = frame && {
+    refuses: (next: string) =>
+      addsLineBeyondCapacity(config.text, next, frame.area, frame.fontSize, measure),
+    message: lineLimitMessage(lineCapacity(frame.area.height, frame.lineHeight)),
+  };
   const placement = effectivePlacement(config, catalog);
   const catalogAlign = catalogTextAlign(plate);
   const preset = PRESET_ROWS.flatMap((row) =>
@@ -129,6 +140,12 @@ export function ConfiguratorForm({
           text={config.text}
           issue={issueFor(validation, 'text')}
           onChange={state.setText}
+          overflow={
+            scene.notices.includes('text-overflow')
+              ? overflowMessage(block?.excessLines ?? 0)
+              : undefined
+          }
+          lineLimit={lineLimit}
           secondary={
             showRangeActions
               ? {

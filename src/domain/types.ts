@@ -112,6 +112,11 @@ export type CatalogComponent = Plate | TextColor;
 export interface Catalog {
   readonly plates: readonly Plate[];
   readonly textColors: readonly TextColor[];
+  /**
+   * The lettering color selected when the configurator opens (D-064); the
+   * customer may change it. Must name an available color. Omitted: none.
+   */
+  readonly defaultTextColorId?: string;
 }
 
 /** Provisional system font stacks are mapped in the renderer; real typography is pending (P-14). */
@@ -149,7 +154,7 @@ export interface Configuration {
   /** Raw user text, preserved exactly as entered. */
   readonly text: string;
   readonly fontFamily: FontFamily;
-  /** Required lettering color; references `TextColor.id`. No default (D-042). */
+  /** Required lettering color; references `TextColor.id`. Starts at the catalog default, if any (D-064). */
   readonly textColorId: string | null;
   /** Optional second lettering color. Kept when its last range is removed. */
   readonly secondaryColorId: string | null;
@@ -193,7 +198,8 @@ export type CatalogIssueCode =
   | 'invalid-asset'
   | 'empty-label'
   | 'invalid-placement'
-  | 'invalid-color';
+  | 'invalid-color'
+  | 'unknown-reference';
 
 /**
  * A catalog integrity problem. `path` locates the offending value

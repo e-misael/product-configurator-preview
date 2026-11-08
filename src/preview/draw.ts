@@ -152,11 +152,6 @@ function drawSignature(
     ctx.font = signatureFont(fontSize);
     return ctx.measureText(SIGNATURE.text).width;
   });
-  ctx.globalAlpha = SIGNATURE.fillAlpha;
-  ctx.fillStyle = SIGNATURE.fill;
-  ctx.beginPath();
-  ctx.roundRect(box.x, box.y, box.width, box.height, box.height / 2);
-  ctx.fill();
   ctx.globalAlpha = SIGNATURE.inkAlpha;
   const { x, y, width: w, height: h } = box.mark;
   ctx.drawImage(mark, MARK_INK.x, MARK_INK.y, MARK_INK.width, MARK_INK.height, x, y, w, h);

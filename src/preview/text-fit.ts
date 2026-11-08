@@ -127,7 +127,37 @@ export function layoutText(
   const tooTall = lines.length * lineHeight > area.height;
   // A single character wider than the area still overflows horizontally.
   const overflow = tooTall || lines.some((line) => measure(line, fontSize) > area.width);
-  const capacity = Math.floor(area.height / lineHeight);
+  const capacity = lineCapacity(area.height, lineHeight);
   const excessLines = tooTall ? Math.max(1, lines.length - capacity) : 0;
   return { lines, starts, fontSize, lineHeight, overflow, excessLines };
+}
+
+/** Whole lines that fit in a text area of `height` at `lineHeight`. */
+export function lineCapacity(height: number, lineHeight: number): number {
+  return Math.floor(height / lineHeight);
+}
+
+const LINE_BREAK = /\r\n|\r|\n/g;
+
+function lineBreaks(text: string): number {
+  return text.match(LINE_BREAK)?.length ?? 0;
+}
+
+/**
+ * Whether the edit from `previous` to `next` adds a line break that pushes the
+ * text past the lines the area holds (D-063). Only added breaks are refused:
+ * typing or pasting without new breaks, and any deletion, are always
+ * accepted, so text that overflows by wrapping is still reported as overflow,
+ * never cut.
+ */
+export function addsLineBeyondCapacity(
+  previous: string,
+  next: string,
+  area: Rect,
+  fontSize: number,
+  measure: MeasureText,
+): boolean {
+  if (lineBreaks(next) <= lineBreaks(previous)) return false;
+  const after = layoutText(next, area, fontSize, measure).excessLines;
+  return after > 0 && after > layoutText(previous, area, fontSize, measure).excessLines;
 }

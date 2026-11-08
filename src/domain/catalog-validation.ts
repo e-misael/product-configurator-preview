@@ -7,6 +7,7 @@
  */
 
 import { TEXT_ALIGNMENTS } from './types';
+import { isAvailable } from './validation';
 import type {
   AssetRef,
   Catalog,
@@ -180,6 +181,15 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
       report('invalid-color', `${path}.hex`, color.id);
     }
   });
+
+  // The default lettering color must be one the customer could choose (D-064).
+  const defaultColor = catalog.defaultTextColorId;
+  if (
+    defaultColor !== undefined &&
+    !catalog.textColors.some((color) => color.id === defaultColor && isAvailable(color))
+  ) {
+    report('unknown-reference', 'defaultTextColorId', defaultColor);
+  }
 
   return issues.length === 0 ? { status: 'valid' } : { status: 'invalid', issues };
 }

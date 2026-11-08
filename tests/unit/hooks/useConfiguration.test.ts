@@ -24,6 +24,13 @@ describe('useConfiguration', () => {
     expect(result.current.notice).toBeNull();
   });
 
+  it('starts at the catalog default lettering color, if any (D-064)', () => {
+    const { result } = renderHook(() =>
+      useConfiguration({ ...testCatalog, defaultTextColorId: 'test-text-color-a' }),
+    );
+    expect(result.current.config.textColorId).toBe('test-text-color-a');
+  });
+
   it('reaches a valid configuration through its actions', () => {
     const { result } = setup();
 

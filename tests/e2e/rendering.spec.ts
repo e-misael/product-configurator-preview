@@ -524,7 +524,8 @@ test.describe('Lettering on the catalog photographs', () => {
       const area = full.area ?? { x: 0, y: 0, width: 0, height: 0 };
 
       // Something is painted, only in the corner, below and right of the text area.
-      expect(full.box.count).toBeGreaterThan(full.pixels * 0.002);
+      // Mark and text only, with no background pill (D-065).
+      expect(full.box.count).toBeGreaterThan(full.pixels * 0.0008);
       expect(full.box.x0).toBeGreaterThan(0.75);
       expect(full.box.y0).toBeGreaterThan(0.9);
       expect(full.box.x1).toBeLessThan(0.99);

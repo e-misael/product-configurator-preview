@@ -76,7 +76,7 @@ Acceptance criteria:
 Typography and lettering colors (M4.1b-1, D-042, D-043):
 
 6. The font is "Sem serifa" (default) or "Com serifa"; the preview uses provisional system font stacks (P-14).
-7. A lettering color ("Cor do texto") must be chosen explicitly from the catalog palette; without one the configuration is _incomplete_. The production palette is Marrom, Azul, Verde, Vermelho escuro (D-056); an empty palette would say so in the UI. Until one is chosen, the preview draws the text in a provisional neutral color and says so ("Cor do texto ainda não escolhida…"); the summary shows "Não escolhida".
+7. A lettering color ("Cor do texto") is required; the catalog may name a default that starts selected (production: Marrom, D-064), which the customer can change. Without one (no default, or a catalog without it) the configuration is _incomplete_. The production palette is Marrom, Azul, Verde, Vermelho escuro (D-056); an empty palette would say so in the UI. Until one is chosen, the preview draws the text in a provisional neutral color and says so ("Cor do texto ainda não escolhida…"); the summary shows "Não escolhida".
 8. Any available color may be the second color (D-056). An optional second color is applied to the selected characters with "Aplicar segunda cor à seleção" and removed with "Remover segunda cor da seleção". Ranges never split a grapheme or include a line break; the text itself is never changed by formatting. A second color equal to the first is _invalid_ (`same-as-primary`) and its swatch is disabled.
 9. Editing the text moves the colored ranges with the edit, using the textarea caret when available; when the edit cannot be located the affected formatting is removed and a notice says so. Removing the last range keeps the chosen second color; only "Remover segunda cor" clears the color and its ranges.
 10. The handmade-product disclaimer is shown below the controls, in three paragraphs (copy in D-056).
@@ -87,6 +87,7 @@ Lettering-color controls (M4.2, D-047):
 21. The second color is behind a "Usar segunda cor" button (`aria-expanded`, `aria-controls`). Its swatches appear only when expanded; the selection actions appear only when a second color is chosen and the section is open; "Remover segunda cor" appears only when a second color is chosen.
 22. Collapsing the section never changes the configuration: the color and its trechos stay, shown as "Segunda cor em uso: {cor} ({n} trechos)." and in the summary. "Remover segunda cor" clears the color and every trecho and returns focus to "Usar segunda cor".
 23. An invalid second color (unavailable or equal to the primary) keeps the section open, without the toggle, with its message, until it is replaced or removed (D-030).
+24. A line break that would take the text past the lines the model's calibrated area holds (at its fixed lettering size) is refused: the text and caret stay as they were and "Este modelo comporta no máximo N linhas." is announced. Typing or pasting without new breaks, and deletions, are never refused, so text that wraps past the area still overflows. While it overflows, the warning is also shown as an error under the "Texto" field (which is marked invalid) and in the error style in the preview (D-063).
 
 Text alignment and position (M4.1b-2, D-044):
 
@@ -100,7 +101,7 @@ Text alignment and position (M4.1b-2, D-044):
 18. Text that cannot fit keeps the established overflow warning and placement; the position controls cannot move it on an axis without free space. Export of overflowing text is blocked (FR-07.6).
 19. While no text is drawn on the image (no photograph, no calibrated text area, no size chosen, or no text), only a hint is shown: "Disponível quando o texto aparece na pré-visualização: escolha o modelo e digite o texto." (D-058).
 
-Status: UI (M2) for criteria 1–4; criterion 5 (M3.1); criteria 6–10 (M4.1b-1); criteria 11–19 (M4.1b-2, criteria 11, 12, and 15 revised by M4.2 and M4.5; 11, 12, 14–16, and 19 revised by M4.6); criteria 20–23 (M4.2).
+Status: UI (M2) for criteria 1–4; criterion 5 (M3.1); criteria 6–10 (M4.1b-1); criteria 11–19 (M4.1b-2, criteria 11, 12, and 15 revised by M4.2 and M4.5; 11, 12, 14–16, and 19 revised by M4.6); criteria 20–23 (M4.2); criterion 24 (M4.6, D-063).
 
 ### FR-06 — Real-time preview
 
@@ -115,7 +116,7 @@ Acceptance criteria:
 7. Each reason an image is not shown — model not selected or invalid, image not yet registered, loading, file failed to load, text area not calibrated, lettering size not yet defined, text too long — is stated in text and distinct from the others; nothing else is substituted.
 8. Text keeps its line breaks, is never altered, truncated, or silently clipped, and is drawn at the model's fixed lettering size whatever its length, wrapping, alignment, or position (D-055); text that does not fit shows a visible warning and cannot be exported. While it overflows, the preview (never the export) outlines the calibrated text area with a dashed line, and for vertical overflow the warning states how many lines are over ("1 linha a mais", "2 linhas a mais"; D-057). A model without an approved lettering size shows no text on the image, says so, and cannot be exported with text.
 
-9. Every composition ends with the Taavi signature at the bottom-right (D-060), identical in the preview and the export.
+9. Every composition ends with the Taavi signature at the bottom-right (D-060), identical in the preview and the export: the arch and "© Taavi" with no background, 0.0825 of the shorter side high (D-065).
 10. Before a model group's size is chosen, the group's shared photograph is shown without lettering, with "Selecione o tamanho para visualizar a personalização." (D-061).
 11. On phones the preview comes first and stays at the top once a model is chosen, compact, reduced while editing text, and larger while positioning text (D-058).
 
@@ -131,7 +132,7 @@ Acceptance criteria:
 4. The exported image renders the same font family, lettering colors (M4.1b-1), and text alignment and position (M4.1b-2) as the preview, from the same scene (D-039).
 5. Export is offered only for a _valid_ configuration; in particular, a valid primary lettering color is required (the preview's provisional color is never exported, D-043).
 6. Export is blocked while the scene reports any preview notice: an image pending, loading, or failed; a pending text area; the provisional text color; or `text-overflow` (D-044). Selected elements are never silently left out.
-7. While blocked, the button stays focusable (`aria-disabled="true"`) and click or keyboard activation does nothing; the reasons are listed below it ("Para exportar a imagem:"), and preview problems refer to the preview notices, which join the button's accessible description.
+7. While blocked, the button stays focusable (`aria-disabled="true"`) and click or keyboard activation does nothing; the reasons are listed above it ("Para exportar a imagem:") and form the button's accessible description. Every reason is named, preview problems in the preview's own words (e.g. "O texto não cabe na área do modelo: 1 linha a mais…"); notices that only restate a missing choice are not repeated (D-063). The blocked button looks inactive (dashed border, muted text).
 8. Failures (canvas allocation, 2D context, drawing, encoding, object URL, download start) show "Não foi possível gerar a imagem. Tente novamente." (or the dimension message) and leave the button usable; success announces "Imagem exportada: {filename}".
 9. "Exportar imagem" is the last action of "Revisar personalização", after the summary, the status, and the disclaimer (D-058). Export is also blocked while the Taavi signature cannot be loaded, and no PNG is ever written without it (D-060), or while a model group's size is not chosen (D-061).
 10. An optional "Observação" textarea sits just before "Exportar imagem". It is stored exactly as typed, never validated, never required, and never drawn on the preview or the PNG; its hint says so ("Opcional. Não aparece na imagem exportada.", D-062).

@@ -307,11 +307,14 @@ test.describe('blocked export', () => {
     await ready(page);
     await (
       await textField(page)
-    ).fill(Array.from({ length: 40 }, (_, i) => `linha ${i}`).join('\n'));
+    ).fill(Array.from({ length: 40 }, (_, i) => `linha ${i}`).join(' '));
     await openStep(page, 'Revisar personalização');
 
     await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'true');
-    await expect(review(page)).toContainText('Resolva os avisos da pré-visualização acima.');
+    // The overflow is named among the reasons (D-063).
+    await expect(review(page).locator('#export-reasons')).toContainText(
+      'O texto não cabe na área do modelo',
+    );
     await expect(exportButton(page)).toHaveAccessibleDescription(/O texto não cabe/);
     await expectNoDownload(page);
   });

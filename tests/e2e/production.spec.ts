@@ -147,7 +147,9 @@ test.describe('Production build @smoke', () => {
     for (const [index, [name, rgb]] of COLORS.entries()) {
       const label = labels.nth(index);
       await expect(label).toHaveText(new RegExp(`${name}$`));
-      await expect(label.getByRole('radio', { name })).not.toBeChecked();
+      // Marrom, the first, is selected from the start (D-064).
+      if (index === 0) await expect(label.getByRole('radio', { name })).toBeChecked();
+      else await expect(label.getByRole('radio', { name })).not.toBeChecked();
       await expect(label.locator('.swatch-option__chip')).toHaveCSS(
         'background-color',
         `rgb(${rgb.join(', ')})`,
@@ -166,16 +168,17 @@ test.describe('Production build @smoke', () => {
     for (const paragraph of DISCLAIMER) await expect(review.getByText(paragraph)).toBeVisible();
   });
 
-  test('requires a lettering color before export', async ({ page }) => {
+  test('starts with Marrom; export waits only for the text (D-064)', async ({ page }) => {
     await page.goto('/');
     await chooseModel(page, 'Placa cerâmica — 10 × 10 cm');
-    await (await textField(page)).fill('Ana');
 
     const review = await step(page, 'Revisar personalização');
     const button = review.getByRole('button', { name: 'Exportar imagem' });
     await expect(button).toHaveAttribute('aria-disabled', 'true');
-    await expect(review).toContainText('Falta escolher: Cor do texto.');
-    await expect(button).toHaveAccessibleDescription(/Falta escolher: Cor do texto/);
+    await expect(review).toContainText('Falta escolher: Texto.');
+    await expect(review).not.toContainText('Cor do texto.');
+    await expect(review).toContainText('Cor do texto:Marrom');
+    await expect(button).toHaveAccessibleDescription(/Falta escolher: Texto/);
     let downloads = 0;
     page.on('download', () => (downloads += 1));
     // Playwright waits for `aria-disabled` buttons to become enabled; force the real click.
@@ -183,11 +186,7 @@ test.describe('Production build @smoke', () => {
     await page.waitForTimeout(300);
     expect(downloads).toBe(0);
 
-    await openStep(page, 'Texto e cores');
-    await page
-      .getByRole('group', { name: 'Cor do texto' })
-      .getByRole('radio', { name: 'Marrom' })
-      .check();
+    await (await textField(page)).fill('Ana');
     await openStep(page, 'Revisar personalização');
     await expect(button).toHaveAttribute('aria-disabled', 'false');
   });
@@ -349,11 +348,17 @@ test.describe('Quadro and Bandeja photographs (M1.3b-2)', () => {
     await chooseModel(page, 'Bandeja ondulada M — 8 × 8 cm');
     const preview = page.getByRole('region', { name: 'Pré-visualização' });
     await expect(preview.getByRole('img')).toBeVisible();
-    await (await textField(page)).fill('Ana\nLuz\nLeo\nBia');
-
-    await expect(preview).toContainText(
-      'O texto não cabe na área do modelo: 1 linha a mais. Reduza o texto ou use menos linhas.',
+    const field = await textField(page);
+    // A fourth line break is refused (D-063); a long last line still wraps past the area.
+    await field.fill('Ana\nLuz\nLeo\nBia');
+    await expect(field).toHaveValue('');
+    await expect(page.locator('#text-line-limit')).toHaveText(
+      'Este modelo comporta no máximo 3 linhas.',
     );
+    await field.fill('Ana\nLuz\nLeo');
+    await field.fill('Ana\nLuz\nLeo Bia Mar Sol Lua Céu Rio');
+
+    await expect(preview).toContainText(/O texto não cabe na área do modelo: \d+ linhas? a mais\./);
   });
 });
 
@@ -657,7 +662,25 @@ test.describe('Overflow at the fixed lettering size (D-057)', () => {
       // The photograph's own dark specks along the edge, without an outline.
       const base = await outlinePixels(page, area);
 
+      // One more line break is refused, at the line count of the real calibration (D-063).
       await field.fill(lines(area.lines + 1));
+      await expect(field).toHaveValue(lines(area.lines));
+      await expect(page.locator('#text-line-limit')).toHaveText(
+        `Este modelo comporta no máximo ${area.lines} linhas.`,
+      );
+      await expect(preview).not.toContainText('O texto não cabe');
+
+      // Wrapping still overflows: the shortest run of "m" on the last line that wraps onto one more line.
+      const last = (count: number) => `${lines(area.lines - 1)}\n${'m'.repeat(count)}`;
+      let wraps = 0;
+      for (let count = 1; count < 80 && wraps === 0; count += 1) {
+        await field.fill(last(count));
+        const overflowing = await page.evaluate(
+          () => document.getElementById('text-overflow') !== null,
+        );
+        if (overflowing) wraps = count;
+      }
+      expect(wraps).toBeGreaterThan(1);
       await expect(preview).toContainText(
         'O texto não cabe na área do modelo: 1 linha a mais. Reduza o texto ou use menos linhas.',
       );
@@ -665,7 +688,8 @@ test.describe('Overflow at the fixed lettering size (D-057)', () => {
       await expect(button).toHaveAccessibleDescription(/1 linha a mais/);
       await expect.poll(() => outlinePixels(page, area)).toBeGreaterThan(base + 20);
 
-      await field.fill(lines(area.lines + 2));
+      // Twice the line's capacity plus one character: two lines over.
+      await field.fill(last(2 * wraps - 1));
       await expect(preview).toContainText('O texto não cabe na área do modelo: 2 linhas a mais.');
 
       await field.fill(lines(area.lines));

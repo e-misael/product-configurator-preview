@@ -37,10 +37,27 @@ export function overflowMessage(excessLines: number): string {
   return `O texto não cabe na área do modelo: ${count}. Reduza o texto ou use menos linhas.`;
 }
 
+/** The message for a preview notice; overflow states the excess lines (D-057). */
+export function noticeMessage(
+  code: PreviewNoticeCode,
+  excessLines: number,
+  sizePending: boolean,
+): string {
+  if (code === 'text-overflow') return overflowMessage(excessLines);
+  if (code === 'plate-not-selected' && sizePending) return SIZE_PENDING_MESSAGE;
+  return NOTICE_MESSAGES[code];
+}
+
+/** A line break refused because the model holds no more lines (D-063). */
+export function lineLimitMessage(maxLines: number): string {
+  return maxLines === 1
+    ? 'Este modelo comporta no máximo 1 linha.'
+    : `Este modelo comporta no máximo ${maxLines} linhas.`;
+}
+
 /** pt-BR wording for PNG export (D-008). */
 export const EXPORT_MESSAGES = {
   empty: 'Não há imagem para exportar.',
-  previewIncomplete: 'Resolva os avisos da pré-visualização acima.',
   working: 'Gerando a imagem…',
   done: 'Imagem exportada:',
   failed: 'Não foi possível gerar a imagem. Tente novamente.',

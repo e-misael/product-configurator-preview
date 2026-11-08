@@ -109,7 +109,6 @@ export function ReviewPanel({
         scene={scene}
         validation={validation}
         plateId={config.plateId}
-        noticesId="preview-notices"
         sizePending={sizePending}
       />
     </div>

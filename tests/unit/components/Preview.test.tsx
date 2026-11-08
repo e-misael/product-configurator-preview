@@ -189,11 +189,82 @@ describe('Preview', () => {
       expect(summaryText()?.textContent).toBe('  Ana\nMaria  ');
     });
 
+    describe('line limit (D-063)', () => {
+      const field = () => screen.getByLabelText<HTMLTextAreaElement>('Texto');
+      const limitNote = () => document.getElementById('text-line-limit');
+      const LIMIT = 'Este modelo comporta no máximo 3 linhas.';
+
+      it('refuses a line break past the 3 lines the area holds, keeping text and caret', async () => {
+        const { user } = await squarePlate();
+
+        await user.type(field(), 'L0{Enter}L1{Enter}L2');
+        expect(limitNote()).toBeEmptyDOMElement();
+
+        await user.type(field(), '{Enter}');
+        expect(field()).toHaveValue('L0\nL1\nL2');
+        expect(field().selectionStart).toBe(8);
+        expect(limitNote()).toHaveTextContent(LIMIT);
+        expect(field()).toHaveAccessibleDescription(new RegExp(LIMIT));
+        expect(within(preview()).queryByText(/O texto não cabe/)).toBeNull();
+
+        // Any accepted edit clears the note.
+        await user.type(field(), 'x');
+        expect(field()).toHaveValue('L0\nL1\nL2x');
+        expect(limitNote()).toBeEmptyDOMElement();
+      });
+
+      it('refuses pasted lines past the area, also into an empty field', async () => {
+        const { user } = await squarePlate();
+
+        await user.click(field());
+        await user.paste('a\nb\nc\nd');
+        expect(field()).toHaveValue('');
+        expect(limitNote()).toHaveTextContent(LIMIT);
+
+        await user.paste('a\nb\nc');
+        expect(field()).toHaveValue('a\nb\nc');
+      });
+
+      it('shows text that wraps past the area as an error beside the field and among the export reasons', async () => {
+        const { user } = await squarePlate();
+        await choose(user, 'Cor do texto', 'Test ink A');
+
+        await user.type(field(), 'L0{Enter}L1{Enter}L2 abcdefghijk');
+
+        const message =
+          'O texto não cabe na área do modelo: 1 linha a mais. Reduza o texto ou use menos linhas.';
+        expect(field()).toHaveAttribute('aria-invalid', 'true');
+        expect(field()).toHaveAccessibleDescription(new RegExp(message.replace(/\./g, '\\.')));
+        expect(document.getElementById('text-overflow')).toHaveClass('field__error--alert');
+        expect(within(preview()).getByText(message)).toHaveClass('preview__notice--error');
+        expect(review().querySelector('#export-reasons')).toHaveTextContent(message);
+        expect(within(review()).getByRole('button', { name: 'Exportar imagem' })).toHaveAttribute(
+          'aria-disabled',
+          'true',
+        );
+
+        await user.type(field(), '{Backspace}'.repeat(12));
+        expect(field()).not.toHaveAttribute('aria-invalid');
+        expect(document.getElementById('text-overflow')).toBeNull();
+      });
+
+      it('applies no limit while the model has no approved lettering size', async () => {
+        const { user } = setup();
+        await choosePlate(user, /^Test plate size pending /);
+        settle();
+
+        await user.type(field(), 'a{Enter}b{Enter}c{Enter}d{Enter}e');
+        expect(field()).toHaveValue('a\nb\nc\nd\ne');
+        expect(limitNote()).toBeEmptyDOMElement();
+      });
+    });
+
     it('warns instead of clipping when the text does not fit', async () => {
       const { user } = await squarePlate();
 
       await user.click(screen.getByLabelText('Texto'));
-      await user.paste(Array.from({ length: 40 }, (_, i) => `linha ${i}`).join('\n'));
+      // No line breaks (those are refused past the area, D-063): 40 words that wrap one per line.
+      await user.paste(Array.from({ length: 40 }, (_, i) => `linha${i}`).join(' '));
 
       // Area 160 px tall, 48 px lines: 3 lines fit, 37 are over.
       expect(
@@ -215,7 +286,8 @@ describe('Preview', () => {
       expect(within(preview()).queryByText(/O texto não cabe/)).toBeNull();
       expect(strokesOf(currentContext())).toEqual([]);
 
-      await user.type(field, '{Enter}L3');
+      // A word that wraps onto a fourth line (240 px wide, 20 px per character).
+      await user.type(field, ' abcdefghijk');
       expect(
         within(preview()).getByText(
           'O texto não cabe na área do modelo: 1 linha a mais. Reduza o texto ou use menos linhas.',
@@ -233,13 +305,13 @@ describe('Preview', () => {
         'text:L0',
         'text:L1',
         'text:L2',
-        'text:L3',
+        'text:abcdefghijk',
       ]);
 
-      await user.type(field, '{Enter}L4');
+      await user.type(field, ' abcdefghijk');
       expect(within(preview()).getByText(/: 2 linhas a mais\./)).toBeVisible();
 
-      await user.type(field, '{Backspace}{Backspace}{Backspace}{Backspace}{Backspace}{Backspace}');
+      await user.type(field, '{Backspace}'.repeat(24));
       expect(within(preview()).queryByText(/O texto não cabe/)).toBeNull();
       expect(strokesOf(currentContext())).toEqual([]);
     });
@@ -260,9 +332,8 @@ describe('Preview', () => {
       // A complete configuration still cannot be exported without an approved size.
       const exportButton = within(review()).getByRole('button', { name: 'Exportar imagem' });
       expect(exportButton).toHaveAttribute('aria-disabled', 'true');
-      expect(review().querySelector('#export-reasons')).toHaveTextContent(
-        'Resolva os avisos da pré-visualização acima.',
-      );
+      // The reason is named in the export list, not only in the preview (D-063).
+      expect(review().querySelector('#export-reasons')).toHaveTextContent(message);
     });
 
     it('explains why text is not drawn when the plate has no calibrated text area', async () => {
@@ -664,13 +735,13 @@ describe('Preview', () => {
       expect(clicked).toHaveLength(0);
     });
 
-    it('points to the preview notices when the preview is incomplete', async () => {
+    it('names each preview problem among the reasons (D-063)', async () => {
       const { user } = setup();
       await choosePlate(user, /^Test plate square /);
       await user.type(screen.getByLabelText('Texto'), 'Ana');
       await choose(user, 'Cor do texto', 'Test ink A');
       // Images still loading.
-      expect(reasons()).toHaveTextContent('Resolva os avisos da pré-visualização acima.');
+      expect(reasons()).toHaveTextContent('Carregando imagem…');
       expect(exportButton()).toHaveAccessibleDescription(/Carregando imagem…/);
     });
 
@@ -739,7 +810,8 @@ describe('Preview', () => {
       await user.click(within(group()).getByRole('radio', { name: 'Ajustar manualmente' }));
       // Overflowing lines: no vertical free space; horizontal free space remains.
       await user.clear(field);
-      await user.type(field, Array.from({ length: 30 }, () => 'ab').join('{Enter}'));
+      // Words that wrap one per line (line breaks past the area are refused, D-063).
+      await user.type(field, Array.from({ length: 30 }, () => 'abcdefghij').join(' '));
       expect(status()).toHaveTextContent('Posição: Superior à esquerda.');
       expect(within(group()).getByRole('button', { name: 'Mover para baixo' })).toBeDisabled();
 

@@ -10,9 +10,9 @@
  * loads nothing is drawn, and when it fails the scene says so and export is blocked.
  */
 
-import type { FontFamily, NormalizedBox, TextAlignment } from '../domain';
+import type { FontFamily, NormalizedBox, Plate, TextAlignment } from '../domain';
 import type { Composition, PlateLayer, PreviewNoticeCode } from './composition';
-import { layoutText, type MeasureText } from './text-fit';
+import { LINE_HEIGHT, layoutText, type MeasureText } from './text-fit';
 import { FALLBACK_TEXT_COLOR, segmentLine, type TextSegment, type TextStyle } from './text-style';
 import { WATERMARK_SRC } from './watermark';
 
@@ -199,4 +199,32 @@ function assemble<I extends ImageSize>(
   if (mark !== undefined) layers.push({ kind: 'signature', image: mark });
 
   return { width, height, layers, notices, description: plate.alt };
+}
+
+export interface TextFrame {
+  /** Calibrated text area, in scene units. */
+  readonly area: Rect;
+  readonly fontSize: number;
+  readonly lineHeight: number;
+}
+
+/**
+ * The text area and fixed lettering size the scene gives `plate`'s photograph,
+ * the same as `assemble` uses, whether or not any text is entered yet (D-063).
+ * Undefined until the photograph is drawn, or without a calibrated area or
+ * an approved lettering size.
+ */
+export function textFrameOf(
+  plate: Plate | undefined,
+  scene: { readonly width: number; readonly height: number },
+): TextFrame | undefined {
+  const layout = plate?.image?.text;
+  if (layout?.fontSize === undefined || scene.width <= 0 || scene.height <= 0) return undefined;
+  const plateRect: Rect = { x: 0, y: 0, width: scene.width, height: scene.height };
+  const fontSize = layout.fontSize * scene.width;
+  return {
+    area: scaleBox(layout.area, scene.width, scene.height, plateRect),
+    fontSize,
+    lineHeight: fontSize * LINE_HEIGHT,
+  };
 }

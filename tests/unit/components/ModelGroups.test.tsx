@@ -219,7 +219,8 @@ describe('model groups (D-057)', () => {
       const { user } = setup();
       await user.click(models().getByRole('radio', { name: 'Bandeja ondulada' }));
 
-      expect(configStatus()).toHaveTextContent('Falta escolher: Tamanho, Texto, Cor do texto.');
+      // Marrom is the default lettering color (D-064).
+      expect(configStatus()).toHaveTextContent('Falta escolher: Tamanho, Texto.');
       expect(exportButton()).toHaveAttribute('aria-disabled', 'true');
       expect(within(review()).getByText('Falta escolher: Tamanho.')).toBeInTheDocument();
       expect(
@@ -230,7 +231,7 @@ describe('model groups (D-057)', () => {
 
       await user.click(within(group('Tamanho')).getByRole('radio', { name: 'M — 8 × 8 cm' }));
 
-      expect(configStatus()).toHaveTextContent('Falta escolher: Texto, Cor do texto.');
+      expect(configStatus()).toHaveTextContent('Falta escolher: Texto.');
       expect(within(review()).queryByText('Falta escolher: Tamanho.')).toBeNull();
       expect(summary('Modelo')).toBe('Bandeja ondulada');
       expect(summary('Tamanho')).toBe('M — 8 × 8 cm');
@@ -243,7 +244,7 @@ describe('model groups (D-057)', () => {
       expect(sizes()).toBeNull();
       expect(summary('Modelo')).toBe('Placa cerâmica');
       expect(summary('Tamanho')).toBe('10 × 10 cm');
-      expect(configStatus()).toHaveTextContent('Falta escolher: Texto, Cor do texto.');
+      expect(configStatus()).toHaveTextContent('Falta escolher: Texto.');
     });
 
     it('clears the model when switching to the group, and the size when leaving it', async () => {

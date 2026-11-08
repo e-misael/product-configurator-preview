@@ -8,17 +8,17 @@ import {
   renderPng,
   type ExportBlocker,
 } from '../../preview/export';
+import type { PreviewNoticeCode } from '../../preview/composition';
+import { textBlockOf } from '../../preview/placement';
 import type { Scene } from '../../preview/scene';
 import { invalidMessage } from '../configurator/messages';
-import { EXPORT_MESSAGES } from './messages';
+import { EXPORT_MESSAGES, noticeMessage } from './messages';
 
 interface ExportControlsProps {
   /** The preview's own scene: export paints exactly this (D-009). */
   readonly scene: Scene;
   readonly validation: ValidationResult;
   readonly plateId: string | null;
-  /** Element listing the preview notices; part of the button's description when they block. */
-  readonly noticesId: string;
   /** A model group is chosen but not its size (D-057). */
   readonly sizePending?: boolean;
 }
@@ -28,17 +28,29 @@ type Outcome =
   | { readonly status: 'done'; readonly fileName: string }
   | { readonly status: 'error'; readonly message: string };
 
+/** Notices that only restate a configuration issue already listed ("Falta escolher: …"). */
+const RESTATED: ReadonlySet<PreviewNoticeCode> = new Set([
+  'plate-not-selected',
+  'size-not-selected',
+  'text-color-provisional',
+]);
+
 /**
- * Configuration issues are listed one by one. Preview problems are already
- * spelled out in the preview notices, so they are summarized once and the
- * notices join the button's description instead of being repeated.
+ * Every blocker is named (D-063): configuration issues and each preview
+ * problem in the preview's own words, e.g. how many lines are over.
  */
-function blockerMessage(blocker: ExportBlocker, sizePending: boolean): string {
+function blockerMessage(
+  blocker: ExportBlocker,
+  excessLines: number,
+  sizePending: boolean,
+): string | undefined {
   switch (blocker.kind) {
     case 'configuration':
       return invalidMessage(blocker.issue, sizePending);
     case 'preview':
-      return EXPORT_MESSAGES.previewIncomplete;
+      return RESTATED.has(blocker.code)
+        ? undefined
+        : noticeMessage(blocker.code, excessLines, sizePending);
     case 'empty':
       return EXPORT_MESSAGES.empty;
   }
@@ -54,16 +66,21 @@ export function ExportControls({
   scene,
   validation,
   plateId,
-  noticesId,
   sizePending = false,
 }: ExportControlsProps) {
   // The outcome belongs to the scene it was produced for; any change clears it.
   const [result, setResult] = useState<{ scene: Scene; outcome: Outcome } | null>(null);
   const outcome = result?.scene === scene ? result.outcome : undefined;
   const blockers = exportBlockers(validation, scene);
-  const reasons = [...new Set(blockers.map((blocker) => blockerMessage(blocker, sizePending)))];
-  const previewBlocked = blockers.some((blocker) => blocker.kind === 'preview');
-  const blocked = reasons.length > 0 || plateId === null;
+  const excessLines = textBlockOf(scene)?.excessLines ?? 0;
+  const reasons = [
+    ...new Set(
+      blockers
+        .map((blocker) => blockerMessage(blocker, excessLines, sizePending))
+        .filter((reason) => reason !== undefined),
+    ),
+  ];
+  const blocked = blockers.length > 0 || plateId === null;
   const working = outcome?.status === 'working';
 
   const exportImage = async () => {
@@ -102,9 +119,7 @@ export function ExportControls({
         type="button"
         className="button export__button"
         aria-disabled={blocked || working}
-        aria-describedby={
-          blocked ? (previewBlocked ? `export-reasons ${noticesId}` : 'export-reasons') : undefined
-        }
+        aria-describedby={blocked ? 'export-reasons' : undefined}
         onClick={() => void exportImage()}
       >
         Exportar imagem

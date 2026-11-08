@@ -327,4 +327,25 @@ describe('validateCatalog: text colors (D-042)', () => {
       id: 'Ink X',
     });
   });
+  describe('default lettering color (D-064)', () => {
+    const withDefault = (id: string, colors = [color()]) => ({
+      ...withColors(colors),
+      defaultTextColorId: id,
+    });
+
+    it('accepts an available listed color', () => {
+      expect(validateCatalog(withDefault('test-text-color-x'))).toEqual({ status: 'valid' });
+    });
+
+    it.each([
+      ['an unlisted color', 'test-text-color-y', [color()]],
+      ['an unavailable color', 'test-text-color-x', [color({ available: false })]],
+    ])('rejects %s', (_, id, colors) => {
+      expectOnly(withDefault(id, colors), {
+        code: 'unknown-reference',
+        path: 'defaultTextColorId',
+        id,
+      });
+    });
+  });
 });

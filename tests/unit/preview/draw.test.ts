@@ -235,7 +235,7 @@ describe('drawScene', () => {
     expect(ctx.filter).toBe('none');
     expect(ctx.globalCompositeOperation).toBe('source-over');
     expect(ctx.globalAlpha).toBe(1);
-    // Only the signature's own pill and mark are translucent; the photograph never is.
+    // Only the signature's mark and text are translucent; the photograph never is.
     const photo = ctx.calls.find((call) => call.op === 'drawImage');
     expect(photo).toMatchObject({ alpha: 1, composite: 'source-over' });
   });
@@ -247,8 +247,6 @@ describe('drawScene: Taavi signature (D-060)', () => {
   });
 
   const signatureOf = (ctx: FakeContext) => {
-    const pill = ctx.calls.find((call) => call.op === 'roundRect');
-    const fill = ctx.calls.find((call) => call.op === 'fill');
     const mark = ctx.calls.find(
       (call): call is Extract<PaintCall, { op: 'drawImage' }> =>
         call.op === 'drawImage' && isSignature(call),
@@ -257,66 +255,71 @@ describe('drawScene: Taavi signature (D-060)', () => {
       (call): call is Extract<PaintCall, { op: 'fillText' }> =>
         call.op === 'fillText' && isSignature(call),
     );
-    if (pill?.op !== 'roundRect' || fill?.op !== 'fill' || !mark || !text) {
-      throw new Error('No signature drawn');
-    }
-    return { pill: pill.args, fill, mark, text };
+    if (!mark || !text) throw new Error('No signature drawn');
+    return {
+      mark,
+      text,
+      geometry: [mark.x, mark.y, mark.width, mark.height, text.x, text.y, text.font],
+    };
   };
 
-  it('is 10% larger and 20% more transparent than first implemented (M4.6 refinement)', () => {
-    // First values: height 0.05, pill alpha 0.8, ink alpha 0.9; × 1.1 and × 0.8.
-    expect(SIGNATURE.height).toBeCloseTo(0.05 * 1.1, 10);
-    expect(SIGNATURE.fillAlpha).toBeCloseTo(0.8 * 0.8, 10);
+  it('is 1.5 × the M4.6 size and 20% more transparent than first implemented', () => {
+    // First values: height 0.05, ink alpha 0.9; × 1.1 and × 0.8 (M4.6), then × 1.5 (D-065).
+    expect(SIGNATURE.height).toBeCloseTo(0.05 * 1.1 * 1.5, 10);
     expect(SIGNATURE.inkAlpha).toBeCloseTo(0.9 * 0.8, 10);
     // Still below every model's text area (the lowest ends at 0.845).
     expect(1 - SIGNATURE.margin - SIGNATURE.height).toBeGreaterThan(0.845);
   });
 
+  it('has no background: only the mark and the text are painted (D-065)', () => {
+    const { ctx } = paint({ text: 'Ana' }, 400);
+    expect(ctx.calls.some((call) => call.op === 'roundRect')).toBe(false);
+    expect(ctx.calls.some((call) => call.op === 'fill')).toBe(false);
+  });
+
   it('is painted last, over everything, in its own saved state', () => {
     const { ctx } = paint({ text: 'Ana' }, 400);
     const calls = ctx.calls;
-    const pill = calls.findIndex((call) => call.op === 'roundRect');
+    const mark = calls.findIndex((call) => call.op === 'drawImage' && isSignature(call));
     const shading = calls.findIndex((call) => call.op === 'drawImage' && isLayer(call));
 
     expect(shading).toBeGreaterThan(-1);
-    expect(pill).toBeGreaterThan(shading);
+    expect(mark).toBeGreaterThan(shading);
     expect(calls.at(-1)).toEqual({ op: 'restore' });
     expect(ctx.drawn.at(-1)).toMatchObject({ op: 'fillText', text: '© Taavi' });
   });
 
   it('sits at the bottom-right corner, sized from the scene, not on the text area', () => {
     const { ctx } = paint({ text: 'Ana' }, 400);
-    const { pill, fill, mark, text } = signatureOf(ctx);
-    const [x = 0, y = 0, width = 0, height = 0, radius] = pill;
-    const margin = SIGNATURE.margin * 400;
+    const { mark, text } = signatureOf(ctx);
+    const height = SIGNATURE.height * 400;
+    const bottom = 400 - SIGNATURE.margin * 400;
 
-    expect(height).toBeCloseTo(SIGNATURE.height * 400);
-    expect(x + width).toBeCloseTo(400 - margin);
-    expect(y + height).toBeCloseTo(400 - margin);
-    expect(radius).toBeCloseTo(height / 2);
+    // Centered in the signature's box, which ends at the bottom margin.
+    expect(mark.height).toBeCloseTo(SIGNATURE.markHeight * height);
+    expect(mark.y + mark.height / 2).toBeCloseTo(bottom - height / 2);
+    expect(text.y).toBeCloseTo(bottom - height / 2);
     // Text area of the fixture ends at y 280.
-    expect(y).toBeGreaterThan(280);
-    expect(fill).toMatchObject({ fillStyle: SIGNATURE.fill, alpha: SIGNATURE.fillAlpha });
-    // The mark keeps the logo's aspect ratio and is inside the pill.
+    expect(mark.y).toBeGreaterThan(280);
+    // The mark keeps the logo's aspect ratio.
     expect(mark.width / mark.height).toBeCloseTo(MARK_INK.width / MARK_INK.height);
-    expect(mark.x).toBeGreaterThan(x);
     expect(mark.alpha).toBe(SIGNATURE.inkAlpha);
     expect(text).toMatchObject({ fillStyle: SIGNATURE.ink, textAlign: 'left' });
     expect(text.x).toBeGreaterThan(mark.x + mark.width);
-    expect(text.x).toBeLessThan(x + width);
+    expect(text.x).toBeLessThan(400 - SIGNATURE.margin * 400);
   });
 
   it('keeps the same relative geometry at any resolution, so preview and export match', () => {
-    const small = signatureOf(paint({ text: 'Ana' }, 400).ctx).pill;
-    const large = signatureOf(paint({ text: 'Ana' }, 1200).ctx).pill;
+    const small = signatureOf(paint({ text: 'Ana' }, 400).ctx).geometry;
+    const large = signatureOf(paint({ text: 'Ana' }, 1200).ctx).geometry;
 
     // drawScene works in scene units and scales the transform, so the paths are identical.
     expect(large).toEqual(small);
   });
 
   it('is the same with or without lettering, and with flat lettering', () => {
-    const plain = signatureOf(paint({ text: '' }, 400).ctx).pill;
-    const flat = signatureOf(paint({ text: 'Ana' }, 400, null).ctx).pill;
+    const plain = signatureOf(paint({ text: '' }, 400).ctx).geometry;
+    const flat = signatureOf(paint({ text: 'Ana' }, 400, null).ctx).geometry;
 
     expect(plain).toEqual(flat);
   });

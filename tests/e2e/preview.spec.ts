@@ -303,7 +303,7 @@ test.describe('personalized text', () => {
 
     await (
       await textField(page)
-    ).fill(Array.from({ length: 40 }, (_, i) => `linha ${i}`).join('\n'));
+    ).fill(Array.from({ length: 40 }, (_, i) => `linha ${i}`).join(' '));
 
     await expect(preview(page)).toContainText('O texto não cabe na área do modelo');
     // The full text is still kept and summarized in the review.

@@ -30,12 +30,13 @@ interface State {
 
 /**
  * Configuration state over the pure domain functions. Selections are stored
- * exactly as chosen and reported by validation; the only automatic change is
+ * exactly as chosen (the lettering color starts at the catalog default, D-064) and reported by validation; the only automatic change is
  * formatting that cannot follow an ambiguous text edit (D-042).
  */
 export function useConfiguration(catalog: Catalog) {
   const [state, setState] = useState<State>(() => ({
-    config: createEmptyConfiguration(),
+    // The catalog's default lettering color, if any, is the starting choice (D-064).
+    config: { ...createEmptyConfiguration(), textColorId: catalog.defaultTextColorId ?? null },
     notice: null,
   }));
 

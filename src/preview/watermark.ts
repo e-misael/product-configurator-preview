@@ -1,6 +1,6 @@
 /**
- * Taavi signature (D-060): the official arch symbol and "© Taavi" on a light
- * pill at the bottom-right of every composition, preview and PNG alike. It
+ * Taavi signature (D-060): the official arch symbol and "© Taavi", with no
+ * background (D-065), at the bottom-right of every composition, preview and PNG alike. It
  * identifies Taavi's images and discourages their reuse by other stores; it
  * does not prevent copying. Drawn by `drawScene` from the scene's
  * `signature` layer, so every canvas size gets the same relative geometry.
@@ -17,25 +17,24 @@ export const WATERMARK_SRC: string = markUrl;
 export const MARK_INK = { x: 349, y: 223, width: 558, height: 734 } as const;
 
 /**
- * Sizes are fractions of the scene's shorter side. The pill sits in the
+ * Sizes are fractions of the scene's shorter side. The box (no longer
+ * painted, D-065) sits in the
  * photograph's bottom-right corner, below and right of every model's text
  * area (the lowest ends at 0.845 of the height), on the background or the
  * Quadro's frame, never on the lettering.
  */
 export const SIGNATURE = {
   text: '© Taavi',
-  // 0.05 × 1.1 (M4.6 refinement).
-  height: 0.055,
+  // 0.05 × 1.1 (M4.6 refinement) × 1.5 (D-065).
+  height: 0.0825,
   margin: 0.022,
-  /** Fractions of the pill height. */
+  /** Fractions of the box height. */
   padding: 0.24,
   markHeight: 0.62,
   gap: 0.2,
   fontSize: 0.38,
   fontWeight: 500,
-  fill: '#faf8f5',
-  // Opacities: the first values × 0.8 (M4.6 refinement).
-  fillAlpha: 0.64,
+  // Opacity: the first value × 0.8 (M4.6 refinement). No background pill (D-065).
   ink: '#0d263f',
   inkAlpha: 0.72,
 } as const;
@@ -45,7 +44,7 @@ export function signatureFont(fontSize: number): string {
 }
 
 export interface SignatureBox {
-  /** The pill. */
+  /** The signature's box: mark and text with their padding (not painted, D-065). */
   readonly x: number;
   readonly y: number;
   readonly width: number;
@@ -74,7 +73,7 @@ export function signatureBox(
   const markWidth = (markHeight * MARK_INK.width) / MARK_INK.height;
   const gap = SIGNATURE.gap * height;
   const fontSize = SIGNATURE.fontSize * height;
-  // The pill's rounded ends need a little more room after the text than before the mark.
+  // A little more room after the text than before the mark (the former pill's rounded end).
   const width = padding + markWidth + gap + textWidth(fontSize) + padding * 1.4;
   const x = sceneWidth - SIGNATURE.margin * unit - width;
   const y = sceneHeight - SIGNATURE.margin * unit - height;

@@ -94,7 +94,7 @@ The production palette is empty until Taavi supplies it (P-02); the demo catalog
 | `plateId`          | `string \| null`        | yes      | References `Plate.id`.                                            |
 | `text`             | `string`                | yes      | Raw, never trimmed or normalized.                                 |
 | `fontFamily`       | `FontFamily`            | yes      | Default `sans-serif` ("Sem serifa").                              |
-| `textColorId`      | `string \| null`        | yes      | References `TextColor.id`. No default (D-042).                    |
+| `textColorId`      | `string \| null`        | yes      | References `TextColor.id`. Starts at the catalog default (D-064). |
 | `secondaryColorId` | `string \| null`        | no       | Optional second lettering color.                                  |
 | `secondaryRanges`  | `readonly TextRange[]`  | no       | Characters drawn in the second color.                             |
 | `textLayout`       | `TextPlacement \| null` | no       | `null` = catalog default alignment and position (D-044).          |
@@ -178,6 +178,7 @@ Unlike configuration validation, **every** issue is reported. Order is determini
 | `duplicate-id`      | IDs unique across plates and text colors; reported at each repeat, `relatedPath` = first occurrence                                                                          | `<collection>[i].id`                                                         |
 | `empty-label`       | A model's `sizeLabel` and `ceramicColor` are non-blank strings (D-040, D-041); a text color's `displayName` is non-blank                                                     | `plates[i].sizeLabel`, `plates[i].ceramicColor`, `textColors[i].displayName` |
 | `invalid-color`     | A text color's `hex` is `#rrggbb` (D-043)                                                                                                                                    | `textColors[i].hex`                                                          |
+| `unknown-reference` | `defaultTextColorId`, when set, names an available text color (D-064)                                                                                                        | `defaultTextColorId`                                                         |
 | `invalid-dimension` | Defined `widthMm` and `heightMm` are finite and > 0 (each reported separately)                                                                                               | `plates[i].dimensions.widthMm` / `.heightMm`                                 |
 | `invalid-asset`     | `src` matches the asset path allowlist in the owner's folder (D-031); `widthPx`/`heightPx` both present and positive integers when either is (each side reported)            | `plates[i].image.image.src`, `.widthPx` / `.heightPx`                        |
 | `invalid-placement` | Boxes have finite values, `x, y ≥ 0`, `width, height > 0`, and fit in the image; `text.align` is known; `text.area` lies inside `objectBounds` when both set (`relatedPath`) | `plates[i].image.objectBounds` / `.text.area` / `.text.align`                |
