@@ -20,4 +20,5 @@ jobs:
       - run: npm run format:check
       - run: npm test
       - run: npm run build
+      - run: npm run check:demo-isolation
       # Playwright is intentionally not run in CI yet (see docs/06-decisions.md, D-010).

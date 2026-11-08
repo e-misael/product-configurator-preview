@@ -2,7 +2,7 @@
 
 Requirement IDs are stable. Do not renumber; deprecate instead.
 
-Status values: **Pending** (not implemented), **Foundation** (domain types/validation exist, no UI), **Done** (implemented and validated with evidence).
+Status values: **Pending** (not implemented), **Foundation** (domain types/validation exist, no UI), **UI** (domain plus working interface, validated against the demo catalog; awaiting real catalog data), **Done** (implemented and validated with real product data).
 
 ## MVP functional requirements
 
@@ -18,8 +18,9 @@ Acceptance criteria:
 4. A configuration referencing an unknown or unavailable plate is _invalid_.
 5. An empty catalog is a supported state; no plate data is invented.
 6. Square, rectangular, and circular plates are separate plate models with their own IDs; each model has exactly one fixed shape (D-023).
+7. Only available plates are offered. A selected plate that is unknown or unavailable stays visible and marked invalid (D-030).
 
-Status: Foundation.
+Status: UI (M2).
 
 ### FR-02 — Frame selection (Quadro)
 
@@ -34,8 +35,9 @@ Acceptance criteria:
 5. Each frame declares compatible shapes and may restrict compatible plates. A frame incompatible with the plate's shape or not allowed for the plate makes the configuration _invalid_.
 6. Selecting a plate without frame support clears a previously selected frame, and the UI tells the user it was removed (D-026). Other incompatibilities are not cleared automatically; they are reported by validation.
 7. Declared compatibility is not proof of physical fit; real dimensions and mounting constraints are required before production use.
+8. A selected frame that becomes incompatible after a plate change stays visible, is marked invalid with its validation message, and can be removed or replaced. "Sem quadro" is never shown as selected while a frame is selected (D-030).
 
-Status: Foundation (domain, selection transition; no UI).
+Status: UI (M2).
 
 ### FR-03 — Plate color (Cor da placa)
 
@@ -47,8 +49,9 @@ Acceptance criteria:
 2. The category must be supported by the selected plate.
 3. When a specific color ID is provided, it must exist, be available, belong to the selected category, and be supported by the selected plate.
 4. No HEX values, color names, textures, or finishes are invented.
+5. The UI offers the plate's categories and, when the catalog defines shades for that category, an optional specific shade ("Sem preferência de tom" by default).
 
-Status: Foundation.
+Status: UI (M2).
 
 ### FR-04 — Plate shape (Formato da placa)
 
@@ -60,7 +63,7 @@ Acceptance criteria:
 2. The UI displays the shape of the selected plate (it may group plates by shape, but grouping is not stored).
 3. Dimensions and aspect ratios come from catalog data, not rendering code; unknown values are marked `pending`.
 
-Status: Foundation.
+Status: UI (M2) — shape displayed for the selected plate.
 
 ### FR-05 — Custom text (Texto)
 
@@ -76,7 +79,7 @@ Acceptance criteria:
 
 Typography and positioning controls are not approved MVP inputs.
 
-Status: Foundation (validation only).
+Status: UI (M2) for criteria 1–4; criterion 5 pending (M3).
 
 ### FR-06 — Real-time preview
 
@@ -88,7 +91,7 @@ Acceptance criteria:
 4. Missing assets are handled gracefully and visibly.
 5. The final preview is composed from real product images (FR-08); generic vector shapes are acceptable only as temporary, clearly marked demonstration output.
 
-Status: Pending (M3).
+Status: Pending (M3). M2 provides the preview slot: a neutral, labeled placeholder with a text summary of the selection; no product drawing.
 
 ### FR-07 — Image export
 

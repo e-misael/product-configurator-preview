@@ -193,6 +193,28 @@ Status values:
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
+### D-028 — Demo mode with an isolated synthetic catalog
+
+- **Context:** The production catalog is empty until the store supplies real data (M1.3), so the configuration workflow cannot be exercised or tested end to end.
+- **Decision:** A Vite `demo` mode (`npm run dev:demo`, `npm run build:demo` → `dist-demo/`) loads `src/demo/demo-catalog.ts` and a "Modo demonstração" banner through a dynamic import guarded by `import.meta.env.MODE`. Demo entries use `demo-` IDs, names labeled "(demonstração)", pending dimensions, and no assets, swatches, or colors. The production build must contain no demo data: `scripts/check-demo-isolation.js` scans every file in `dist/` (all chunks and assets) for demo markers, runs in CI after the build, and is checked against `dist-demo/` with `--expect-present` to prove it detects them. Playwright runs functional flows against the demo build and a smoke test against the production build.
+- **Alternatives:** Test fixtures only (no manual demo); demo entries in the production catalog behind a flag (rejected: risk of shipping fake products).
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-029 — Validation message placement
+
+- **Decision:** Invalid issues are explained next to their field (linked with `aria-describedby`). Missing required fields are listed only in the status summary ("Falta escolher: …"), so an untouched form is not covered in errors. The summary reports "Configuração completa." or that incompatible choices exist.
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-030 — Kept-but-invalid selections stay visible
+
+- **Context:** M-1: after a plate change, a frame incompatible with the new plate (on a plate that supports frames) is kept by `selectPlate` (D-026) but is no longer among `getFrameOptions`.
+- **Decision:** Any selection that is invalid and not among the offered options (frame, shade, color category, unavailable plate) is shown with its name, an "incompatível/indisponível" title, and its validation message. Frames and shades offer a remove action; any listed option replaces it. "Sem quadro" is checked only when `frameId` is `null`, and the preview never shows "Sem quadro" while a frame is selected. Unavailable plates are not offered.
+- **Alternatives:** Silently clear the frame (rejected: auto-correction beyond D-026); show "Sem quadro" (rejected: misrepresents the configuration).
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
 ## Proposed
 
 ### D-007 — SVG preview rendering

@@ -27,14 +27,18 @@ React 19, TypeScript strict (`~6.0`), Vite 8, ESLint 9 + jsx-a11y, Prettier, Vit
 ```text
 src/domain/    pure types + validation (no React/DOM)
 src/catalog/   catalog data (data.ts) + getCatalog() entry point — deep-frozen source of truth
+src/components/ configurator form + preview slot
+src/hooks/     useConfiguration
+src/demo/      demo-mode catalog + banner (never in production builds, D-028)
 src/App.tsx    app shell
+scripts/       build checks (demo isolation)
 tests/unit/    Vitest (fixtures prefixed `test-`)
 tests/e2e/     Playwright
 docs/          product and technical docs
 .claude/       skills and agents
 ```
 
-Future folders (`components/configurator`, `components/preview`, `hooks`, `services`, `public/catalog/*`) are created only by the increment that needs them.
+Future folders (`services`, `public/catalog/*`) are created only by the increment that needs them.
 
 ## Domain invariants
 

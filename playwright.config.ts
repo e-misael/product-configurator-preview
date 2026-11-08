@@ -1,6 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
 
-const PORT = 4173;
+const PRODUCTION_PORT = 4173;
+const DEMO_PORT = 4174;
+const production = `http://localhost:${PRODUCTION_PORT}`;
+const demo = `http://localhost:${DEMO_PORT}`;
 
 export default defineConfig({
   testDir: 'tests/e2e',
@@ -9,19 +12,51 @@ export default defineConfig({
   retries: process.env.CI ? 2 : 0,
   reporter: 'list',
   use: {
-    baseURL: `http://localhost:${PORT}`,
     trace: 'on-first-retry',
   },
   projects: [
-    { name: 'desktop-chromium', use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile-chromium', use: { ...devices['Pixel 7'] } },
+    // Production build (empty catalog, no demo data).
+    {
+      name: 'production-chromium',
+      testMatch: 'production.spec.ts',
+      use: { ...devices['Desktop Chrome'], baseURL: production },
+    },
+    {
+      name: 'production-mobile-webkit',
+      testMatch: 'production.spec.ts',
+      use: { ...devices['iPhone 14'], baseURL: production },
+    },
+    // Demo build (synthetic catalog) for functional flows (D-028).
+    {
+      name: 'demo-desktop-chromium',
+      testMatch: 'configurator.spec.ts',
+      use: { ...devices['Desktop Chrome'], baseURL: demo },
+    },
+    {
+      name: 'demo-mobile-chromium',
+      testMatch: 'configurator.spec.ts',
+      use: { ...devices['Pixel 7'], baseURL: demo },
+    },
     // Lightweight WebKit coverage: smoke tests only.
-    { name: 'mobile-webkit', use: { ...devices['iPhone 14'] }, grep: /@smoke/ },
+    {
+      name: 'demo-mobile-webkit',
+      testMatch: 'configurator.spec.ts',
+      grep: /@smoke/,
+      use: { ...devices['iPhone 14'], baseURL: demo },
+    },
   ],
-  webServer: {
-    command: `npm run build && npm run preview -- --port ${PORT} --strictPort`,
-    url: `http://localhost:${PORT}`,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  webServer: [
+    {
+      command: `npm run build && npm run preview -- --port ${PRODUCTION_PORT} --strictPort`,
+      url: production,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+    {
+      command: `npm run build:demo && npm run preview:demo -- --port ${DEMO_PORT} --strictPort`,
+      url: demo,
+      reuseExistingServer: !process.env.CI,
+      timeout: 120_000,
+    },
+  ],
 });

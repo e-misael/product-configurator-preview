@@ -24,3 +24,6 @@ blob-report
 .idea
 .vscode/*
 !.vscode/extensions.json
+
+# Demo-mode build output
+dist-demo

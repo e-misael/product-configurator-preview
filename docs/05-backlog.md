@@ -83,14 +83,17 @@ Status: Planned. **Blocked on real product information from the store.**
 
 ## M2 — Configuration interface
 
-Status: Planned.
+Status: Done (validated against the demo catalog; production catalog still empty).
 
-- `useConfiguration` hook (React state).
-- Plate, frame (incl. "Sem quadro"), color category, and text controls; plate shape displayed, not selected.
-- Frame control limited to `getFrameOptions`; for plates without frame support show "Sem quadro" with an explanation; announce a frame cleared by `selectPlate`.
-- Accessible, touch-friendly, mobile-first form.
-- Display of incomplete/invalid states without auto-replacing selections.
-- Preview slot fed by a composition function; neutral, labeled placeholder only — no vector shapes presented as the real product (D-027).
+- [x] `useConfiguration` hook (React state) over the pure domain functions.
+- [x] Plate, frame (incl. "Sem quadro"), color category, optional shade, and text controls; plate shape displayed, not selected.
+- [x] Frame options from `getFrameOptions`; frameless plates show a disabled "Sem quadro" with an explanation; a frame cleared by `selectPlate` is announced (`role="status"`).
+- [x] M-1: a frame that becomes incompatible stays visible, marked invalid, with "Remover quadro" or replacement by a compatible frame (D-030).
+- [x] Accessible, touch-friendly, mobile-first form (native radios/fieldsets, ≥44px targets, keyboard operable).
+- [x] Invalid messages next to their field; missing fields in the status summary (D-029). No selection is auto-replaced except D-026.
+- [x] Preview slot with a neutral, labeled placeholder and a text summary — no vector shapes presented as the product (D-027). The composition function is deferred to M3, where it has real inputs.
+- [x] Demo mode (`--mode demo`) with a labeled synthetic catalog, excluded from the production build and verified by `check:demo-isolation` (D-028).
+- [x] Unit/RTL tests; Playwright: production smoke (empty catalog) and demo functional flows.
 
 ## M3 — Live preview
 

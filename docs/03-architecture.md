@@ -22,7 +22,7 @@ A static, client-only single-page app. No backend, database, authentication, or 
 ## Layers
 
 ```text
-catalog data (src/catalog)  ──►  domain (src/domain)  ◄──  configuration state (hooks, M2)
+catalog data (src/catalog)  ──►  domain (src/domain)  ◄──  configuration state (useConfiguration)
                                      │
                                      ▼
                          composition model (M3, proposed)  ◄──  image asset resolution (M3)
@@ -85,7 +85,19 @@ Directories are created only when their increment needs them.
 - Plain serializable object (`Configuration`), all selections nullable, text stored raw. No shape field: the shape is derived from the selected plate (`getPlateShape`, D-023).
 - Selection transitions are pure domain functions in `src/domain/selection.ts`. `selectPlate` explicitly clears a frame when the new plate does not support frames and returns `cleared` so the UI can announce it (D-026). `getFrameOptions` lists the frames that can be offered for a plate.
 - Frame support is an explicit plate capability (`supportsFrame`, D-024). Application code never tests `shape === 'circle'`; the circle rule is enforced once, by catalog integrity.
-- Planned for M2: a single `useConfiguration` hook with React state. No global state library unless proven necessary (D-003).
+- `useConfiguration(catalog)` (`src/hooks`) holds the configuration in React state, exposes one action per field, derives `validation` with `validateConfiguration`, and raises a one-off `frame-cleared` notice when `selectPlate` clears a frame. No global state library (D-003).
+- The catalog reaches the UI as a prop of `App` (default `getCatalog()`), so tests and demo mode can supply their own.
+
+## User interface (M2)
+
+- `src/components/configurator/`: one fieldset per field (Placa, Quadro, Cor da placa, Texto) built from native radios and a textarea, plus a status summary. Controls are generated from catalog data and domain helpers; pt-BR labels and messages live in `messages.ts`.
+- Message placement (D-029): invalid issues next to their field; missing fields in the summary.
+- Kept-but-invalid selections stay visible with remove/replace actions (D-030).
+- `src/components/preview/PreviewPanel.tsx`: the preview slot. In M2 it shows a labeled placeholder and a text summary; M3 replaces its content with the composed real-image renderer.
+
+## Demo mode (D-028)
+
+`vite --mode demo` loads `src/demo/` (synthetic catalog + banner) through a dynamic import guarded by `import.meta.env.MODE`; production builds tree-shake it away. `scripts/check-demo-isolation.js dist` scans every built file for demo markers and runs in CI. Demo data never enters `src/catalog/data.ts`.
 
 ## Domain validation
 
@@ -122,7 +134,7 @@ The final preview and export are composed from **real product image assets** for
 
 ### Implications for M2 (configuration interface)
 
-- The UI includes a **preview slot** whose content is produced by a composition function, not by the form. In M2 it may show a neutral, explicitly labeled placeholder; it must not show generic vector "products" presented as the real item.
+- The UI includes a **preview slot** (`PreviewPanel`), separate from the form. In M2 it shows a neutral, explicitly labeled placeholder and a text summary; it does not show generic vector "products" presented as the real item. The composition function that will feed it is introduced in M3.
 - Controls read display data (names, availability, shape) from the catalog via `getCatalog()` and domain helpers; they never reference image files directly.
 - Thumbnails in selection controls, if added, use the same `AssetRef` data and the same missing-asset behavior.
 
@@ -145,7 +157,7 @@ Proposed: rasterize the same composition used by the preview to PNG on the clien
 | ------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | Unit         | Vitest               | Domain validation, pure helpers, composition model                                                                       |
 | Component    | Vitest + RTL         | Form controls, accessibility roles/labels                                                                                |
-| E2E          | Playwright           | Smoke, responsive layout, user flows; mobile WebKit smoke only                                                           |
+| E2E          | Playwright           | Production smoke (empty catalog, no demo data); demo-build user flows and responsive layout; mobile WebKit smoke only    |
 | Visual (M3+) | Playwright snapshots | Preview regression, preview/export consistency (layer order, placement, no tinting) using synthetic demonstration images |
 
 Unit tests use fake fixtures prefixed `test-`; they are never real product data.
