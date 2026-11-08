@@ -255,16 +255,15 @@ describe('Configurator', () => {
       expect(status()).toHaveTextContent('Configuração completa.');
     });
 
-    it('shows a labeled placeholder and the current selection, without product imagery', async () => {
+    it('shows the selection and what is still needed, without product imagery', async () => {
       const { user } = setup();
       await user.click(plateRadio('test-plate-square'));
 
       expect(
-        within(preview()).getByText(
-          'Pré-visualização ilustrativa — as imagens reais dos produtos serão exibidas aqui.',
-        ),
+        within(preview()).getByText('Escolha a cor da placa para ver a foto.'),
       ).toBeInTheDocument();
       expect(within(preview()).getByText('Test test-plate-square · Quadrada')).toBeInTheDocument();
+      // The test catalog registers no images, so nothing is painted and nothing is substituted.
       expect(preview().querySelector('img, svg, canvas')).toBeNull();
     });
   });

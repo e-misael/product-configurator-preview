@@ -42,6 +42,10 @@ function missingFiles(catalog: Catalog, files: ReadonlySet<string>): string[] {
  * M1.3b adds the check that declared `widthPx`/`heightPx` match each file.
  */
 describe('production catalog assets', () => {
+  it('keeps demonstration images out of the production public directory (D-036)', () => {
+    expect([...publicFiles].filter((file) => file.includes('demo-'))).toEqual([]);
+  });
+
   it('accepts files that exist', () => {
     expect(
       missingFiles(buildImageCatalog(), new Set(['/catalog/colors/test-color-nude/swatch.png'])),

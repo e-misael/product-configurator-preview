@@ -20,6 +20,8 @@ const MARKERS = [
   'Modo demonstra\\u00e7\\u00e3o',
   '(demonstração)',
   '(demonstra\\u00e7\\u00e3o)',
+  // Embedded in every synthetic demo image (scripts/generate-demo-assets.js).
+  'Synthetic demonstration image',
 ];
 
 const [dir, flag] = process.argv.slice(2);
@@ -46,6 +48,11 @@ try {
 
 const hits = [];
 for (const file of files) {
+  // Demo files are also recognizable by name (e.g. catalog/plates/demo-placa-*/).
+  for (const marker of MARKERS) {
+    if (relative(dir, file).includes(marker))
+      hits.push(`${relative(dir, file)}: ${marker} (file name)`);
+  }
   // latin1 keeps every byte, so binary files can be scanned too.
   const content = readFileSync(file).toString('latin1');
   const utf8 = readFileSync(file, 'utf8');

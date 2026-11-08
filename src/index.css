@@ -93,22 +93,40 @@ body {
   color: var(--color-muted);
 }
 
-/* Preview placeholder (no product imagery until M3, FR-08) */
+/* Preview: canvas composed from real product images (FR-08) */
 .preview__title {
   margin: 0 0 0.5rem;
   font-size: 1rem;
   font-weight: 500;
 }
 
-.preview__placeholder {
-  padding: 1rem;
-  border: 1px dashed var(--color-border);
+.preview__canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--color-border);
   border-radius: var(--radius);
   background: var(--color-surface);
 }
 
-.preview__label {
-  margin: 0 0 1rem;
+.preview__empty {
+  display: grid;
+  place-items: center;
+  min-height: 12rem;
+  border: 1px dashed var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-surface);
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.preview__notices {
+  min-height: 0;
+}
+
+.preview__notice-list {
+  margin: 0.75rem 0 0;
+  padding-left: 1.25rem;
   font-size: 0.875rem;
   color: var(--color-muted);
 }
@@ -117,7 +135,7 @@ body {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.25rem 1rem;
-  margin: 0;
+  margin: 1rem 0 0;
 }
 
 .preview__summary dt {

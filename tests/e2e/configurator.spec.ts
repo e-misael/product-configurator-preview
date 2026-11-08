@@ -33,9 +33,8 @@ test('completes a configuration @smoke', async ({ page }) => {
 
   await expect(page.getByText('Configuração completa.')).toBeVisible();
   const preview = page.getByRole('region', { name: 'Pré-visualização' });
-  await expect(preview).toContainText('Pré-visualização ilustrativa');
   await expect(preview).toContainText('Casa da Ana');
-  await expect(preview.locator('img, svg, canvas')).toHaveCount(0);
+  await expect(preview.getByRole('img')).toBeVisible();
   await expectNoHorizontalScroll(page);
 });
 

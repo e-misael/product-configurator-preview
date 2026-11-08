@@ -110,13 +110,28 @@ Status: Done (validated against the demo catalog; production catalog still empty
 
 ## M3 — Live preview
 
-Status: Planned.
+### M3.1 — Interactive photographic preview
 
-- Composition model shared by preview and export, layering real plate image, frame image, and text from catalog metadata (D-027, FR-08).
-- Renderer choice confirmed (D-007: SVG `<image>` layers vs Canvas 2D).
-- Synthetic demonstration images (non-production) for rendering tests; real images once M1.3 provides them.
-- Responsive sizing; text wrapping, alignment, overflow handling.
-- Preview rendering regression tests.
+Status: **Done** for the demo catalog — verified with synthetic images only. Real product photographs and calibration are M1.3b.
+
+- [x] Canvas 2D as the single renderer (D-035)
+- [x] Pure `composePreview` (exact image lookup, notices) and `buildScene` (placement from normalized metadata, layer order) (D-037)
+- [x] Layer order frame back → plate → text → frame front; plate fitted into the frame placement preserving aspect ratio
+- [x] Distinct states: not selected, color missing/invalid, image pending in catalog, loading, load failure, frame problems, text area pending, text overflow
+- [x] Frame without calibration, or with a failed file, is not drawn; the plate is shown alone
+- [x] Text: raw text, explicit line breaks, grapheme-safe wrapping, bounded shrink, visible overflow warning (D-038)
+- [x] Responsive canvas; backing store from displayed width, device pixel ratio, and source resolution
+- [x] Synthetic PNGs generated deterministically, served only in demo mode; isolation verified for JavaScript, file names, and image assets (D-036)
+- [x] Unit, component, and Playwright (pixel) tests
+
+### M3.2 — Remaining preview work
+
+Status: Planned (not started).
+
+- Real images and calibrated placement (after M1.3b); visual verification against the real photographs.
+- Masking/clipping of circular or irregular outlines (a bounding box does not describe them).
+- Typography and material effect of the lettering (stamped/pressed/raised; P-04).
+- Preview regression tests with real assets.
 
 ## M4 — Image export
 

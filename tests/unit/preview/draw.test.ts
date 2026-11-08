@@ -1,0 +1,136 @@
+import { composePreview } from '../../../src/preview/composition';
+import {
+  chooseBackingWidth,
+  createTextMeasurer,
+  drawScene,
+  MAX_PIXEL_RATIO,
+  TEXT_COLOR,
+} from '../../../src/preview/draw';
+import { buildScene, type ImageState } from '../../../src/preview/scene';
+import { FakeContext, installFakeCanvas } from '../support/fake-canvas';
+import { config, previewCatalog, previewSizes, validate } from './fixtures';
+
+type Img = HTMLImageElement;
+
+function loaded(): Map<string, ImageState<Img>> {
+  const map = new Map<string, ImageState<Img>>();
+  for (const [src, size] of Object.entries(previewSizes)) {
+    const image = { src, naturalWidth: size.width, naturalHeight: size.height } as unknown as Img;
+    map.set(src, { status: 'loaded', image });
+  }
+  return map;
+}
+
+function paint(overrides: Parameters<typeof config>[0], pixelWidth: number) {
+  const value = config(overrides);
+  const composition = composePreview(previewCatalog, value, validate(value));
+  const scene = buildScene(composition, loaded(), createTextMeasurer());
+  const ctx = new FakeContext();
+  drawScene(ctx as unknown as CanvasRenderingContext2D, scene, pixelWidth);
+  return { ctx, scene };
+}
+
+const srcOf = (call: unknown) => (call as { image: { src: string } }).image.src;
+
+describe('chooseBackingWidth', () => {
+  it('follows the displayed width times the pixel ratio', () => {
+    expect(chooseBackingWidth(300, 2, 2000)).toBe(600);
+  });
+
+  it('never exceeds the source image width', () => {
+    expect(chooseBackingWidth(300, 2, 500)).toBe(500);
+  });
+
+  it('treats a ratio below 1 as 1 and clamps very high ratios', () => {
+    expect(chooseBackingWidth(300, 0.5, 2000)).toBe(300);
+    expect(chooseBackingWidth(300, 10, 2000)).toBe(300 * MAX_PIXEL_RATIO);
+  });
+
+  it('uses the image width when the displayed width is unknown', () => {
+    expect(chooseBackingWidth(0, 2, 640)).toBe(640);
+    expect(chooseBackingWidth(Number.NaN, 2, 640)).toBe(640);
+  });
+
+  it('never returns less than one pixel', () => {
+    expect(chooseBackingWidth(0.1, 1, 640)).toBe(1);
+  });
+});
+
+describe('drawScene', () => {
+  beforeEach(() => {
+    installFakeCanvas();
+  });
+
+  it('paints frame back, plate, text, then frame front', () => {
+    const { ctx } = paint({ frameId: 'test-frame-any' }, 500);
+    const order = ctx.drawn.map((call) =>
+      call.op === 'fillText' ? 'text' : srcOf(call).split('/').at(-1),
+    );
+
+    expect(order).toEqual(['square-back.webp', 'nude.webp', 'text', 'square-front.webp']);
+  });
+
+  it('scales logical units to the canvas width and clears first', () => {
+    const { ctx } = paint({}, 200);
+
+    expect(ctx.calls[0]).toEqual({ op: 'setTransform', args: [0.5, 0, 0, 0.5, 0, 0] });
+    expect(ctx.calls[1]).toEqual({ op: 'clearRect', args: [0, 0, 400, 400] });
+  });
+
+  it('draws each image at its scene rectangle', () => {
+    const { ctx } = paint({ frameId: 'test-frame-any' }, 500);
+    const plate = ctx.calls.find(
+      (call) => call.op === 'drawImage' && srcOf(call).includes('plates'),
+    );
+
+    expect(plate).toMatchObject({ x: 0, y: 0, width: 500, height: 500 });
+  });
+
+  it('draws one text line per line, centered on the text area', () => {
+    const { ctx } = paint({ text: 'Casa\nAna' }, 400);
+    const lines = ctx.calls.filter((call) => call.op === 'fillText');
+
+    // Text area: x 80..320, y 120..280 → center x 200, vertical center 200.
+    expect(lines.map((call) => call.text)).toEqual(['Casa', 'Ana']);
+    expect(lines.every((call) => call.x === 200 && call.textAlign === 'center')).toBe(true);
+    const [first, second] = lines;
+    expect(((first?.y ?? 0) + (second?.y ?? 0)) / 2).toBeCloseTo(200);
+    expect((second?.y ?? 0) - (first?.y ?? 0)).toBeGreaterThan(0);
+  });
+
+  it('anchors left- and right-aligned text to the area edges', () => {
+    const { scene } = paint({}, 400);
+    const text = scene.layers.find((layer) => layer.kind === 'text');
+    if (text?.kind !== 'text') throw new Error('No text layer');
+
+    for (const [align, expectedX] of [
+      ['left', 80],
+      ['right', 320],
+    ] as const) {
+      const ctx = new FakeContext();
+      const aligned = { ...scene, layers: [{ ...text, block: { ...text.block, align } }] };
+      drawScene(ctx as unknown as CanvasRenderingContext2D, aligned, 400);
+      expect(ctx.calls.find((call) => call.op === 'fillText')).toMatchObject({
+        x: expectedX,
+        textAlign: align,
+      });
+    }
+  });
+
+  it('draws the text unaltered, in the provisional color, without clipping', () => {
+    const { ctx } = paint({ text: 'Ação 👩‍👩‍👧' }, 400);
+
+    expect(ctx.calls.find((call) => call.op === 'fillText')).toMatchObject({
+      text: 'Ação 👩‍👩‍👧',
+    });
+    expect(ctx.fillStyle).toBe(TEXT_COLOR);
+  });
+
+  it('never tints or blends: no filter, composite, or alpha changes', () => {
+    const { ctx } = paint({ frameId: 'test-frame-any' }, 500);
+
+    expect(ctx.filter).toBe('none');
+    expect(ctx.globalCompositeOperation).toBe('source-over');
+    expect(ctx.globalAlpha).toBe(1);
+  });
+});

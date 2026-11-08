@@ -28,11 +28,12 @@ React 19, TypeScript strict (`~6.0`), Vite 8, ESLint 9 + jsx-a11y, Prettier, Vit
 ```text
 src/domain/    pure types + validation (no React/DOM)
 src/catalog/   catalog data (data.ts) + getCatalog() entry point — deep-frozen source of truth
-src/components/ configurator form + preview slot
-src/hooks/     useConfiguration
-src/demo/      demo-mode catalog + banner (never in production builds, D-028)
+src/components/ configurator form + canvas preview
+src/hooks/     useConfiguration, useImages
+src/preview/   pure composition + scene layout + text fit; canvas painting
+src/demo/      demo-mode catalog, banner, and public/ synthetic images (never in production builds, D-028, D-036)
 src/App.tsx    app shell
-scripts/       build checks (demo isolation)
+scripts/       build checks (demo isolation), demo image generator
 tests/unit/    Vitest (fixtures prefixed `test-`)
 tests/e2e/     Playwright
 docs/          product and technical docs

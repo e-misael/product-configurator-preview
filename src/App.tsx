@@ -27,7 +27,12 @@ export function App({ catalog = getCatalog(), banner }: AppProps) {
         <p className="app__empty">Nenhuma placa disponível no momento.</p>
       ) : (
         <div className="app__layout">
-          <PreviewPanel catalog={catalog} config={state.config} plate={plate} />
+          <PreviewPanel
+            catalog={catalog}
+            config={state.config}
+            plate={plate}
+            validation={state.validation}
+          />
           <ConfiguratorForm catalog={catalog} plate={plate} state={state} />
         </div>
       )}

@@ -30,4 +30,22 @@ test.describe('Production build @smoke', () => {
 
     expect(requests.filter((url) => /demo/i.test(url))).toEqual([]);
   });
+
+  test('serves no demonstration images', async ({ page, request }) => {
+    const requests: string[] = [];
+    page.on('request', (r) => requests.push(r.url()));
+
+    await page.goto('/');
+    await expect(page.getByText('Nenhuma placa disponível no momento.')).toBeVisible();
+    expect(requests.filter((url) => url.includes('/catalog/'))).toEqual([]);
+
+    // The demo image paths do not exist in the production build.
+    for (const path of [
+      '/catalog/plates/demo-placa-quadrada/nude.png',
+      '/catalog/frames/demo-quadro-universal/quadrada-back.png',
+    ]) {
+      const response = await request.get(path);
+      expect(response.headers()['content-type'] ?? '').not.toContain('image/');
+    }
+  });
 });

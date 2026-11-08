@@ -189,7 +189,7 @@ Status values:
 - **Decision:** The preview and exported image are composed in layers from real product image assets supplied by the store: plate model (and color/finish variation), optional frame, and personalized text, with scaling, alignment, and positioning defined by catalog data. Color and finish are represented by images of the real variation; a CSS tint/filter/blend over a photograph is not an accurate representation of a ceramic color. Generic vector representations are temporary demonstration output only. Synthetic demonstration assets may be used for workflow tests but stay out of the production catalog and are labeled as such. Product imagery stays independent of `Configuration` and domain validation. No production photographs are generated or invented. M2 prepares the interface (preview slot, labeled placeholder); M3 implements the renderer; M1.3 adds real assets and the required catalog metadata.
 - **Rationale:** Visual accuracy is a functional requirement; customers must see the physical product they are ordering.
 - **Alternatives:** Vector-only rendering; tinting a single photograph per plate (rejected: misrepresents ceramic color).
-- **Impact:** D-007 (SVG) and D-009 (shared composition) remain proposed; the renderer must support raster layers. Adds pending items P-06–P-08.
+- **Impact:** D-007 (SVG) was superseded by D-035 (Canvas 2D) in M3.1; D-009 (shared composition) is implemented for the preview and confirmed for export in M4. Adds pending items P-06–P-08.
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -247,15 +247,42 @@ Status values:
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
+### D-035 — Canvas 2D as the single renderer
+
+- **Context:** The preview must compose same-origin photographs and text, scale responsively, and later be exported as PNG from the same composition (D-009). Supersedes D-007 (SVG).
+- **Decision:** One renderer: Canvas 2D (`drawScene`, `src/preview/draw.ts`). Preview and, in M4, export call the same function on different canvases, so they share one code path and the same pixels; export becomes "draw, then `toBlob`". SVG was rejected because exporting it needs a second pipeline (serialize, embed every image as a data URL, rasterize) whose output can differ from the live view. Text wrapping and fitting are done by our own code in both options. The backing store follows the displayed width times the device pixel ratio (clamped to 1–3) and never exceeds the base image's own width, since extra pixels would only upscale the photograph. The canvas is exposed as `role="img"` with an accessible name from the images' `alt`, described by the text summary of the selection. jsdom cannot paint, so unit tests cover composition, layout, and a recording fake context; Playwright reads real canvas pixels.
+- **Alternatives:** SVG `<image>` layers (rejected, above); HTML/CSS layering (rejected: no path to export, and layering CSS invites tinting).
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-036 — Synthetic demonstration images served only in demo mode
+
+- **Context:** The preview needs images to be developed and tested while no real photographs exist, without ever shipping fake products.
+- **Decision:** `scripts/generate-demo-assets.js` (`npm run generate:demo-assets`) writes deterministic synthetic PNGs to `src/demo/public/catalog/…`; the output is committed. They are deliberately not photograph-like: flat fills, hatched borders, an outlined text area, a "DEMO" stamp, and an embedded PNG comment "Synthetic demonstration image - not a Taavi product photograph". They cover a square, a rectangle, and a circle, plate photographs per category and one shade, two frames with back and front layers, and one shade left without a photograph (pending state). Vite copies its public directory into every build, so `vite.config.ts` sets `publicDir` to `src/demo/public` only in demo mode and to the (currently absent) `public/` otherwise; demo files are never in the production public directory. Isolation is checked three ways: `scripts/check-demo-isolation.js` scans file contents and file names of `dist/` for demo markers (including the PNG comment); a unit test asserts `public/` has no `demo-` files; Playwright asserts the production build requests and serves no demo image. Tests verify the demo catalog's declared pixel sizes match the PNG headers, that no file is orphaned, and that every described image is labeled as a demonstration.
+- **Alternatives:** Demo files in `public/` with a build-time exclusion step (rejected: easy to get wrong); generating images at build time (rejected: less reviewable, less deterministic).
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-037 — Composition, scene, and missing-image rules
+
+- **Context:** The preview must never show a configuration or product that differs from the selection, and must say why something is not shown.
+- **Decision:** `composePreview(catalog, config, validation)` (pure) selects imagery by exact match (D-032, D-033) and returns the plate, frame, and text layers plus notice codes; it contains no product rules or coordinates. `buildScene` (pure) positions layers from the images' natural sizes and the catalog's normalized boxes, in painting order **frame back → plate → text → frame front**. Rules: (1) nothing is drawn for a plate that is not selected, unknown, or unavailable; (2) a color or shade that conflicts with the plate shows no photograph, never another variation; (3) a frame that fails configuration validation is not drawn; (4) a valid frame without registered imagery for the plate, without `platePlacement`, whose file fails to load, or whose layers differ in aspect ratio by more than 1% is not drawn, and the plate is shown alone; (5) a frame is only drawn together with its plate; (6) text is drawn only inside the plate photograph's calibrated `text.area` — without one it is not drawn and a message says so, while the entered text remains in the configuration and the summary; (7) nothing is drawn until every needed file has settled, so no partial composition flashes; (8) when a frame is used, the plate's `objectBounds` (the whole photograph when pending) are scaled uniformly to fit and centered in `platePlacement`, preserving the aspect ratio, and the front layer covers the frame image. Each state — not selected, color missing or invalid, image pending in the catalog, loading, file failed to load, frame problems, text area pending, text overflow — has its own pt-BR message beside the canvas (`aria-live="polite"`), distinct from the others. A catalog-pending image and a failed load are different states.
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-038 — Provisional text fitting
+
+- **Context:** Typography and text limits are pending (P-04); the preview still needs readable, honest text.
+- **Decision:** Explicit line breaks (`\n`, `\r\n`, `\r`) are kept, including empty lines. Lines wrap at spaces; a word wider than the area is split between grapheme clusters (emoji sequences and accents stay intact). The font starts at 25% of the text area's height and shrinks by a factor of 0.9 per step down to a minimum of 8% of the area's height; line height is 1.2. If the text still does not fit at the minimum, it is drawn at the minimum size, unclipped, and a visible warning is shown; text is never truncated or clipped. Font (`system-ui`) and color (`#2b2b2b`) are provisional, alignment comes from the catalog (default center), and no stamped or raised effect is simulated. The constants live in `src/preview/text-fit.ts` and `src/preview/draw.ts`.
+- **Alternatives:** Clipping to the area (rejected: silently hides text); a fixed font size (rejected: ignores the area).
+- **Status:** Approved (provisional until P-04).
+- **Date:** 2026-11-07.
+
 ## Proposed
 
 ### D-007 — SVG preview rendering
 
-- **Context:** Preview must be accurate, responsive, and reusable for export.
-- **Proposal:** Render the preview as SVG.
-- **Rationale:** Resolution independent, DOM-testable, serializable for export.
-- **Alternatives:** HTML/CSS layering; Canvas 2D.
-- **Status:** Proposed — confirm in M3.
+- **Status:** Superseded by D-035 (Canvas 2D).
 
 ### D-008 — PNG export format
 
@@ -268,7 +295,7 @@ Status values:
 
 - **Proposal:** A pure function derives a composition (layers, geometry, text) from catalog + configuration; both preview and export consume it.
 - **Rationale:** Minimizes preview/export inconsistencies.
-- **Status:** Proposed — confirm in M3.
+- **Status:** Proposed — the preview side is implemented (`composePreview`, `buildScene`, `drawScene`, D-035–D-037); confirm the export side in M4.
 
 ## Pending
 

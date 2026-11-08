@@ -46,7 +46,10 @@ Visual accuracy is a functional requirement: the preview must show exactly what 
 ## Preview behavior
 
 - Update on every relevant change.
-- Missing asset → visible neutral placeholder with a text explanation; never substitute another product's asset.
+- The preview is a Canvas 2D composition of catalog images (D-035): `composePreview` → `buildScene` → `drawScene` in `src/preview/`. Keep product rules and per-product coordinates out of it; positions come from catalog `NormalizedBox` data. Layer order: frame back → plate → text → frame front (D-037).
+- Image not registered, loading, and failed to load are three different states with three different messages; never substitute another product's or finish's image, and never draw a frame that is invalid or uncalibrated.
+- Text is drawn only in the catalog's text area, never altered, never silently clipped; overflow is a visible warning (D-038).
+- Demo images are synthetic, labeled, and live in `src/demo/public/`, served only in demo mode (D-036). Never put them in `public/`.
 - Incomplete configuration → show what is known and indicate what's missing.
 
 ## Preview/export consistency

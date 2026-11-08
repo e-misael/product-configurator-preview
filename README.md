@@ -2,7 +2,7 @@
 
 Visual configurator for Taavi's handmade ceramic plates. Customers choose a plate (Placa; square, rectangular, or circular), an optional frame (Quadro), color, and custom text, see a live preview, and export an image.
 
-> **Status:** M2 — Functional configurator. The configuration form, validation feedback, and a placeholder preview work. The production catalog is intentionally empty until real product data is provided; use demo mode to try the workflow. See [docs/05-backlog.md](docs/05-backlog.md).
+> **Status:** M3.1 — Interactive preview. The configuration form, validation feedback, and a Canvas preview that composes catalog images work, verified with synthetic demo images only. The production catalog is intentionally empty until real product data and photographs are provided; use demo mode to try the workflow. See [docs/05-backlog.md](docs/05-backlog.md).
 
 ## Requirements
 
@@ -28,7 +28,7 @@ Opens the app at http://localhost:5173. With the empty production catalog it sho
 npm run dev:demo
 ```
 
-Runs the app with a synthetic, clearly labeled demonstration catalog (D-028). Demo data is never part of the production build.
+Runs the app with a synthetic, clearly labeled demonstration catalog and synthetic images (D-028, D-036). Demo data and images are never part of the production build.
 
 ## Commands
 
@@ -41,6 +41,7 @@ Runs the app with a synthetic, clearly labeled demonstration catalog (D-028). De
 | `npm run build:demo`           | Build demo mode into `dist-demo/`               |
 | `npm run preview:demo`         | Serve the demo build locally                    |
 | `npm run check:demo-isolation` | Verify `dist/` contains no demo data            |
+| `npm run generate:demo-assets` | Regenerate the synthetic demo images            |
 | `npm run typecheck`            | TypeScript type checking (strict)               |
 | `npm run lint`                 | ESLint (incl. accessibility rules)              |
 | `npm run format`               | Format all files with Prettier                  |
@@ -60,9 +61,10 @@ src/
   catalog/   Local, read-only product catalog (empty for now)
   components/ Configurator form and preview slot
   hooks/     useConfiguration state hook
-  demo/      Demonstration catalog and banner (demo mode only)
+  preview/   Pure preview composition, layout, text fitting; canvas painting
+  demo/      Demonstration catalog, banner, and public/ images (demo mode only)
   App.tsx    Application shell
-scripts/     Build checks (demo isolation)
+scripts/     Build checks (demo isolation), demo image generator
 tests/
   unit/      Vitest tests
   e2e/       Playwright tests

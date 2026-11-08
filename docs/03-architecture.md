@@ -25,11 +25,11 @@ A static, client-only single-page app. No backend, database, authentication, or 
 catalog data (src/catalog)  ──►  domain (src/domain)  ◄──  configuration state (useConfiguration)
                                      │
                                      ▼
-                         composition model (M3, proposed)  ◄──  image asset resolution (M3)
-                              │                 │                 (catalog asset refs → URLs)
+                  composePreview → buildScene (src/preview, pure)  ◄──  image loading (useImages)
+                              │                 │
                               ▼                 ▼
-                    preview renderer      export service (M4)
-                    (components/preview)  (services/)
+                    drawScene on a canvas   export service (M4, reuses drawScene)
+                    (components/preview)    (services/)
 ```
 
 Rules:
@@ -49,8 +49,10 @@ src/
 ├── catalog/          # data.ts, deep-freeze.ts, index.ts (getCatalog)
 ├── components/
 │   ├── configurator/ # form controls (M2)
-│   └── preview/      # SVG preview (M3)
-├── hooks/            # configuration state hook (M2)
+│   └── preview/      # canvas preview and its messages (M3.1)
+├── hooks/            # useConfiguration (M2), useImages (M3.1)
+├── preview/          # pure composition, scene layout, text fitting; canvas painting (M3.1)
+├── demo/             # demo catalog, banner, and public/ with synthetic images (demo mode only)
 └── services/         # export (M4)
 public/catalog/{plates,frames,colors}/{owner-id}/  # real images (M1.3b; docs/07)
 tests/{unit,e2e}/
@@ -143,11 +145,29 @@ The final preview and export are composed from **real product image assets** for
 - **Catalog contract (M1.3a, implemented):** `Plate.images` holds one photograph per `(colorCategory, colorId?)` (D-032); `Frame.images` holds `back`/optional `front` layers per compatible plate model (D-033); optional `NormalizedBox` placement (`objectBounds`, `text.area`, `platePlacement`) in image coordinates (D-034). Pure lookups `findPlateImage` / `findFrameImage` return `available` or `pending` by exact match. Real files and calibration values arrive in M1.3b. Details: [07-product-assets.md](07-product-assets.md).
 - **Layer contract for M3:** frame `back` → plate image placed so its `objectBounds` fill `platePlacement` (or the plate image alone when no frame) → text inside `text.area` → frame `front`. A `pending` lookup or an image that fails to load (renderer `error` event) shows a visible unavailable state; nothing is substituted. Clipping/masking of circular or irregular outlines is an M3 decision: a bounding box does not describe them.
 - **Text boundary:** raw text (`Configuration`), layout (catalog `TextLayout`), and typography/material effects (M3+, pending P-04) are separate; stamped or raised lettering is not assumed reproducible with plain text.
-- **Renderer choice (D-007, still proposed):** with raster layers, SVG `<image>` composition and Canvas 2D are both viable. The choice is confirmed in M3 against preview/export pixel consistency, text rendering quality, and mobile performance.
+- **Renderer (D-035):** Canvas 2D, decided in M3.1 (see "Preview rendering").
 
-## Preview rendering strategy (proposed — D-007)
+## Preview rendering (implemented in M3.1 — D-035–D-038)
 
-SVG is the preferred initial strategy: resolution-independent, inspectable, testable in the DOM, and serializable for export. It is not irreversible; the composition model isolates the renderer so it can be swapped. With real product photographs (D-027), the SVG would compose raster `<image>` layers plus text; Canvas 2D remains the main alternative.
+```text
+Configuration + validation + catalog
+  └─ composePreview (pure)  → plate / frame / text layers + notice codes   (exact image lookup, D-032/D-033)
+       └─ useImages         → per-file state: loading | loaded | error      (same-origin, browser-cached)
+            └─ buildScene (pure, text measured by a passed-in function)
+                 → positioned layers in painting order + notices
+                      └─ drawScene → canvas (PreviewCanvas)
+```
+
+- **Single renderer: Canvas 2D (D-035).** Export (M4) will call `drawScene` on another canvas; preview and export share one code path. Rendering code contains no product rules and no per-product coordinates: every position comes from catalog `NormalizedBox` data and the images' natural sizes.
+- **Layer order (D-037):** frame back → plate → text → frame front. The scene's logical size is the base image's natural size (the frame back when framed). The plate's `objectBounds` (the whole photograph when pending) are scaled uniformly to fit and centered in the frame's `platePlacement`; the text area is a fraction of the placed plate image; the front layer covers the frame image. Frame layers must share an aspect ratio (1% tolerance), otherwise the frame is not drawn.
+- **When positioning data is pending:** a frame without `platePlacement` is not drawn (the plate is shown alone, with a message); a plate without `text.area` gets no text on the image (a message says so; the entered text stays in the configuration and the summary); a plate without `objectBounds` is fitted by its whole photograph, which is only correct for tightly cropped images. No values are ever guessed.
+- **Missing and broken images (D-037):** `composePreview` reports catalog-pending states; `useImages` and `buildScene` report loading and load failures. They are shown as distinct messages (`components/preview/messages.ts`, `aria-live="polite"`). Nothing is drawn until every needed file has settled, and nothing is substituted.
+- **Resolution:** the canvas CSS width follows its container; the backing store is `displayed width × devicePixelRatio` (clamped to 1–3), capped at the base image's width. Aspect ratio comes from the images, never stretched.
+- **Text (D-038):** provisional fitting in `src/preview/text-fit.ts`; no stamped or raised effect. Typography is pending (P-04).
+- **Accessibility:** the canvas has `role="img"`, a name from the images' `alt`, and is described by the text summary of the selection beside it.
+- **Masking:** circular and irregular outlines come from the image's own transparency; a bounding box cannot describe them. Whether a separate mask is needed is an M3.2 decision with real photographs.
+- **Demo images:** served only in demo mode from `src/demo/public/` (D-036).
+- **Tests:** composition, layout, text fitting, drawing (recording fake context), `useImages`, and the React panel are unit/component tested; Playwright reads canvas pixels from the demo build.
 
 ## Export strategy (proposed — D-008, D-009)
 
@@ -155,12 +175,12 @@ Proposed: rasterize the same composition used by the preview to PNG on the clien
 
 ## Testing strategy
 
-| Level        | Tool                 | Scope                                                                                                                    |
-| ------------ | -------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| Unit         | Vitest               | Domain validation, pure helpers, composition model                                                                       |
-| Component    | Vitest + RTL         | Form controls, accessibility roles/labels                                                                                |
-| E2E          | Playwright           | Production smoke (empty catalog, no demo data); demo-build user flows and responsive layout; mobile WebKit smoke only    |
-| Visual (M3+) | Playwright snapshots | Preview regression, preview/export consistency (layer order, placement, no tinting) using synthetic demonstration images |
+| Level     | Tool                     | Scope                                                                                                                                                                       |
+| --------- | ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Unit      | Vitest                   | Domain validation, pure helpers, composition model                                                                                                                          |
+| Component | Vitest + RTL             | Form controls, accessibility roles/labels                                                                                                                                   |
+| E2E       | Playwright               | Production smoke (empty catalog, no demo data); demo-build user flows and responsive layout; mobile WebKit smoke only                                                       |
+| Visual    | Playwright canvas pixels | Layer order, exact image selection, placement, text rows, load failures, responsive size — using synthetic demonstration images (M3.1). Preview/export consistency from M4. |
 
 Unit tests use fake fixtures prefixed `test-`; they are never real product data.
 

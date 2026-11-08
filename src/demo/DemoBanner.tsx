@@ -2,7 +2,7 @@
 export function DemoBanner() {
   return (
     <p className="demo-banner" role="note">
-      Modo demonstração — dados fictícios, sem imagens reais dos produtos.
+      Modo demonstração — dados e imagens sintéticos; não são fotos dos produtos Taavi.
     </p>
   );
 }

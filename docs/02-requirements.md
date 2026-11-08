@@ -90,8 +90,11 @@ Acceptance criteria:
 3. The preview never silently shows a configuration different from the user's selection.
 4. Missing assets are handled gracefully and visibly.
 5. The final preview is composed from real product images (FR-08); generic vector shapes are acceptable only as temporary, clearly marked demonstration output.
+6. Layers are painted in this order: frame back, plate, personalized text, frame foreground (D-037).
+7. Each reason an image is not shown — not selected, color missing or invalid, image not yet registered, loading, file failed to load, frame invalid or not calibrated, text area not calibrated, text too long — is stated in text and distinct from the others; nothing else is substituted.
+8. Text keeps its line breaks, is never altered, truncated, or silently clipped, and shrinks only to a documented minimum before a visible warning (D-038).
 
-Status: Pending (M3). M2 provides the preview slot: a neutral, labeled placeholder with a text summary of the selection; no product drawing.
+Status: UI (M3.1) — implemented and verified with synthetic demonstration images only. Real product images and calibration (M1.3b) and masking of non-rectangular outlines are pending (M3.2).
 
 ### FR-07 — Image export
 
@@ -120,7 +123,7 @@ Acceptance criteria:
 8. Each image is a same-origin file under `/catalog/`, in its owner's folder; catalog integrity rejects any other path (D-031).
 9. A plate photograph is used only for its exact variation; with no color selected, or a shade without its own photograph, the image is pending — never a different variation (D-032).
 
-Status: Pending. M2: preview slot. M1.3a: catalog contract (image variations, frame layers per plate, optional placement, path rules, integrity checks) — done. M1.3b: real assets and calibration — blocked on photographs. M3: rendering.
+Status: Pending. M2: preview slot. M1.3a: catalog contract (image variations, frame layers per plate, optional placement, path rules, integrity checks) — done. M3.1: Canvas preview of catalog imagery, verified with synthetic demonstration images only — done. M1.3b: real assets and calibration — blocked on photographs.
 
 ## Non-functional requirements
 
