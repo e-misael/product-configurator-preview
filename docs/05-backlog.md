@@ -135,7 +135,7 @@ Status: Planned (not started).
 
 ## M4.1 — Product models and advanced text
 
-Split into independently testable slices (D-039); M4.1b is further split into M4.1b-1 and M4.1b-2 (D-043). No slice is started automatically.
+Split into independently testable slices (D-039); M4.1b is further split into M4.1b-1 and M4.1b-2 (D-043, D-044). No slice is started automatically.
 
 ### M4.1a — Product models and fixed properties
 
@@ -164,14 +164,19 @@ Status: **Done** (accepted 2026-11-08, D-043). Evidence: typecheck, lint, format
 - [x] Handmade-product disclaimer (copy in D-042)
 - [x] Unit, component, and Playwright tests (lettering color and font pixels, second color on a keyboard selection, production palette message)
 
-### M4.1b-2 — Text positioning
+### M4.1b-2 — Text alignment and manual positioning
 
-Status: **Planned** (design approved, D-042). Not started.
+Status: **Done** (accepted 2026-11-08, D-044). Evidence: typecheck, lint, format check, 491 unit tests, production build, demo isolation check, demo build with markers present, and 73 Playwright tests passed (2 intentionally skipped per device).
 
-- Normalized `textLayout` model `{ align, x, y } | null` keeping line alignment separate from block position.
-- Nine presets (left/center/right × top/middle/bottom) plus a normalized manual position inside the calibrated text area.
-- Drag with the pointer without changing the line alignment; touch drag only in an explicit "Mover texto" mode; keyboard arrows (2%, 10% with Shift); "Redefinir posição".
-- Position preserved across model changes, constrained to the new model's safe area; overflow handling unchanged.
+- [x] `Configuration.textLayout: TextPlacement | null` (`{ align, x, y }`, free-space fractions); `invalid-layout` validation; `null` = catalog default, which draws exactly what earlier versions drew
+- [x] Nine presets set alignment, x, and y together; "Alinhamento das linhas" changes only the alignment
+- [x] Scene text block carries measured line widths, free space, and block bounds; `fitText` unchanged (no enlarging; size independent of position)
+- [x] Mouse/pen drag on the canvas with hit testing in scene units (works at any displayed size and pixel density); dragging changes only the position
+- [x] Touch drag only in "Mover texto" mode (`touch-action: none` only then); toggle visible on all devices
+- [x] Directional buttons and arrow keys: 2%, 10% with Shift; live position announcement; buttons disabled on an axis without free space
+- [x] "Redefinir posição" (`textLayout = null`); placement kept across model changes, applied to the destination safe area
+- [x] Overflow warning and placement unchanged; export blocking recorded for M4
+- [x] Unit, component, and Playwright tests, including measured text-pixel positions for all nine presets, multiline alignment, mouse and real touch drags, keyboard steps, model change, and reset
 
 ### Future (not scheduled)
 
@@ -185,7 +190,8 @@ Status: Planned (not implemented; plan not yet approved).
 - Export from the shared composition.
 - Preview/export consistency tests.
 - Export only a valid configuration: a valid primary lettering color is required; the preview's provisional color is never exported (D-043).
-- **Acceptance criterion (D-039):** the preview and the exported image render the same font family and lettering colors (including secondary ranges, implemented in M4.1b-1) and, once M4.1b-2 exists, the same text position, from the same scene (`buildScene` + `drawScene`).
+- Block export while the scene reports `text-overflow` or an image is not loaded (D-044).
+- **Acceptance criterion (D-039):** the preview and the exported image render the same font family lettering colors (including secondary ranges, M4.1b-1), and text alignment and position (M4.1b-2), from the same scene (`buildScene` + `drawScene`).
 
 ## M5 — Quality and usability
 

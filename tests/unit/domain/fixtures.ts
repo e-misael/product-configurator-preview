@@ -83,6 +83,7 @@ export function validConfiguration(overrides: Partial<Configuration> = {}): Conf
     textColorId: 'test-text-color-a',
     secondaryColorId: null,
     secondaryRanges: [],
+    textLayout: null,
     ...overrides,
   };
 }

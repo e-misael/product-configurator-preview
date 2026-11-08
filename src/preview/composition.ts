@@ -12,6 +12,7 @@ import {
   findPlateImage,
   findTextColor,
   isAvailable,
+  resolvePlacement,
   type Catalog,
   type Configuration,
   type ConfigurationField,
@@ -59,7 +60,11 @@ export interface TextLayer {
   readonly text: string;
   /** Text area in the plate image's own coordinates. */
   readonly area: NormalizedBox;
+  /** Line alignment inside the text block. */
   readonly align: TextAlignment;
+  /** Block position as fractions of the free space in the area (D-044). */
+  readonly x: number;
+  readonly y: number;
   readonly fontFamily: FontFamily;
   /** Chosen lettering color; undefined until one is picked (the renderer then uses a neutral preview color). */
   readonly primaryColor: string | undefined;
@@ -73,9 +78,6 @@ export interface Composition {
   readonly text: TextLayer | undefined;
   readonly notices: readonly PreviewNoticeCode[];
 }
-
-/** Alignment used when the catalog gives a text area without one. */
-export const DEFAULT_TEXT_ALIGN: TextAlignment = 'center';
 
 function hasIssue(result: ValidationResult, field: ConfigurationField, kind?: 'invalid'): boolean {
   return (
@@ -148,10 +150,14 @@ export function composePreview(
     if (textLayout === undefined) {
       notices.push('text-area-pending');
     } else {
+      // An invalid stored placement is reported by validation and drawn at the catalog default.
+      const placement = resolvePlacement(config.textLayout, textLayout.align);
       textLayer = {
         text: config.text,
         area: textLayout.area,
-        align: textLayout.align ?? DEFAULT_TEXT_ALIGN,
+        align: placement.align,
+        x: placement.x,
+        y: placement.y,
         fontFamily: hasIssue(validation, 'fontFamily', 'invalid')
           ? 'sans-serif'
           : config.fontFamily,

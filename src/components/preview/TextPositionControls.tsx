@@ -1,0 +1,206 @@
+import type { KeyboardEvent, MouseEvent } from 'react';
+import {
+  LARGE_POSITION_STEP,
+  matchesPreset,
+  POSITION_STEP,
+  PRESET_COLUMNS,
+  PRESET_ROWS,
+  presetPlacement,
+  TEXT_ALIGNMENTS,
+  type PresetColumn,
+  type PresetRow,
+  type TextAlignment,
+  type TextPlacement,
+} from '../../domain';
+import type { TextBlock } from '../../preview/scene';
+
+interface TextPositionControlsProps {
+  /** The text block as drawn; undefined when no text is on the image. */
+  readonly block: TextBlock | undefined;
+  /** Whether a placement is stored (otherwise the catalog default applies). */
+  readonly customized: boolean;
+  readonly moveMode: boolean;
+  readonly onToggleMoveMode: () => void;
+  readonly onPlace: (placement: TextPlacement) => void;
+  readonly onAlign: (align: TextAlignment) => void;
+  readonly onNudge: (dx: number, dy: number) => void;
+  readonly onReset: () => void;
+}
+
+const ROW_LABELS: Record<PresetRow, string> = {
+  top: 'Superior',
+  middle: 'Meio',
+  bottom: 'Inferior',
+};
+const COLUMN_LABELS: Record<PresetColumn, string> = {
+  left: 'à esquerda',
+  center: 'ao centro',
+  right: 'à direita',
+};
+const ALIGN_LABELS: Record<TextAlignment, string> = {
+  left: 'À esquerda',
+  center: 'Ao centro',
+  right: 'À direita',
+};
+
+const presetLabel = (row: PresetRow, column: PresetColumn) =>
+  row === 'middle' && column === 'center'
+    ? 'Centro'
+    : `${ROW_LABELS[row]} ${COLUMN_LABELS[column]}`;
+
+type Direction = 'up' | 'down' | 'left' | 'right';
+const DIRECTIONS: readonly { direction: Direction; label: string; symbol: string }[] = [
+  { direction: 'up', label: 'Mover para cima', symbol: '↑' },
+  { direction: 'left', label: 'Mover para a esquerda', symbol: '←' },
+  { direction: 'right', label: 'Mover para a direita', symbol: '→' },
+  { direction: 'down', label: 'Mover para baixo', symbol: '↓' },
+];
+const KEY_DIRECTIONS: Partial<Record<string, Direction>> = {
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+};
+const VECTORS: Record<Direction, readonly [number, number]> = {
+  up: [0, -1],
+  down: [0, 1],
+  left: [-1, 0],
+  right: [1, 0],
+};
+
+const percent = (value: number) => `${Math.round(value * 100)}%`;
+
+/**
+ * Text alignment and position (D-044): nine presets (alignment and position
+ * together), line alignment alone, 2% / 10% (Shift) directional moves by
+ * button or arrow key, the touch "Mover texto" mode, and reset to the catalog
+ * default. Disabled while no text is drawn on the image.
+ */
+export function TextPositionControls({
+  block,
+  customized,
+  moveMode,
+  onToggleMoveMode,
+  onPlace,
+  onAlign,
+  onNudge,
+  onReset,
+}: TextPositionControlsProps) {
+  const placement: TextPlacement | undefined =
+    block === undefined ? undefined : { align: block.align, x: block.x, y: block.y };
+  const canMove = { x: (block?.slack.x ?? 0) > 0, y: (block?.slack.y ?? 0) > 0 };
+
+  const move = (direction: Direction, large: boolean) => {
+    const [dx, dy] = VECTORS[direction];
+    const step = large ? LARGE_POSITION_STEP : POSITION_STEP;
+    onNudge(dx * step, dy * step);
+  };
+
+  // Arrow keys work on any direction button, whichever has focus.
+  const onKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
+    const direction = KEY_DIRECTIONS[event.key];
+    if (direction === undefined) return;
+    event.preventDefault();
+    move(direction, event.shiftKey);
+  };
+
+  return (
+    <fieldset className="field position" disabled={block === undefined}>
+      <legend className="field__legend">Posição do texto</legend>
+      {block === undefined && (
+        <p className="field__info">Disponível quando o texto aparece na pré-visualização.</p>
+      )}
+
+      <div className="position__presets" role="group" aria-label="Posições predefinidas">
+        {PRESET_ROWS.flatMap((row) =>
+          PRESET_COLUMNS.map((column) => {
+            const label = presetLabel(row, column);
+            return (
+              <button
+                key={`${row}-${column}`}
+                type="button"
+                className="position__preset"
+                aria-label={label}
+                title={label}
+                aria-pressed={placement !== undefined && matchesPreset(placement, row, column)}
+                onClick={() => onPlace(presetPlacement(row, column))}
+              >
+                <span className="position__dot" aria-hidden="true" />
+              </button>
+            );
+          }),
+        )}
+      </div>
+
+      <fieldset className="position__align">
+        <legend className="field__info">Alinhamento das linhas</legend>
+        <div className="position__align-options">
+          {TEXT_ALIGNMENTS.map((align) => (
+            <label key={align} className="option">
+              <input
+                type="radio"
+                name="line-align"
+                value={align}
+                checked={placement?.align === align}
+                onChange={() => onAlign(align)}
+              />
+              <span>{ALIGN_LABELS[align]}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      <div
+        className="position__moves"
+        role="group"
+        aria-label="Mover o texto"
+        aria-describedby="position-keys"
+      >
+        {DIRECTIONS.map(({ direction, label, symbol }) => (
+          <button
+            key={direction}
+            type="button"
+            className={`button position__move position__move--${direction}`}
+            aria-label={label}
+            title={label}
+            disabled={direction === 'up' || direction === 'down' ? !canMove.y : !canMove.x}
+            onClick={(event: MouseEvent<HTMLButtonElement>) => move(direction, event.shiftKey)}
+            onKeyDown={onKeyDown}
+          >
+            <span aria-hidden="true">{symbol}</span>
+          </button>
+        ))}
+      </div>
+      <p className="field__info" id="position-keys">
+        Setas do teclado: 2% por passo, 10% com Shift.
+      </p>
+      <p className="field__info" aria-live="polite">
+        {placement === undefined
+          ? ''
+          : `Horizontal ${canMove.x ? percent(placement.x) : 'sem espaço livre'}, vertical ${
+              canMove.y ? percent(placement.y) : 'sem espaço livre'
+            }.`}
+      </p>
+
+      <div className="selection-actions__buttons">
+        <button
+          type="button"
+          className="button"
+          aria-pressed={moveMode}
+          aria-describedby="move-mode-hint"
+          onClick={onToggleMoveMode}
+        >
+          Mover texto
+        </button>
+        <button type="button" className="button" disabled={!customized} onClick={onReset}>
+          Redefinir posição
+        </button>
+      </div>
+      <p className="field__info" id="move-mode-hint">
+        {moveMode
+          ? 'Arraste o texto na imagem com o dedo ou o mouse.'
+          : 'Com o mouse, arraste o texto na imagem. Na tela de toque, ative "Mover texto".'}
+      </p>
+    </fieldset>
+  );
+}

@@ -8,11 +8,10 @@
  * Layer order (D-037): frame back → plate → text → frame front.
  */
 
-import type { NormalizedBox } from '../domain';
+import { ALIGN_ANCHOR, type FontFamily, type NormalizedBox, type TextAlignment } from '../domain';
 import type { Composition, FrameLayer, PlateLayer, PreviewNoticeCode } from './composition';
 import { fitText, type MeasureText } from './text-fit';
 import { FALLBACK_TEXT_COLOR, segmentLine, type TextSegment, type TextStyle } from './text-style';
-import type { FontFamily } from '../domain';
 
 export interface Rect {
   readonly x: number;
@@ -42,7 +41,17 @@ export interface TextBlock {
   readonly fontSize: number;
   readonly lineHeight: number;
   readonly align: 'left' | 'center' | 'right';
+  /** Calibrated text area (the safe area). */
   readonly area: Rect;
+  /** Measured width of each line (parallel to `lines`). */
+  readonly lineWidths: readonly number[];
+  /** Block position as fractions of the free space (D-044); see `bounds`. */
+  readonly x: number;
+  readonly y: number;
+  /** Free space around the block in the area on each axis; negative when the text overflows. */
+  readonly slack: { readonly x: number; readonly y: number };
+  /** Where the block is drawn: widest line × all lines. Used for drawing and hit testing. */
+  readonly bounds: Rect;
 }
 
 export type SceneLayer<I extends ImageSize> =
@@ -96,6 +105,37 @@ export function placePlate(
     y: placement.y + (placement.height - objectHeight * scale) / 2 - bounds.y * height,
     width,
     height,
+  };
+}
+
+/**
+ * Places the text block inside the area (D-044). With free space on an axis,
+ * the position is that fraction of the free space, so the block never leaves
+ * the area. Without free space (overflow), the block keeps the established
+ * overflow placement: anchored by its alignment horizontally, centered
+ * vertically. The catalog default (`x` = the alignment's anchor, `y` = 0.5)
+ * therefore draws exactly what earlier versions drew.
+ */
+export function placeBlock(
+  area: Rect,
+  lineWidths: readonly number[],
+  blockHeight: number,
+  placement: { readonly align: TextAlignment; readonly x: number; readonly y: number },
+): Pick<TextBlock, 'x' | 'y' | 'slack' | 'bounds'> {
+  const width = Math.max(0, ...lineWidths);
+  const slack = { x: area.width - width, y: area.height - blockHeight };
+  const tx = slack.x >= 0 ? placement.x : ALIGN_ANCHOR[placement.align];
+  const ty = slack.y >= 0 ? placement.y : 0.5;
+  return {
+    x: placement.x,
+    y: placement.y,
+    slack,
+    bounds: {
+      x: area.x + tx * slack.x,
+      y: area.y + ty * slack.y,
+      width,
+      height: blockHeight,
+    },
   };
 }
 
@@ -208,8 +248,10 @@ function assemble<I extends ImageSize>(
   const { text } = composition;
   if (text !== undefined) {
     const area = scaleBox(text.area, plateRect.width, plateRect.height, plateRect);
+    // The font size never depends on the position, and the text is never enlarged to fill the area.
     const fit = fitText(text.text, area, measure);
     if (fit.overflow) notices.push('text-overflow');
+    const lineWidths = fit.lines.map((line) => measure(line, fit.fontSize));
     const style: TextStyle = {
       fontFamily: text.fontFamily,
       primaryColor: text.primaryColor ?? FALLBACK_TEXT_COLOR,
@@ -225,6 +267,8 @@ function assemble<I extends ImageSize>(
         lineHeight: fit.lineHeight,
         align: text.align,
         area,
+        lineWidths,
+        ...placeBlock(area, lineWidths, fit.lines.length * fit.lineHeight, text),
       },
     });
   }

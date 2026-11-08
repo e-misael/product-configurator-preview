@@ -1,7 +1,10 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   addRange,
+  alignPlacement,
   createEmptyConfiguration,
+  effectivePlacement,
+  nudgePlacement,
   remapRanges,
   removeRange,
   selectPlate,
@@ -10,6 +13,8 @@ import {
   type Configuration,
   type ConfigurationField,
   type FontFamily,
+  type TextAlignment,
+  type TextPlacement,
   type ValidationIssue,
   type ValidationResult,
 } from '../domain';
@@ -107,6 +112,36 @@ export function useConfiguration(catalog: Catalog) {
     [],
   );
 
+  // Text placement (D-044). The placement survives model changes: it is relative
+  // to whichever calibrated text area the selected model has.
+  const placeText = useCallback((textLayout: TextPlacement) => update({ textLayout }), [update]);
+  /** Changes only the line alignment; the block stays where it is. */
+  const alignText = useCallback(
+    (align: TextAlignment) =>
+      setState(({ config }) => ({
+        config: {
+          ...config,
+          textLayout: alignPlacement(effectivePlacement(config, catalog), align),
+        },
+        notice: null,
+      })),
+    [catalog],
+  );
+  /** Moves the block by fractions of the free space (2%, or 10% with Shift). */
+  const nudgeText = useCallback(
+    (dx: number, dy: number) =>
+      setState(({ config }) => ({
+        config: {
+          ...config,
+          textLayout: nudgePlacement(effectivePlacement(config, catalog), dx, dy),
+        },
+        notice: null,
+      })),
+    [catalog],
+  );
+  /** Back to the catalog default alignment and position. */
+  const resetTextLayout = useCallback(() => update({ textLayout: null }), [update]);
+
   const validation = useMemo(
     () => validateConfiguration(state.config, catalog),
     [state.config, catalog],
@@ -124,6 +159,10 @@ export function useConfiguration(catalog: Catalog) {
     chooseSecondaryColor,
     applySecondaryColor,
     removeSecondaryColor,
+    placeText,
+    alignText,
+    nudgeText,
+    resetTextLayout,
   };
 }
 

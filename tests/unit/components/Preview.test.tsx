@@ -1,4 +1,4 @@
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/App';
 import { contextOf, type FakeContext } from '../support/fake-canvas';
@@ -314,6 +314,201 @@ describe('Preview', () => {
       await user.type(screen.getByLabelText('Texto'), 'Ana');
 
       expect(canvas()).toHaveAccessibleDescription(/Test plate square.*Ana/s);
+    });
+  });
+
+  describe('text position (D-044)', () => {
+    const positionGroup = () => screen.getByRole('group', { name: 'Posição do texto' });
+    const button = (name: string) => within(positionGroup()).getByRole('button', { name });
+    const alignRadio = (name: string) =>
+      within(screen.getByRole('group', { name: 'Alinhamento das linhas' })).getByRole('radio', {
+        name,
+      });
+    const status = () => within(positionGroup()).getByText(/^Horizontal /);
+    /** The first painted line as [x, textAlign]. */
+    const firstLine = () => {
+      const call = currentContext().drawn.find((entry) => entry.op === 'fillText');
+      return [call?.x, call?.textAlign];
+    };
+
+    async function withText() {
+      const { user } = setup();
+      await choosePlate(user, /^Test plate square /);
+      settle();
+      await user.type(screen.getByLabelText('Texto'), 'Ana');
+      // The canvas is displayed at the scene's size (400×400) at the page origin.
+      const element = preview().querySelector('canvas');
+      if (!element) throw new Error('No canvas');
+      element.getBoundingClientRect = () =>
+        ({ left: 0, top: 0, width: 400, height: 400, x: 0, y: 0 }) as DOMRect;
+      return { user, element };
+    }
+
+    it('is disabled until the text is drawn on the image', async () => {
+      const { user } = setup();
+      expect(positionGroup()).toBeDisabled();
+      expect(
+        within(positionGroup()).getByText('Disponível quando o texto aparece na pré-visualização.'),
+      ).toBeInTheDocument();
+
+      await choosePlate(user, /^Test plate square /);
+      settle();
+      expect(positionGroup()).toBeDisabled();
+
+      await user.type(screen.getByLabelText('Texto'), 'Ana');
+      expect(positionGroup()).toBeEnabled();
+      expect(button('Centro')).toHaveAttribute('aria-pressed', 'true');
+      expect(alignRadio('Ao centro')).toBeChecked();
+      expect(status()).toHaveTextContent('Horizontal 50%, vertical 50%.');
+      expect(button('Redefinir posição')).toBeDisabled();
+    });
+
+    it('applies a preset to alignment and position together', async () => {
+      const { user } = await withText();
+
+      await user.click(button('Superior à esquerda'));
+
+      expect(button('Superior à esquerda')).toHaveAttribute('aria-pressed', 'true');
+      expect(button('Centro')).toHaveAttribute('aria-pressed', 'false');
+      expect(alignRadio('À esquerda')).toBeChecked();
+      expect(status()).toHaveTextContent('Horizontal 0%, vertical 0%.');
+      // Area x 80–320: the left-aligned block starts at the area's left edge.
+      expect(firstLine()).toEqual([80, 'left']);
+    });
+
+    it('changes only the line alignment with "Alinhamento das linhas"', async () => {
+      const { user } = await withText();
+      await user.click(button('Inferior à esquerda'));
+
+      await user.click(alignRadio('À direita'));
+
+      expect(status()).toHaveTextContent('Horizontal 0%, vertical 100%.');
+      expect(button('Inferior à esquerda')).toHaveAttribute('aria-pressed', 'false');
+      // Same block (x 80–140 for "Ana"), lines now anchored to its right edge.
+      expect(firstLine()).toEqual([140, 'right']);
+    });
+
+    it('moves by 2% per button or arrow key, 10% with Shift', async () => {
+      const { user } = await withText();
+      await user.click(button('Superior à esquerda'));
+
+      await user.click(button('Mover para a direita'));
+      expect(status()).toHaveTextContent('Horizontal 2%, vertical 0%.');
+
+      await user.keyboard('{Shift>}');
+      await user.click(button('Mover para baixo'));
+      await user.keyboard('{/Shift}');
+      expect(status()).toHaveTextContent('Horizontal 2%, vertical 10%.');
+
+      button('Mover para a direita').focus();
+      await user.keyboard('{ArrowRight}{ArrowRight}{Shift>}{ArrowDown}{/Shift}{ArrowUp}');
+      expect(status()).toHaveTextContent('Horizontal 6%, vertical 18%.');
+      expect(alignRadio('À esquerda')).toBeChecked();
+    });
+
+    it('resets alignment and position to the catalog default', async () => {
+      const { user } = await withText();
+      await user.click(button('Inferior à direita'));
+
+      await user.click(button('Redefinir posição'));
+
+      expect(button('Centro')).toHaveAttribute('aria-pressed', 'true');
+      expect(alignRadio('Ao centro')).toBeChecked();
+      expect(button('Redefinir posição')).toBeDisabled();
+      expect(firstLine()).toEqual([200, 'center']);
+    });
+
+    it('drags the text with a mouse, changing only its position', async () => {
+      const { user, element } = await withText();
+      await user.click(button('Superior à esquerda'));
+      // Block "Ana" at x 80–140, y 120–168; free space x 180, y 112.
+
+      fireEvent.pointerDown(element, {
+        pointerId: 1,
+        pointerType: 'mouse',
+        clientX: 100,
+        clientY: 140,
+      });
+      fireEvent.pointerMove(element, {
+        pointerId: 1,
+        pointerType: 'mouse',
+        clientX: 145,
+        clientY: 168,
+      });
+      fireEvent.pointerUp(element, {
+        pointerId: 1,
+        pointerType: 'mouse',
+        clientX: 145,
+        clientY: 168,
+      });
+
+      expect(status()).toHaveTextContent('Horizontal 25%, vertical 25%.');
+      expect(alignRadio('À esquerda')).toBeChecked();
+      expect(firstLine()).toEqual([125, 'left']);
+    });
+
+    it('ignores a press outside the text', async () => {
+      const { element } = await withText();
+
+      fireEvent.pointerDown(element, {
+        pointerId: 1,
+        pointerType: 'mouse',
+        clientX: 10,
+        clientY: 10,
+      });
+      fireEvent.pointerMove(element, {
+        pointerId: 1,
+        pointerType: 'mouse',
+        clientX: 60,
+        clientY: 60,
+      });
+
+      expect(status()).toHaveTextContent('Horizontal 50%, vertical 50%.');
+    });
+
+    it('drags with touch only in "Mover texto" mode, so the page scrolls otherwise', async () => {
+      const { user, element } = await withText();
+      const touchDrag = () => {
+        fireEvent.pointerDown(element, {
+          pointerId: 2,
+          pointerType: 'touch',
+          clientX: 200,
+          clientY: 200,
+        });
+        fireEvent.pointerMove(element, {
+          pointerId: 2,
+          pointerType: 'touch',
+          clientX: 245,
+          clientY: 200,
+        });
+        fireEvent.pointerUp(element, {
+          pointerId: 2,
+          pointerType: 'touch',
+          clientX: 245,
+          clientY: 200,
+        });
+      };
+
+      expect(element.style.touchAction).toBe('auto');
+      touchDrag();
+      expect(status()).toHaveTextContent('Horizontal 50%, vertical 50%.');
+
+      await user.click(button('Mover texto'));
+      expect(button('Mover texto')).toHaveAttribute('aria-pressed', 'true');
+      expect(element.style.touchAction).toBe('none');
+      touchDrag();
+      expect(status()).toHaveTextContent('Horizontal 75%, vertical 50%.');
+    });
+
+    it('keeps the position when the model changes', async () => {
+      const { user } = await withText();
+      await user.click(button('Inferior à direita'));
+
+      await choosePlate(user, /^Test plate circle /);
+      settle();
+
+      expect(button('Inferior à direita')).toHaveAttribute('aria-pressed', 'true');
+      expect(status()).toHaveTextContent('Horizontal 100%, vertical 100%.');
     });
   });
 });

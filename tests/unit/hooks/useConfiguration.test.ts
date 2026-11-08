@@ -18,6 +18,7 @@ describe('useConfiguration', () => {
       textColorId: null,
       secondaryColorId: null,
       secondaryRanges: [],
+      textLayout: null,
     });
     expect(result.current.validation.status).toBe('incomplete');
     expect(result.current.notice).toBeNull();
@@ -39,6 +40,7 @@ describe('useConfiguration', () => {
       textColorId: 'test-text-color-a',
       secondaryColorId: null,
       secondaryRanges: [],
+      textLayout: null,
     });
     expect(result.current.validation).toEqual({ status: 'valid' });
   });
@@ -161,6 +163,44 @@ describe('useConfiguration: lettering', () => {
       kind: 'invalid',
       code: 'same-as-primary',
     });
+  });
+});
+
+describe('useConfiguration: text placement', () => {
+  it('stores a preset, then moves only the alignment or only the position', () => {
+    const { result } = setup();
+    act(() => result.current.choosePlate('test-plate-square'));
+
+    act(() => result.current.placeText({ align: 'left', x: 0, y: 0 }));
+    act(() => result.current.alignText('right'));
+    expect(result.current.config.textLayout).toEqual({ align: 'right', x: 0, y: 0 });
+
+    act(() => result.current.nudgeText(0.1, 0.02));
+    expect(result.current.config.textLayout).toEqual({ align: 'right', x: 0.1, y: 0.02 });
+  });
+
+  it('starts nudges and alignment changes from the catalog default', () => {
+    const { result } = setup();
+    act(() => result.current.choosePlate('test-plate-square'));
+
+    act(() => result.current.nudgeText(-0.02, 0));
+    expect(result.current.config.textLayout).toEqual({ align: 'center', x: 0.48, y: 0.5 });
+
+    act(() => result.current.resetTextLayout());
+    act(() => result.current.alignText('left'));
+    expect(result.current.config.textLayout).toEqual({ align: 'left', x: 0.5, y: 0.5 });
+  });
+
+  it('keeps the placement across model changes and resets to the catalog default', () => {
+    const { result } = setup();
+    act(() => result.current.choosePlate('test-plate-square'));
+    act(() => result.current.placeText({ align: 'right', x: 1, y: 1 }));
+
+    act(() => result.current.choosePlate('test-plate-circle'));
+    expect(result.current.config.textLayout).toEqual({ align: 'right', x: 1, y: 1 });
+
+    act(() => result.current.resetTextLayout());
+    expect(result.current.config.textLayout).toBeNull();
   });
 });
 

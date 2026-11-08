@@ -67,11 +67,12 @@ export function drawScene(
       ctx.drawImage(layer.image, x, y, width, height);
       continue;
     }
-    const { lines, segments, fontFamily, fontSize, lineHeight, align, area } = layer.block;
+    const { lines, segments, fontFamily, fontSize, lineHeight, align, bounds } = layer.block;
     ctx.font = fontFor(fontSize, fontFamily);
     ctx.textBaseline = 'middle';
-    const x = area.x + area.width * TEXT_ANCHOR[align];
-    const top = area.y + (area.height - lines.length * lineHeight) / 2;
+    // Lines are aligned inside the block; the block itself is placed by the scene (D-044).
+    const x = bounds.x + bounds.width * TEXT_ANCHOR[align];
+    const top = bounds.y;
     lines.forEach((line, index) => {
       const y = top + (index + 0.5) * lineHeight;
       const runs = segments[index] ?? [{ text: line, color: FALLBACK_TEXT_COLOR }];

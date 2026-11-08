@@ -10,6 +10,7 @@ export const FIELD_LABELS: Record<ConfigurationField, string> = {
   textColorId: 'Cor do texto',
   secondaryColorId: 'Segunda cor',
   secondaryRanges: 'Trechos com a segunda cor',
+  textLayout: 'Posição do texto',
 };
 
 const INVALID_MESSAGES: Record<ConfigurationField, Partial<Record<InvalidCode, string>>> = {
@@ -42,6 +43,9 @@ const INVALID_MESSAGES: Record<ConfigurationField, Partial<Record<InvalidCode, s
   secondaryRanges: {
     'ranges-without-color': 'Escolha a segunda cor para aplicá-la aos trechos.',
     'invalid-ranges': 'Os trechos com a segunda cor não correspondem ao texto.',
+  },
+  textLayout: {
+    'invalid-layout': 'A posição do texto não é válida. Use "Redefinir posição".',
   },
 };
 

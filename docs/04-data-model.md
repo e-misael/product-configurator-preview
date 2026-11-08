@@ -115,19 +115,22 @@ The production palette is empty until Taavi supplies it (P-02); the demo catalog
 
 ### `Configuration`
 
-| Field              | Type                   | Required | Notes                                          |
-| ------------------ | ---------------------- | -------- | ---------------------------------------------- |
-| `plateId`          | `string \| null`       | yes      | References `Plate.id`.                         |
-| `frameId`          | `string \| null`       | no       | `null` = explicit "no frame".                  |
-| `text`             | `string`               | yes      | Raw, never trimmed or normalized.              |
-| `fontFamily`       | `FontFamily`           | yes      | Default `sans-serif` ("Sem serifa").           |
-| `textColorId`      | `string \| null`       | yes      | References `TextColor.id`. No default (D-042). |
-| `secondaryColorId` | `string \| null`       | no       | Optional second lettering color.               |
-| `secondaryRanges`  | `readonly TextRange[]` | no       | Characters drawn in the second color.          |
+| Field              | Type                    | Required | Notes                                                    |
+| ------------------ | ----------------------- | -------- | -------------------------------------------------------- |
+| `plateId`          | `string \| null`        | yes      | References `Plate.id`.                                   |
+| `frameId`          | `string \| null`        | no       | `null` = explicit "no frame".                            |
+| `text`             | `string`                | yes      | Raw, never trimmed or normalized.                        |
+| `fontFamily`       | `FontFamily`            | yes      | Default `sans-serif` ("Sem serifa").                     |
+| `textColorId`      | `string \| null`        | yes      | References `TextColor.id`. No default (D-042).           |
+| `secondaryColorId` | `string \| null`        | no       | Optional second lettering color.                         |
+| `secondaryRanges`  | `readonly TextRange[]`  | no       | Characters drawn in the second color.                    |
+| `textLayout`       | `TextPlacement \| null` | no       | `null` = catalog default alignment and position (D-044). |
 
 Serializable as plain JSON. Contains only IDs and user input — never copies of catalog objects. There is no `shape` and no color field: the shape is derived from the selected model (`getPlateShape`) and the ceramic color is a catalog property of the model. No customer configuration is persisted anywhere, so removing the former color fields needs no data migration.
 
-Planned (M4.1b-2, not implemented): text position. See [05-backlog.md](05-backlog.md).
+### `TextPlacement`
+
+`{ align, x, y }` — the customer's text placement (D-044). `align` (`left`/`center`/`right`) aligns the lines inside the text block. `x` and `y` (0–1) place the block as fractions of the free space around it inside the calibrated text area: `left = area.x + x × (area.width − blockWidth)`, likewise for `y`. Any valid value therefore keeps the block inside the area, on every model. `null` resolves to the catalog default: the photograph's `text.align` (default `center`), `x` = that alignment's anchor (0, 0.5, 1), `y` = 0.5. Presets set all three properties; alignment changes keep `x`/`y`. Helpers in [`src/domain/text-placement.ts`](../src/domain/text-placement.ts).
 
 ## Relationships
 
@@ -162,6 +165,7 @@ Every field is evaluated. Each field reports **at most one issue**: the first fa
 | `textColorId`      | 1. `null` → missing · 2. not in catalog → `unknown-reference` · 3. unavailable → `unavailable`                                                                                                                                                                                                 |
 | `secondaryColorId` | Optional. 1. not in catalog → `unknown-reference` · 2. unavailable → `unavailable` · 3. same ID as `textColorId` → `same-as-primary`                                                                                                                                                           |
 | `secondaryRanges`  | Only when non-empty. 1. `secondaryColorId` is `null` → `ranges-without-color` · 2. not valid ranges for the text → `invalid-ranges`                                                                                                                                                            |
+| `textLayout`       | Optional. Not `null` and not a placement with a known `align` and finite `x`/`y` in 0–1 → `invalid-layout` (never clamped; drawn at the catalog default)                                                                                                                                       |
 
 Conditional rules:
 
@@ -182,7 +186,7 @@ Implemented in [`src/domain/selection.ts`](../src/domain/selection.ts) (D-026).
 
 ### Result status
 
-Any invalid issue → `invalid`; otherwise any missing issue → `incomplete`; otherwise `valid`. Issues are listed in field order: `plateId`, `frameId`, `text`, `fontFamily`, `textColorId`, `secondaryColorId`, `secondaryRanges`.
+Any invalid issue → `invalid`; otherwise any missing issue → `incomplete`; otherwise `valid`. Issues are listed in field order: `plateId`, `frameId`, `text`, `fontFamily`, `textColorId`, `secondaryColorId`, `secondaryRanges`, `textLayout`.
 
 ## Catalog integrity rules
 

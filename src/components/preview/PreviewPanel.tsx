@@ -1,25 +1,35 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   findFrame,
   findTextColor,
   type Catalog,
   type Configuration,
   type Plate,
+  type TextAlignment,
+  type TextPlacement,
   type ValidationResult,
 } from '../../domain';
 import { useImages } from '../../hooks/useImages';
 import { composePreview, compositionSources } from '../../preview/composition';
 import { createTextMeasurer } from '../../preview/draw';
+import { textBlockOf, type Point } from '../../preview/placement';
 import { buildScene } from '../../preview/scene';
 import { modelLabel } from '../configurator/messages';
 import { NOTICE_MESSAGES } from './messages';
 import { PreviewCanvas } from './PreviewCanvas';
+import { TextPositionControls } from './TextPositionControls';
 
 interface PreviewPanelProps {
   readonly catalog: Catalog;
   readonly config: Configuration;
   readonly plate: Plate | undefined;
   readonly validation: ValidationResult;
+  readonly positioning: {
+    readonly place: (placement: TextPlacement) => void;
+    readonly align: (align: TextAlignment) => void;
+    readonly nudge: (dx: number, dy: number) => void;
+    readonly reset: () => void;
+  };
 }
 
 function colorName(catalog: Catalog, id: string | null, none = '—'): string {
@@ -32,7 +42,13 @@ function colorName(catalog: Catalog, id: string | null, none = '—'): string {
  * loading, or failed images are never replaced by another product's image.
  * A text summary of the selection stays beside the canvas as its alternative.
  */
-export function PreviewPanel({ catalog, config, plate, validation }: PreviewPanelProps) {
+export function PreviewPanel({
+  catalog,
+  config,
+  plate,
+  validation,
+  positioning,
+}: PreviewPanelProps) {
   const composition = useMemo(
     () => composePreview(catalog, config, validation),
     [catalog, config, validation],
@@ -44,6 +60,12 @@ export function PreviewPanel({ catalog, config, plate, validation }: PreviewPane
     [composition, images, measure],
   );
   const messages = [...new Set(scene.notices.map((code) => NOTICE_MESSAGES[code]))];
+  const block = textBlockOf(scene);
+  const [moveMode, setMoveMode] = useState(false);
+  // Dragging changes only the block position; the line alignment is kept (D-044).
+  const moveText = (position: Point) => {
+    if (block !== undefined) positioning.place({ align: block.align, ...position });
+  };
 
   const frameName =
     config.frameId === null
@@ -60,6 +82,8 @@ export function PreviewPanel({ catalog, config, plate, validation }: PreviewPane
           scene={scene}
           label={scene.description ?? 'Pré-visualização da configuração'}
           describedBy="preview-summary"
+          moveMode={moveMode}
+          onMoveText={moveText}
         />
       ) : (
         <div className="preview__empty">Sem imagem para exibir</div>
@@ -73,6 +97,16 @@ export function PreviewPanel({ catalog, config, plate, validation }: PreviewPane
           </ul>
         )}
       </div>
+      <TextPositionControls
+        block={block}
+        customized={config.textLayout !== null}
+        moveMode={moveMode}
+        onToggleMoveMode={() => setMoveMode((on) => !on)}
+        onPlace={positioning.place}
+        onAlign={positioning.align}
+        onNudge={positioning.nudge}
+        onReset={positioning.reset}
+      />
       <dl className="preview__summary" id="preview-summary">
         <dt>Modelo</dt>
         <dd>{plate ? modelLabel(plate) : '—'}</dd>

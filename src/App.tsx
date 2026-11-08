@@ -32,6 +32,12 @@ export function App({ catalog = getCatalog(), banner }: AppProps) {
             config={state.config}
             plate={plate}
             validation={state.validation}
+            positioning={{
+              place: state.placeText,
+              align: state.alignText,
+              nudge: state.nudgeText,
+              reset: state.resetTextLayout,
+            }}
           />
           <ConfiguratorForm catalog={catalog} plate={plate} state={state} />
         </div>

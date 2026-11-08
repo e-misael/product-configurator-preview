@@ -120,6 +120,7 @@ export function config(overrides: Partial<Configuration> = {}): Configuration {
     textColorId: 'test-text-color-a',
     secondaryColorId: null,
     secondaryRanges: [],
+    textLayout: null,
     ...overrides,
   };
 }

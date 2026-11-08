@@ -160,6 +160,18 @@ export interface TextRange {
 }
 
 /**
+ * The customer's text placement (D-044). `align` aligns the lines inside the
+ * text block; `x`/`y` place the block as fractions (0–1) of the free space
+ * left around it inside the calibrated text area, so any valid value keeps
+ * the block inside that area on every model.
+ */
+export interface TextPlacement {
+  readonly align: TextAlignment;
+  readonly x: number;
+  readonly y: number;
+}
+
+/**
  * The user's current selection. Serializable (plain JSON) and independent
  * of UI details. `null` means "not selected"; for `frameId` it means "no frame".
  * The shape is not stored: it is derived from the selected plate (D-023).
@@ -176,6 +188,8 @@ export interface Configuration {
   readonly secondaryColorId: string | null;
   /** Characters drawn in the secondary color. Sorted, non-overlapping, grapheme-aligned. */
   readonly secondaryRanges: readonly TextRange[];
+  /** `null` = the catalog default for the model's text area (D-044). */
+  readonly textLayout: TextPlacement | null;
 }
 
 export type ConfigurationField = keyof Configuration;
@@ -190,7 +204,8 @@ export type InvalidCode =
   | 'unsupported-font'
   | 'same-as-primary'
   | 'ranges-without-color'
-  | 'invalid-ranges';
+  | 'invalid-ranges'
+  | 'invalid-layout';
 
 export type ValidationIssue =
   | { readonly kind: 'missing'; readonly field: ConfigurationField }

@@ -56,6 +56,7 @@ describe('configuration validation is independent of imagery', () => {
     textColorId: 'test-text-color-a',
     secondaryColorId: null,
     secondaryRanges: [],
+    textLayout: null,
   } as const;
   const configs: Configuration[] = [
     {

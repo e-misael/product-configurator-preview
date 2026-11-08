@@ -10,6 +10,7 @@
 
 import { FONT_FAMILIES } from './types';
 import { areValidRanges } from './text-ranges';
+import { isValidPlacement } from './text-placement';
 import type {
   Catalog,
   Configuration,
@@ -30,6 +31,7 @@ export function createEmptyConfiguration(): Configuration {
     textColorId: null,
     secondaryColorId: null,
     secondaryRanges: [],
+    textLayout: null,
   };
 }
 
@@ -154,6 +156,11 @@ export function validateConfiguration(config: Configuration, catalog: Catalog): 
     } else if (!areValidRanges(config.text, config.secondaryRanges)) {
       issues.push({ kind: 'invalid', field: 'secondaryRanges', code: 'invalid-ranges' });
     }
+  }
+
+  // Placement is raw user input; it is reported, never clamped (D-044).
+  if (config.textLayout !== null && !isValidPlacement(config.textLayout)) {
+    issues.push({ kind: 'invalid', field: 'textLayout', code: 'invalid-layout' });
   }
 
   if (issues.some((issue) => issue.kind === 'invalid')) {

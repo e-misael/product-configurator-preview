@@ -86,9 +86,19 @@ Typography and lettering colors (M4.1b-1, D-042, D-043):
 9. Editing the text moves the colored ranges with the edit, using the textarea caret when available; when the edit cannot be located the affected formatting is removed and a notice says so. Removing the last range keeps the chosen second color; only "Sem segunda cor" clears the color and its ranges.
 10. The handmade-product disclaimer is shown below the controls (copy in D-042).
 
-Text positioning (presets, dragging, keyboard, reset) is planned as M4.1b-2 and is not implemented.
+Text alignment and position (M4.1b-2, D-044):
 
-Status: UI (M2) for criteria 1–4; criterion 5 (M3.1); criteria 6–10 (M4.1b-1).
+11. "Posição do texto" offers nine presets (Superior/Meio/Inferior × à esquerda/ao centro/à direita; the middle one is "Centro"). A preset sets the line alignment and the block position together: the left column aligns lines left at x = 0, the center column centers them at x = 0.5, the right column aligns them right at x = 1; rows set y = 0, 0.5, 1.
+12. "Alinhamento das linhas" (À esquerda / Ao centro / À direita) changes only the alignment of the lines inside the block; the block does not move.
+13. The block position is a fraction of the free space around the block inside the calibrated text area, so the text never leaves that area. The font size does not depend on the position, and the text is not enlarged to fill the area; with free space, every preset gives a different position.
+14. With a mouse or pen, the text is dragged directly on the preview; dragging changes only the position. With touch, dragging works only while "Mover texto" is on, so the page scrolls normally otherwise. The toggle is shown on every device.
+15. Directional buttons ("Mover para cima/baixo/a esquerda/a direita") and arrow keys on them move 2% of the free space, 10% with Shift; the position is announced ("Horizontal 34%, vertical 50%."). Buttons for an axis without free space are disabled.
+16. "Redefinir posição" restores the catalog default (alignment and position).
+17. The position is kept across model changes and applies to the destination model's calibrated text area.
+18. Text that cannot fit keeps the established overflow warning and placement; the position controls cannot move it on an axis without free space. Export of overflowing text is blocked (future M4 requirement).
+19. The controls are disabled, with a hint, while no text is drawn on the image (no photograph, no calibrated text area, or no text).
+
+Status: UI (M2) for criteria 1–4; criterion 5 (M3.1); criteria 6–10 (M4.1b-1); criteria 11–19 (M4.1b-2).
 
 ### FR-06 — Real-time preview
 
@@ -112,8 +122,9 @@ Acceptance criteria:
 1. The user can export the current composition as an image.
 2. The exported image visually matches the preview.
 3. Format (PNG proposed), resolution, transparency, background, and file naming are confirmed during M4 before implementation.
-4. The exported image renders the same font family, lettering colors (M4.1b-1), and, once M4.1b-2 exists, text position as the preview, from the same scene (D-039).
+4. The exported image renders the same font family, lettering colors (M4.1b-1), and text alignment and position (M4.1b-2) as the preview, from the same scene (D-039).
 5. Export is offered only for a _valid_ configuration; in particular, a valid primary lettering color is required (the preview's provisional color is never exported, D-043).
+6. Export is blocked while the scene reports `text-overflow` or an image is not loaded (D-044).
 
 Status: Pending (M4).
 
@@ -148,7 +159,6 @@ Status: Pending. M2: preview slot. M1.3a: catalog contract (image variations, fr
 
 ## Future ideas (not MVP)
 
-- Text positioning (nine presets, dragging, keyboard, reset): planned as M4.1b-2, not implemented (D-042). Font family and lettering colors are implemented (M4.1b-1).
 - Per-line text-length limit: future rule, no limit defined (P-14).
 - Handmade-product disclaimer near the controls (copy in D-042) and a per-line text-length limit: planned, not implemented.
 - Nuvemshop integration, pricing, and order workflows.

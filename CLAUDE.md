@@ -16,7 +16,7 @@ Visual configurator for Taavi's handmade ceramics: the customer picks a model (M
 
 ## MVP boundaries
 
-In scope: model (fixed shape classification: square, rectangle, circle, scalloped), frame (optional; only on models with `supportsFrame`), fixed read-only ceramic color, text with font family and up to two lettering colors (M4.1b-1), live preview, image export. Planned, not implemented: text positioning (M4.1b-2).
+In scope: model (fixed shape classification: square, rectangle, circle, scalloped), frame (optional; only on models with `supportsFrame`), fixed read-only ceramic color, text with font family, up to two lettering colors, alignment, and position (M4.1b), live preview, image export. Planned, not implemented: image export (M4).
 Out of scope: Nuvemshop integration, cart, checkout, orders, payments, accounts, auth, database, backend, cloud storage, inventory, pricing, AI previews, 3D, admin, analytics. Do not add these or abstractions for them.
 
 ## Stack

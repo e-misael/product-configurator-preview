@@ -99,22 +99,38 @@ describe('drawScene', () => {
   });
 
   it('anchors left- and right-aligned text to the area edges', () => {
-    const { scene } = paint({}, 400);
-    const text = scene.layers.find((layer) => layer.kind === 'text');
-    if (text?.kind !== 'text') throw new Error('No text layer');
-
-    for (const [align, expectedX] of [
-      ['left', 80],
-      ['right', 320],
+    for (const [align, x, expectedX] of [
+      ['left', 0, 80],
+      ['right', 1, 320],
     ] as const) {
-      const ctx = new FakeContext();
-      const aligned = { ...scene, layers: [{ ...text, block: { ...text.block, align } }] };
-      drawScene(ctx as unknown as CanvasRenderingContext2D, aligned, 400);
+      const { ctx } = paint({ textLayout: { align, x, y: 0.5 } }, 400);
       expect(ctx.calls.find((call) => call.op === 'fillText')).toMatchObject({
         x: expectedX,
         textAlign: align,
       });
     }
+  });
+
+  it('draws a positioned block: lines aligned inside it, block at the area corner', () => {
+    // Area x 80–320, y 120–280; "Casa" is 4 chars, "da Ana" 6 chars → block width = widest line.
+    const { ctx, scene } = paint(
+      { text: 'Casa\nda Ana', textLayout: { align: 'right', x: 0, y: 0 } },
+      400,
+    );
+    const text = scene.layers.find((layer) => layer.kind === 'text');
+    if (text?.kind !== 'text') throw new Error('No text layer');
+    const { bounds, lineHeight } = text.block;
+    const lines = ctx.calls.filter((call) => call.op === 'fillText');
+
+    expect(bounds.x).toBe(80);
+    expect(bounds.y).toBe(120);
+    // Right-aligned lines share the block's right edge, which is not the area's.
+    expect(lines.map((call) => [call.x, call.textAlign])).toEqual([
+      [80 + bounds.width, 'right'],
+      [80 + bounds.width, 'right'],
+    ]);
+    expect(80 + bounds.width).toBeLessThan(320);
+    expect(lines[0]?.y).toBeCloseTo(120 + lineHeight / 2);
   });
 
   it('uses the chosen font family and primary color', () => {

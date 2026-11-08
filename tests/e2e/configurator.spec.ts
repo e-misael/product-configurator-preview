@@ -41,7 +41,7 @@ test('completes a configuration @smoke', async ({ page }) => {
   await frames(page)
     .getByRole('radio', { name: /Moldura clara/ })
     .check();
-  await page.getByLabel('Texto').fill('Casa da Ana\nDesde 2024');
+  await page.getByLabel('Texto', { exact: true }).fill('Casa da Ana\nDesde 2024');
   await expect(page.getByText('Falta escolher: Cor do texto.')).toBeVisible();
   await inks(page, 'Cor do texto')
     .getByRole('radio', { name: /Letra grafite/ })
@@ -59,7 +59,7 @@ test('applies the second color to a keyboard selection without changing the text
   page,
 }) => {
   await model(page, CERAMIC_PLATE).check();
-  const field = page.getByLabel('Texto');
+  const field = page.getByLabel('Texto', { exact: true });
   await field.fill('Casa da Ana');
   await inks(page, 'Cor do texto')
     .getByRole('radio', { name: /Letra grafite/ })

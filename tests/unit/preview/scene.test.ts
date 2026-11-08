@@ -326,3 +326,83 @@ describe('buildScene: text', () => {
     expect(scene.notices).toEqual(['text-area-pending']);
   });
 });
+
+describe('buildScene: text placement (D-044)', () => {
+  const textBlock = (scene: Scene<TestImage>) => {
+    const layer = scene.layers.find((candidate) => candidate.kind === 'text');
+    if (layer?.kind !== 'text') throw new Error('No text layer');
+    return layer.block;
+  };
+  // Square plate 400×400; area x 80–320, y 120–280. "Ana": font 40, width 60, line height 48.
+  const AREA = { x: 80, y: 120, width: 240, height: 160 };
+
+  it('draws the catalog default exactly where earlier versions did', () => {
+    const block = textBlock(sceneFor());
+
+    expect(block.area).toEqual(AREA);
+    expect(block.slack).toEqual({ x: 180, y: 112 });
+    expect(block.bounds).toEqual({ x: 170, y: 176, width: 60, height: 48 });
+  });
+
+  it('gives the nine presets nine different positions at the area edges', () => {
+    const rows = [0, 0.5, 1];
+    const columns = ['left', 'center', 'right'] as const;
+    const anchors = { left: 0, center: 0.5, right: 1 };
+    const seen = new Set<string>();
+    for (const y of rows) {
+      for (const align of columns) {
+        const block = textBlock(sceneFor({ textLayout: { align, x: anchors[align], y } }));
+        expect(block.bounds.x).toBe(AREA.x + anchors[align] * 180);
+        expect(block.bounds.y).toBe(AREA.y + y * 112);
+        seen.add(`${block.bounds.x},${block.bounds.y}`);
+      }
+    }
+    expect(seen.size).toBe(9);
+  });
+
+  it('never enlarges the text to fill the area: the size does not depend on the position', () => {
+    const sizes = (
+      [
+        { align: 'left', x: 0, y: 0 },
+        { align: 'right', x: 1, y: 1 },
+      ] as const
+    ).map((textLayout) => textBlock(sceneFor({ textLayout })).fontSize);
+    expect(sizes).toEqual([40, 40]);
+    expect(textBlock(sceneFor()).fontSize).toBe(40);
+  });
+
+  it('changing only the alignment keeps the block in place and realigns the lines', () => {
+    const text = 'Casa\nda Ana';
+    const left = textBlock(sceneFor({ text, textLayout: { align: 'left', x: 0.3, y: 0.2 } }));
+    const right = textBlock(sceneFor({ text, textLayout: { align: 'right', x: 0.3, y: 0.2 } }));
+
+    expect(right.bounds).toEqual(left.bounds);
+    expect([left.align, right.align]).toEqual(['left', 'right']);
+  });
+
+  it('keeps the same relative position on a model with a different safe area', () => {
+    const textLayout = { align: 'right', x: 1, y: 1 } as const;
+    for (const plateId of ['test-plate-square', 'test-plate-circle']) {
+      const { area, bounds } = textBlock(sceneFor({ plateId, textLayout }));
+      expect(bounds.x + bounds.width).toBeCloseTo(area.x + area.width);
+      expect(bounds.y + bounds.height).toBeCloseTo(area.y + area.height);
+    }
+  });
+
+  it('keeps the established overflow placement on an axis without free space', () => {
+    const lines = Array.from({ length: 40 }, (_, i) => `l${i}`).join('\n');
+    const scene = sceneFor({ text: lines, textLayout: { align: 'left', x: 0, y: 0 } });
+    const block = textBlock(scene);
+
+    expect(scene.notices).toContain('text-overflow');
+    expect(block.slack.y).toBeLessThan(0);
+    // Centered vertically (overflowing both edges), as before positioning existed.
+    expect(block.bounds.y).toBeCloseTo(AREA.y + block.slack.y / 2);
+  });
+
+  it('draws an invalid stored placement at the catalog default', () => {
+    const block = textBlock(sceneFor({ textLayout: { align: 'left', x: 7, y: 0 } }));
+    expect(block.bounds).toEqual({ x: 170, y: 176, width: 60, height: 48 });
+    expect(block.align).toBe('center');
+  });
+});

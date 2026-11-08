@@ -4,3 +4,4 @@ export * from './catalog-validation';
 export * from './selection';
 export * from './imagery';
 export * from './text-ranges';
+export * from './text-placement';

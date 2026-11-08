@@ -114,6 +114,8 @@ describe('composePreview: text', () => {
       text: '  Casa\nda Ana ',
       area: { x: 0.2, y: 0.3, width: 0.6, height: 0.4 },
       align: 'center',
+      x: 0.5,
+      y: 0.5,
       fontFamily: 'sans-serif',
       primaryColor: '#112233',
       secondary: undefined,
