@@ -152,7 +152,7 @@ Status: **Done** (accepted 2026-11-08). Evidence: typecheck, lint, format check,
 
 ### M4.1b-1 — Typography, lettering colors, styled ranges, disclaimer
 
-Status: **Implemented**, awaiting acceptance (D-043).
+Status: **Done** (accepted 2026-11-08, D-043). Evidence: typecheck, lint, format check, 442 unit tests, production build, demo isolation check, demo build with markers present, and 60 Playwright tests passed.
 
 - [x] Font family "Sem serifa" (default) / "Com serifa", provisional system font stacks (P-14)
 - [x] `Catalog.textColors` (`TextColor`: `id`, `displayName`, `hex`); integrity checks `empty-label`, `invalid-color`; IDs unique across all collections. Production palette empty (P-02); three labeled synthetic demo colors (`demo-letra-*`, isolation marker added)
@@ -160,6 +160,7 @@ Status: **Implemented**, awaiting acceptance (D-043).
 - [x] Selection + "Aplicar segunda cor à seleção" / "Remover segunda cor da seleção"; grapheme-safe ranges; deterministic caret-aware remap on edit, ambiguous edits remove the affected formatting with a notice
 - [x] Last range removed → second color kept; "Sem segunda cor" clears color and ranges
 - [x] Scene text block carries per-line colored segments from source offsets (soft wraps included); canvas draws mixed-color lines as consecutive runs; overflow warnings unchanged
+- [x] Provisional preview color identified as such: preview notice "Cor do texto ainda não escolhida…" and summary "Não escolhida"
 - [x] Handmade-product disclaimer (copy in D-042)
 - [x] Unit, component, and Playwright tests (lettering color and font pixels, second color on a keyboard selection, production palette message)
 
@@ -183,6 +184,7 @@ Status: Planned (not implemented; plan not yet approved).
 - Confirm format, resolution, transparency, background, file naming (the filename no longer has color parts).
 - Export from the shared composition.
 - Preview/export consistency tests.
+- Export only a valid configuration: a valid primary lettering color is required; the preview's provisional color is never exported (D-043).
 - **Acceptance criterion (D-039):** the preview and the exported image render the same font family and lettering colors (including secondary ranges, implemented in M4.1b-1) and, once M4.1b-2 exists, the same text position, from the same scene (`buildScene` + `drawScene`).
 
 ## M5 — Quality and usability

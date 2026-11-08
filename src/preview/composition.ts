@@ -36,6 +36,7 @@ export type PreviewNoticeCode =
   | 'frame-image-error'
   | 'frame-layers-mismatch'
   | 'text-area-pending'
+  | 'text-color-provisional'
   | 'text-overflow';
 
 export interface PlateLayer {
@@ -157,6 +158,8 @@ export function composePreview(
         primaryColor: usableColor(catalog, config.textColorId, validation, 'textColorId'),
         secondary: secondaryStyle(catalog, config, validation),
       };
+      // The renderer's fallback color is not a customer choice; say so (D-043).
+      if (textLayer.primaryColor === undefined) notices.push('text-color-provisional');
     }
   }
 

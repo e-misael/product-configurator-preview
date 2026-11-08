@@ -22,8 +22,8 @@ interface PreviewPanelProps {
   readonly validation: ValidationResult;
 }
 
-function colorName(catalog: Catalog, id: string | null): string {
-  return id === null ? '—' : (findTextColor(catalog, id)?.displayName ?? id);
+function colorName(catalog: Catalog, id: string | null, none = '—'): string {
+  return id === null ? none : (findTextColor(catalog, id)?.displayName ?? id);
 }
 
 /**
@@ -83,7 +83,7 @@ export function PreviewPanel({ catalog, config, plate, validation }: PreviewPane
         <dt>Fonte</dt>
         <dd>{config.fontFamily === 'serif' ? 'Com serifa' : 'Sem serifa'}</dd>
         <dt>Cor do texto</dt>
-        <dd>{colorName(catalog, config.textColorId)}</dd>
+        <dd>{colorName(catalog, config.textColorId, 'Não escolhida')}</dd>
         <dt>Segunda cor</dt>
         <dd>
           {config.secondaryColorId === null

@@ -275,7 +275,9 @@ describe('buildScene: text', () => {
   });
 
   it('carries the font family and falls back to a neutral color when none is chosen', () => {
-    const block = textBlock(sceneFor({ fontFamily: 'serif' }));
+    const scene = sceneFor({ fontFamily: 'serif', textColorId: null });
+    const block = textBlock(scene);
+    expect(scene.notices).toContain('text-color-provisional');
 
     expect(block.fontFamily).toBe('serif');
     expect(block.segments).toEqual([[{ text: 'Ana', color: FALLBACK_TEXT_COLOR }]]);

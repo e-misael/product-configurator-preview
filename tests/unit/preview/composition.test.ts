@@ -115,9 +115,19 @@ describe('composePreview: text', () => {
       area: { x: 0.2, y: 0.3, width: 0.6, height: 0.4 },
       align: 'center',
       fontFamily: 'sans-serif',
-      primaryColor: undefined,
+      primaryColor: '#112233',
       secondary: undefined,
     });
+  });
+
+  it('marks the text color as provisional until a usable color is chosen', () => {
+    expect(compose({ textColorId: null }).notices).toEqual(['text-color-provisional']);
+    expect(compose({ textColorId: 'test-text-color-gone' }).notices).toEqual([
+      'text-color-provisional',
+    ]);
+    expect(compose().notices).toEqual([]);
+    // No text drawn, nothing to qualify.
+    expect(compose({ text: '', textColorId: null }).notices).toEqual([]);
   });
 
   it('defaults the alignment when the catalog omits it', () => {

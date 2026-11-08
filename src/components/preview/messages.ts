@@ -18,5 +18,7 @@ export const NOTICE_MESSAGES: Record<PreviewNoticeCode, string> = {
     'As imagens da moldura têm proporções diferentes; a moldura não é exibida.',
   'text-area-pending':
     'A área do texto deste modelo ainda não foi calibrada; o texto não aparece na imagem.',
+  'text-color-provisional':
+    'Cor do texto ainda não escolhida: o texto aparece em uma cor provisória, que não é uma das cores disponíveis.',
   'text-overflow': 'O texto não cabe na área do modelo, mesmo no tamanho mínimo. Reduza o texto.',
 };

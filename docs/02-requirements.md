@@ -81,7 +81,7 @@ Acceptance criteria:
 Typography and lettering colors (M4.1b-1, D-042, D-043):
 
 6. The font is "Sem serifa" (default) or "Com serifa"; the preview uses provisional system font stacks (P-14).
-7. A lettering color ("Cor do texto") must be chosen explicitly from the catalog palette; without one the configuration is _incomplete_. No production palette exists yet (P-02), and the UI says so.
+7. A lettering color ("Cor do texto") must be chosen explicitly from the catalog palette; without one the configuration is _incomplete_. No production palette exists yet (P-02), and the UI says so. Until one is chosen, the preview draws the text in a provisional neutral color and says so ("Cor do texto ainda não escolhida…"); the summary shows "Não escolhida".
 8. An optional second color ("Segunda cor (opcional)") is applied to the selected characters with "Aplicar segunda cor à seleção" and removed with "Remover segunda cor da seleção". Ranges never split a grapheme or include a line break; the text itself is never changed by formatting. A second color equal to the first is _invalid_ (`same-as-primary`) and is not offered.
 9. Editing the text moves the colored ranges with the edit, using the textarea caret when available; when the edit cannot be located the affected formatting is removed and a notice says so. Removing the last range keeps the chosen second color; only "Sem segunda cor" clears the color and its ranges.
 10. The handmade-product disclaimer is shown below the controls (copy in D-042).
@@ -112,7 +112,8 @@ Acceptance criteria:
 1. The user can export the current composition as an image.
 2. The exported image visually matches the preview.
 3. Format (PNG proposed), resolution, transparency, background, and file naming are confirmed during M4 before implementation.
-4. Once M4.1b exists, the exported image renders the same font family, lettering colors, and text position as the preview, from the same scene (D-039).
+4. The exported image renders the same font family, lettering colors (M4.1b-1), and, once M4.1b-2 exists, text position as the preview, from the same scene (D-039).
+5. Export is offered only for a _valid_ configuration; in particular, a valid primary lettering color is required (the preview's provisional color is never exported, D-043).
 
 Status: Pending (M4).
 

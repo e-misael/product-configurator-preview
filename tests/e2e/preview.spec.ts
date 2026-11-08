@@ -275,12 +275,15 @@ test.describe('personalized text', () => {
     await page.getByLabel('Texto').fill('HHH');
     const BLUE = [0x1f, 0x4e, 0x8c] as const;
     await expect.poll(() => textPixels(page, BLUE)).toBe(0);
+    const provisional = preview(page).getByText(/cor provisória/);
+    await expect(provisional).toBeVisible();
 
     await page
       .getByRole('group', { name: 'Cor do texto' })
       .getByRole('radio', { name: /Letra azul/ })
       .check();
     await expect.poll(() => textPixels(page, BLUE)).toBeGreaterThan(20);
+    await expect(provisional).toHaveCount(0);
 
     const sans = await textPixels(page);
     await page

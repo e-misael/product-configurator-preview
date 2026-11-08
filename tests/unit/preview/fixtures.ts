@@ -117,7 +117,7 @@ export function config(overrides: Partial<Configuration> = {}): Configuration {
     frameId: null,
     text: 'Ana',
     fontFamily: 'sans-serif',
-    textColorId: null,
+    textColorId: 'test-text-color-a',
     secondaryColorId: null,
     secondaryRanges: [],
     ...overrides,

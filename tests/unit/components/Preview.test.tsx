@@ -237,6 +237,19 @@ describe('Preview', () => {
       expect(texts).toEqual(['text:Casa', 'text:da Ana']);
     });
 
+    it('says the lettering color is provisional until one is chosen', async () => {
+      const { user } = await squarePlate();
+      const provisional = /Cor do texto ainda não escolhida: o texto aparece em uma cor provisória/;
+
+      await user.type(screen.getByLabelText('Texto'), 'Ana');
+      expect(within(preview()).getByText(provisional)).toBeInTheDocument();
+      expect(within(preview()).getByText('Não escolhida')).toBeInTheDocument();
+
+      await choose(user, 'Cor do texto', 'Test ink A');
+      expect(within(preview()).queryByText(provisional)).not.toBeInTheDocument();
+      expect(within(preview()).getByText('Test ink A')).toBeInTheDocument();
+    });
+
     it('draws the text over the plate, never under it', async () => {
       const { user } = await squarePlate();
 

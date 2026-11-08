@@ -154,7 +154,7 @@ describe('drawScene', () => {
   });
 
   it('draws the text unaltered, in the provisional color, without clipping', () => {
-    const { ctx } = paint({ text: 'Ação 👩‍👩‍👧' }, 400);
+    const { ctx } = paint({ text: 'Ação 👩‍👩‍👧', textColorId: null }, 400);
 
     expect(ctx.calls.find((call) => call.op === 'fillText')).toMatchObject({
       text: 'Ação 👩‍👩‍👧',
