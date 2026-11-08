@@ -113,7 +113,7 @@ Status values:
 ### D-018 — Catalog integrity validation contract
 
 - **Context:** M1.1; catalog definitions must be checked before real products are added (M0 review L-2, L-3).
-- **Decision:** A pure `validateCatalog(catalog)` returns `valid` or `invalid` with **all** issues, each with an explicit code (`invalid-id`, `duplicate-id`, `duplicate-entry`, `unknown-reference`, `unreachable-compatibility` (D-022), `empty-list`, `unsupported-shape-key`, `color-category-mismatch`, `invalid-dimension`, `invalid-asset`), a path, the owning component ID, and an optional related path. Deterministic order. It never repairs or filters data. A present-but-empty `compatibility.plateIds` is an error (it would fit no plate); omitting it means "no restriction".
+- **Decision:** A pure `validateCatalog(catalog)` returns `valid` or `invalid` with **all** issues, each with an explicit code (`invalid-id`, `duplicate-id`, `duplicate-entry`, `unknown-reference`, `unreachable-compatibility` (D-022), `empty-list`, `unsupported-shape-key` (removed by D-033), `color-category-mismatch`, `invalid-dimension`, `invalid-asset`; extended by D-031–D-034), a path, the owning component ID, and an optional related path. Deterministic order. It never repairs or filters data. A present-but-empty `compatibility.plateIds` is an error (it would fit no plate); omitting it means "no restriction".
 - **Rationale:** Catalog validation is a diagnostic tool for maintainers, so complete reporting beats one-issue-per-field (contrast D-016).
 - **Alternatives:** Runtime schema library (e.g. Zod) — unnecessary dependency for typed local data; fail-fast on first error.
 - **Status:** Approved.
@@ -215,6 +215,38 @@ Status values:
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
+### D-031 — Same-origin asset paths in owner folders
+
+- **Context:** Catalog-defined image paths must be safe and predictable before real files are registered (M1.3a).
+- **Decision:** `AssetRef.src` must match `/catalog/{plates|frames|colors}/{owner-id}/{name}.{webp|png|jpg}` with kebab-case segments, where `owner-id` is the ID of the component that references it. The check is an allowlist at runtime (`isValidAssetPath`, `invalid-asset`), so external URLs, other schemes (`data:`, `javascript:`), traversal, query strings, and encoded characters are rejected; TypeScript types are not relied on. Assets are same-origin files under `public/catalog/` so a future canvas export is not tainted. File existence is verified by a test that lists `public/catalog/` at test time; there is no runtime fetch. Optional `widthPx`/`heightPx` are declared together as positive integers; M1.3b adds a check that they match the files. Originals stay outside the repository in Taavi's source archive (P-10). Guide: `docs/07-product-assets.md`.
+- **Alternatives:** Free-form paths checked only for non-blank (previous rule; too permissive); external hosting (out of scope).
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-032 — Plate photographs per variation, matched exactly
+
+- **Context:** A real color/finish variation must be shown with its own photograph (FR-08.3).
+- **Decision:** `Plate.images` replaces `Plate.asset`: one `PlateImage` per `(colorCategory, colorId?)`. An entry without `colorId` is the photograph for the category with no shade chosen. Integrity: the category must be supported by the plate (`unsupported-variation`), the shade must exist (`unknown-reference`), belong to the category (`color-category-mismatch`), and be in `supportedColorIds` (`unsupported-variation`), and each combination appears once (`duplicate-variation`). `findPlateImage` returns `available` only for an exact match; it is `pending` when no category is selected (no default photograph) and when a shade has no photograph of its own (no fallback to another shade or to the category photograph).
+- **Alternatives:** A default photograph per plate; category photograph as an approximate fallback (both rejected by the owner).
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-033 — Frame imagery per plate model, with back and front layers
+
+- **Context:** One frame photograph cannot be assumed to fit every compatible plate geometry, and a frame may need a layer above the plate (rim, opening).
+- **Decision:** `Frame.images` replaces the per-shape `Frame.assets`: one `FrameImage` per `plateId` with a required `back` layer (behind the plate), an optional `front` overlay (above plate and text), and optional `platePlacement`. Entries are allowed only where `isFrameCompatible(frame, plate)` holds — the same function configuration validation uses — otherwise `unreachable-compatibility`; unknown plates are `unknown-reference`; one entry per plate (`duplicate-variation`). Removes the obsolete `unsupported-shape-key` code. Frame finish variations are pending (P-09).
+- **Alternatives:** Images keyed by shape (previous model; no per-plate calibration); a generic layer list (unneeded before real assets).
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
+### D-034 — Optional normalized placement metadata
+
+- **Context:** The renderer needs plate, frame, and text placement, but no values can be measured until real photographs exist.
+- **Decision:** Placement uses `NormalizedBox` (`x`, `y`, `width`, `height` as 0–1 fractions of the image it belongs to, origin top-left): `PlateImage.objectBounds`, `PlateImage.text.area` (with optional `align`), and `FrameImage.platePlacement`. All are optional until calibrated; none are invented. Integrity (`invalid-placement`): finite values, non-negative origin, positive size, inside the image, a known alignment, and the text area inside `objectBounds` when both are present. A box is positioning metadata only: it does not describe the outline of a circular or irregular object or a frame opening; precise clipping/masking is an M3 decision. Typography and material effects (stamped or raised lettering) are not modeled (P-04).
+- **Alternatives:** Pixel coordinates (tied to one file resolution); physical millimeters (dimensions pending).
+- **Status:** Approved.
+- **Date:** 2026-11-07.
+
 ## Proposed
 
 ### D-007 — SVG preview rendering
@@ -247,4 +279,7 @@ Status values:
 - **P-05:** Export resolution, transparency, background, file naming.
 - **P-06:** Real product images per plate model, per color/finish variation, and per frame; how variations map to image files.
 - **P-07:** Layer placement metadata: text safe area, frame aperture and offset, scale relative to real dimensions.
-- **P-08:** Source image format, resolution, and consistency requirements (framing, lighting, background).
+- **P-08:** Source image format, resolution, and consistency requirements (framing, lighting, background). Conventions and recommendations: `docs/07-product-assets.md`.
+- **P-09:** Whether frames have finish variations (e.g. wood tones) that need their own imagery.
+- **P-10:** Location and naming of original photographs in Taavi's source archive, for provenance records.
+- **P-11:** Which store product is the circular plate (the scalloped dish in the reference photos is not assumed to be it).

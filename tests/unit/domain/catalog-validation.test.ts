@@ -58,11 +58,11 @@ describe('validateCatalog', () => {
       expect(validateCatalog(testCatalog)).toEqual({ status: 'valid' });
     });
 
-    it('accepts pending dimensions, no asset, and empty supportedColorIds', () => {
+    it('accepts pending dimensions, no images, and empty supportedColorIds', () => {
       const catalog = withPlate(0, { supportedColorIds: [], dimensions: { status: 'pending' } });
-      Reflect.deleteProperty(at(catalog.plates, 0), 'asset');
+      Reflect.deleteProperty(at(catalog.plates, 0), 'images');
 
-      expect(at(catalog.plates, 0)).not.toHaveProperty('asset');
+      expect(at(catalog.plates, 0)).not.toHaveProperty('images');
       expect(validateCatalog(catalog)).toEqual({ status: 'valid' });
     });
 
@@ -264,16 +264,6 @@ describe('validateCatalog', () => {
     });
   });
 
-  describe('frame asset keys', () => {
-    it('reports frame assets for a shape outside its compatibility', () => {
-      expectOnly(withFrame(1, { assets: { rectangle: { src: '/catalog/test/f.png' } } }), {
-        code: 'unsupported-shape-key',
-        path: 'frames[1].assets.rectangle',
-        id: 'test-frame-plate-a',
-      });
-    });
-  });
-
   describe('dimensions', () => {
     it.each([
       ['zero', 0],
@@ -298,18 +288,18 @@ describe('validateCatalog', () => {
   });
 
   describe('assets', () => {
-    it.each(['', '   '])('reports plate asset src %j', (src) => {
-      expectOnly(withPlate(0, { asset: { src } }), {
+    it.each(['', '   '])('reports plate image src %j', (src) => {
+      expectOnly(withPlate(1, { images: [{ colorCategory: 'nude', image: { src } }] }), {
         code: 'invalid-asset',
-        path: 'plates[0].asset.src',
-        id: 'test-plate-a',
+        path: 'plates[1].images[0].image.src',
+        id: 'test-plate-b',
       });
     });
 
-    it('reports an invalid frame asset', () => {
-      expectOnly(withFrame(0, { assets: { square: { src: '' } } }), {
+    it('reports an invalid frame image', () => {
+      expectOnly(withFrame(0, { images: [{ plateId: 'test-plate-a', back: { src: '' } }] }), {
         code: 'invalid-asset',
-        path: 'frames[0].assets.square.src',
+        path: 'frames[0].images[0].back.src',
         id: 'test-frame-any',
       });
     });
@@ -634,7 +624,10 @@ describe('validateCatalog', () => {
         colors: [at(base.colors, 0), { ...at(base.colors, 1), id: 'test-color-nude' }],
         plates: [
           { ...at(base.plates, 0), supportedColorIds: ['test-frame-any'] },
-          { ...at(base.plates, 1), asset: { src: '' } },
+          {
+            ...at(base.plates, 1),
+            images: [{ colorCategory: 'nude', image: { src: '' } }],
+          },
         ],
         frames: [
           { ...at(base.frames, 0), id: 'Frame' },
@@ -655,7 +648,7 @@ describe('validateCatalog', () => {
             relatedPath: 'colors[0].id',
           },
           { code: 'unknown-reference', path: 'plates[0].supportedColorIds[0]', id: 'test-plate-a' },
-          { code: 'invalid-asset', path: 'plates[1].asset.src', id: 'test-plate-b' },
+          { code: 'invalid-asset', path: 'plates[1].images[0].image.src', id: 'test-plate-b' },
           { code: 'invalid-id', path: 'frames[0].id', id: 'Frame' },
           {
             code: 'unreachable-compatibility',

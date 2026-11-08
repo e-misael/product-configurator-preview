@@ -12,6 +12,7 @@ Visual configurator for Taavi's handmade ceramic plates: the customer picks a pl
 | Types and validation rules         | [docs/04-data-model.md](docs/04-data-model.md)         |
 | Increments M0–M5 and status        | [docs/05-backlog.md](docs/05-backlog.md)               |
 | Decisions (approved vs proposed)   | [docs/06-decisions.md](docs/06-decisions.md)           |
+| Product image assets and placement | [docs/07-product-assets.md](docs/07-product-assets.md) |
 
 ## MVP boundaries
 
@@ -38,7 +39,7 @@ docs/          product and technical docs
 .claude/       skills and agents
 ```
 
-Future folders (`services`, `public/catalog/*`) are created only by the increment that needs them.
+Future folders (`services`, `public/catalog/{plates,frames,colors}/{owner-id}/` — real images only, D-031) are created only by the increment that needs them.
 
 ## Domain invariants
 

@@ -1,5 +1,5 @@
 import { deepFreeze } from '../../../src/catalog/deep-freeze';
-import { at, buildValidCatalog } from '../domain/catalog-fixtures';
+import { at, buildImageCatalog, buildValidCatalog } from '../domain/catalog-fixtures';
 
 /**
  * Mutation attempts go through `Reflect` so they compile despite the
@@ -64,18 +64,33 @@ describe('deepFreeze', () => {
   });
 
   it('freezes dimension and asset objects', () => {
-    const catalog = deepFreeze(buildValidCatalog());
+    const catalog = deepFreeze(buildImageCatalog());
     const plate = at(catalog.plates, 0);
-    const frameAssets = defined(at(catalog.frames, 0).assets);
     const swatch = defined(at(catalog.colors, 0).swatch);
 
     expect(Object.isFrozen(plate.dimensions)).toBe(true);
     expectAssignmentRejected(plate.dimensions, 'widthMm', 1);
     expectAssignmentRejected(plate, 'dimensions', { status: 'pending' });
-    expectAssignmentRejected(defined(plate.asset), 'src', '');
-    expectAssignmentRejected(frameAssets, 'square', { src: 'x' });
-    expectAssignmentRejected(defined(frameAssets.rectangle), 'src', '');
     expectAssignmentRejected(swatch, 'src', '');
+  });
+
+  it('freezes image variations and placement metadata', () => {
+    const catalog = deepFreeze(buildImageCatalog());
+    const plateImages = defined(at(catalog.plates, 0).images);
+    const plateImage = at(plateImages, 0);
+    const frameImage = at(defined(at(catalog.frames, 0).images), 0);
+
+    expectPushRejected(plateImages, plateImage);
+    expectAssignmentRejected(plateImage, 'colorCategory', 'colored');
+    expectAssignmentRejected(plateImage.image, 'src', '/catalog/plates/x/y.png');
+    expectAssignmentRejected(plateImage.image, 'widthPx', 1);
+    expectAssignmentRejected(defined(plateImage.objectBounds), 'x', 0.5);
+    expectAssignmentRejected(defined(plateImage.text).area, 'width', 0.1);
+    expectAssignmentRejected(defined(plateImage.text), 'align', 'left');
+    expectAssignmentRejected(frameImage, 'plateId', 'test-plate-a');
+    expectAssignmentRejected(frameImage.back, 'src', '');
+    expectAssignmentRejected(defined(frameImage.front), 'src', '');
+    expectAssignmentRejected(defined(frameImage.platePlacement), 'height', 1);
   });
 
   it('freezes shared references and is idempotent', () => {

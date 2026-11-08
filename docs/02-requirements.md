@@ -117,7 +117,10 @@ Acceptance criteria:
 6. No production product photographs are generated, invented, or substituted. Synthetic demonstration assets may be used temporarily to exercise the workflow; they live outside the production catalog, are labeled as demonstration content, and never ship as product imagery.
 7. Product imagery is independent of configuration state and domain validation: `Configuration` stores no image data, and validation does not depend on whether an image exists.
 
-Status: Pending — interface prepared in M2, rendering in M3, real assets in M1.3.
+8. Each image is a same-origin file under `/catalog/`, in its owner's folder; catalog integrity rejects any other path (D-031).
+9. A plate photograph is used only for its exact variation; with no color selected, or a shade without its own photograph, the image is pending — never a different variation (D-032).
+
+Status: Pending. M2: preview slot. M1.3a: catalog contract (image variations, frame layers per plate, optional placement, path rules, integrity checks) — done. M1.3b: real assets and calibration — blocked on photographs. M3: rendering.
 
 ## Non-functional requirements
 

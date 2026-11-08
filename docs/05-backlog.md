@@ -72,14 +72,27 @@ Status: **In progress** — implemented; pending owner review.
 - [x] Catalog integrity: `frame-capability-conflict`, `unsupported-frame-shape`; `unreachable-compatibility` covers frameless plates (D-022, D-024)
 - [x] Pure `selectPlate` (explicitly clears an unsupported frame, reports `cleared`) and `getFrameOptions` (D-026)
 
-### M1.3 — Real catalog data
+### M1.3a — Asset-ready catalog foundation
 
-Status: Planned. **Blocked on real product information from the store.**
+Status: **Done** — implemented; pending owner review. No real products or images.
+
+- [x] Asset path convention `/catalog/{plates|frames|colors}/{owner-id}/{name}.{webp|png|jpg}`, runtime allowlist validation (D-031)
+- [x] Optional `AssetRef.widthPx`/`heightPx`, both or neither, positive integers
+- [x] `Plate.images` per color variation, exact-match `findPlateImage` with no fallback (D-032)
+- [x] `Frame.images` per compatible plate model with `back`/`front` layers, `findFrameImage`; compatibility via `isFrameCompatible` (D-033)
+- [x] Optional normalized placement metadata and its integrity checks (D-034)
+- [x] Asset gate test: referenced files must exist under `public/` (passes trivially while the catalog is empty)
+- [x] Asset preparation guide: [07-product-assets.md](07-product-assets.md)
+
+### M1.3b — Real asset registration
+
+Status: Planned. **Blocked on clean photographs and measurements from the store.**
 
 - Real plate, frame, and color definitions (names, shapes, frame support, colors, compatibility).
-- Real product image files under `public/catalog/placas` and `public/catalog/quadros` (D-027).
-- Catalog model for per-variation images and layer placement metadata, with integrity checks (P-06, P-07).
-- Missing-asset handling.
+- Processed images under `public/catalog/` (background removal/masking, perspective correction as needed); originals archived outside the repository with provenance.
+- Declared intrinsic sizes plus a check that they match the files.
+- Calibrated `objectBounds`, text areas, and frame placement; visual verification against the originals.
+- Checklist: [07-product-assets.md](07-product-assets.md#m13b-checklist).
 
 ## M2 — Configuration interface
 

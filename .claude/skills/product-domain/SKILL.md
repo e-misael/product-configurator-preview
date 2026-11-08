@@ -26,6 +26,7 @@ Before adding any value, ask: "Did the store provide this?" If not, do not add i
 - Do not choose a rectangle aspect ratio.
 - Test data belongs in `tests/` with `test-`-prefixed IDs, never in `src/catalog`.
 - No generated or invented product photographs. Product imagery is resolved from catalog `AssetRef`s at composition time; `Configuration` stores no image data and validation never depends on image availability (D-027).
+- Asset paths are `/catalog/{plates|frames|colors}/{owner-id}/{name}.{webp|png|jpg}` (D-031). Plate photographs are per `(colorCategory, colorId?)` and matched exactly — no default or fallback photograph (D-032). Frame imagery is per compatible plate model with `back`/`front` layers (D-033). Placement boxes are optional, normalized, and never estimated (D-034). Guide: `docs/07-product-assets.md`.
 
 ## Stable identifiers
 

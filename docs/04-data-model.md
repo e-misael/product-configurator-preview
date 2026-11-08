@@ -21,12 +21,36 @@ Unknown dimensions must be `pending`. Never invent numbers to satisfy types.
 
 ### `AssetRef`
 
-| Field | Required | Notes                         |
-| ----- | -------- | ----------------------------- |
-| `src` | yes      | Path under `public/catalog/`. |
-| `alt` | no       | Accessible description.       |
+| Field                  | Required | Notes                                                                           |
+| ---------------------- | -------- | ------------------------------------------------------------------------------- |
+| `src`                  | yes      | `/catalog/{plates\|frames\|colors}/{owner-id}/{name}.{webp\|png\|jpg}` (D-031). |
+| `alt`                  | no       | Accessible description.                                                         |
+| `widthPx` / `heightPx` | no       | Intrinsic pixel size; both or neither; positive integers.                       |
 
-Assets may be missing at runtime; consumers must handle that gracefully.
+Assets may be missing at runtime; consumers must handle that gracefully. Conventions: [07-product-assets.md](07-product-assets.md).
+
+### `NormalizedBox`
+
+`{ x, y, width, height }` as fractions (0–1) of the image it belongs to, origin top-left (D-034). Positioning metadata only; it does not describe exact outlines.
+
+### `PlateImage`
+
+| Field           | Required | Notes                                                                                    |
+| --------------- | -------- | ---------------------------------------------------------------------------------------- |
+| `colorCategory` | yes      | A category the plate supports.                                                           |
+| `colorId`       | no       | Omitted = photograph for the category with no shade chosen.                              |
+| `image`         | yes      | `AssetRef` in `/catalog/plates/{plate-id}/`.                                             |
+| `objectBounds`  | no       | Bounding box of the ceramic object in the photograph. Pending = omit.                    |
+| `text`          | no       | `TextLayout`: `area` (`NormalizedBox`) and optional `align` (`left`, `center`, `right`). |
+
+### `FrameImage`
+
+| Field            | Required | Notes                                                           |
+| ---------------- | -------- | --------------------------------------------------------------- |
+| `plateId`        | yes      | Plate model this imagery is calibrated for; must be compatible. |
+| `back`           | yes      | `AssetRef`, drawn behind the plate.                             |
+| `front`          | no       | `AssetRef` overlay drawn above plate and text.                  |
+| `platePlacement` | no       | Where the plate's `objectBounds` go in `back`. Pending = omit.  |
 
 ### Common component fields
 
@@ -54,14 +78,14 @@ A physical plate model. Square, rectangular, and circular plates are separate mo
 | `supportedColorCategories` | yes      | Categories the plate can be made in.                               |
 | `supportedColorIds`        | yes      | Specific colors; may be empty while colors are pending.            |
 | `dimensions`               | yes      | `Dimensions` (may be `pending`).                                   |
-| `asset`                    | no       | `AssetRef`.                                                        |
+| `images`                   | no       | `PlateImage[]`, one per color variation (D-032).                   |
 
 ### `Frame` (`type: 'frame'`)
 
 | Field           | Required | Notes                                         |
 | --------------- | -------- | --------------------------------------------- |
 | `compatibility` | yes      | `FrameCompatibility`. No implicit "fits all". |
-| `assets`        | no       | Per-shape `AssetRef`.                         |
+| `images`        | no       | `FrameImage[]`, one per plate model (D-033).  |
 
 ### `FrameCompatibility`
 
@@ -96,7 +120,13 @@ Configuration.frameId ──► Frame.id            (optional)
 Configuration.colorId ──► PlateColor.id       (optional)
 Plate.supportedColorIds ──► PlateColor.id
 Frame.compatibility.plateIds ──► Plate.id     (optional restriction)
+Plate.images[].colorId ──► PlateColor.id      (optional)
+Frame.images[].plateId ──► Plate.id           (compatible plates only)
 ```
+
+### Image lookup
+
+`findPlateImage(plate, colorCategory, colorId)` and `findFrameImage(frame, plateId)` return `{ status: 'available', image }` or `{ status: 'pending' }`. Exact match only: no color category → pending; a shade without its own photograph → pending; never another variation or plate (D-032). A file that fails to load is detected by the renderer (M3), not the domain. Configuration validation never consults images.
 
 ## Validation rules
 
@@ -152,22 +182,26 @@ interface CatalogIssue {
 
 Unlike configuration validation, **every** issue is reported. Order is deterministic: `colors`, then `plates`, then `frames`; within a component, fields in definition order. Array indices in paths are diagnostic only. Data is never repaired or filtered.
 
-| Code                        | Rule violated                                                                                                                                            | Paths                                                                                             |
-| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `invalid-id`                | ID must match `^[a-z0-9]+(?:-[a-z0-9]+)*$` (non-empty, lowercase kebab-case)                                                                             | `<collection>[i].id`                                                                              |
-| `duplicate-id`              | IDs unique across colors, plates, and frames; reported at each repeat, `relatedPath` = first occurrence                                                  | `<collection>[i].id`                                                                              |
-| `duplicate-entry`           | No repeated value in a list; `relatedPath` = first occurrence                                                                                            | `supportedColorCategories`, `supportedColorIds`, `compatibility.shapes`, `compatibility.plateIds` |
-| `unknown-reference`         | Referenced ID exists in the right collection                                                                                                             | `plates[i].supportedColorIds[j]` → colors; `frames[i].compatibility.plateIds[j]` → plates         |
-| `unreachable-compatibility` | Each plate in a frame's `plateIds` has `supportsFrame: true` and its `shape` is in the frame's `compatibility.shapes`; `relatedPath` = the plate (D-022) | `frames[i].compatibility.plateIds[j]`                                                             |
-| `empty-list`                | Required list is non-empty; `plateIds`, when present, is non-empty (omit it for "no restriction")                                                        | `supportedColorCategories`, `compatibility.shapes`, `compatibility.plateIds`                      |
-| `unsupported-shape-key`     | Frame `assets` keys ⊆ `compatibility.shapes`                                                                                                             | `frames[i].assets.<shape>`                                                                        |
-| `frame-capability-conflict` | A plate whose shape is in `FRAMELESS_SHAPES` (`circle`) has `supportsFrame: false` (D-024)                                                               | `plates[i].supportsFrame`                                                                         |
-| `unsupported-frame-shape`   | A frame's `compatibility.shapes` contains no shape in `FRAMELESS_SHAPES` (`circle`) (D-024)                                                              | `frames[i].compatibility.shapes[j]`                                                               |
-| `color-category-mismatch`   | A referenced color's category is in the plate's `supportedColorCategories`                                                                               | `plates[i].supportedColorIds[j]`                                                                  |
-| `invalid-dimension`         | Defined `widthMm` and `heightMm` are finite and > 0 (each reported separately)                                                                           | `plates[i].dimensions.widthMm` / `.heightMm`                                                      |
-| `invalid-asset`             | `src` is not empty or whitespace-only                                                                                                                    | `plates[i].asset.src`, `frames[i].assets.<shape>.src`, `colors[i].swatch.src`                     |
+| Code                        | Rule violated                                                                                                                                                                | Paths                                                                                                                                                     |
+| --------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `invalid-id`                | ID must match `^[a-z0-9]+(?:-[a-z0-9]+)*$` (non-empty, lowercase kebab-case)                                                                                                 | `<collection>[i].id`                                                                                                                                      |
+| `duplicate-id`              | IDs unique across colors, plates, and frames; reported at each repeat, `relatedPath` = first occurrence                                                                      | `<collection>[i].id`                                                                                                                                      |
+| `duplicate-entry`           | No repeated value in a list; `relatedPath` = first occurrence                                                                                                                | `supportedColorCategories`, `supportedColorIds`, `compatibility.shapes`, `compatibility.plateIds`                                                         |
+| `unknown-reference`         | Referenced ID exists in the right collection                                                                                                                                 | `plates[i].supportedColorIds[j]` → colors; `frames[i].compatibility.plateIds[j]` → plates                                                                 |
+| `unreachable-compatibility` | Each plate in a frame's `plateIds` has `supportsFrame: true` and its `shape` is in the frame's `compatibility.shapes`; `relatedPath` = the plate (D-022)                     | `frames[i].compatibility.plateIds[j]`                                                                                                                     |
+| `empty-list`                | Required list is non-empty; `plateIds`, when present, is non-empty (omit it for "no restriction")                                                                            | `supportedColorCategories`, `compatibility.shapes`, `compatibility.plateIds`                                                                              |
+| `frame-capability-conflict` | A plate whose shape is in `FRAMELESS_SHAPES` (`circle`) has `supportsFrame: false` (D-024)                                                                                   | `plates[i].supportsFrame`                                                                                                                                 |
+| `unsupported-frame-shape`   | A frame's `compatibility.shapes` contains no shape in `FRAMELESS_SHAPES` (`circle`) (D-024)                                                                                  | `frames[i].compatibility.shapes[j]`                                                                                                                       |
+| `color-category-mismatch`   | A referenced color's category is in the plate's `supportedColorCategories`                                                                                                   | `plates[i].supportedColorIds[j]`                                                                                                                          |
+| `invalid-dimension`         | Defined `widthMm` and `heightMm` are finite and > 0 (each reported separately)                                                                                               | `plates[i].dimensions.widthMm` / `.heightMm`                                                                                                              |
+| `invalid-asset`             | `src` matches the asset path allowlist in the owner's folder (D-031); `widthPx`/`heightPx` both present and positive integers when either is (each side reported)            | `<asset>.src`, `<asset>.widthPx` / `.heightPx`, where `<asset>` is `plates[i].images[j].image`, `frames[i].images[j].back` / `.front`, `colors[i].swatch` |
+| `unsupported-variation`     | A plate image's `colorCategory` is in the plate's `supportedColorCategories`; its `colorId` is in `supportedColorIds`                                                        | `plates[i].images[j].colorCategory` / `.colorId`                                                                                                          |
+| `duplicate-variation`       | One plate image per `(colorCategory, colorId)`; one frame image per `plateId`; `relatedPath` = first occurrence                                                              | `plates[i].images[j]`, `frames[i].images[j]`                                                                                                              |
+| `invalid-placement`         | Boxes have finite values, `x, y ≥ 0`, `width, height > 0`, and fit in the image; `text.align` is known; `text.area` lies inside `objectBounds` when both set (`relatedPath`) | `plates[i].images[j].objectBounds` / `.text.area` / `.text.align`, `frames[i].images[j].platePlacement`                                                   |
 
-Allowed (not issues): an empty catalog; `pending` dimensions; no plate `asset`; a square or rectangular plate with `supportsFrame: false`; empty `supportedColorIds` (colors pending); omitted `compatibility.plateIds`. Equal sides for squares and circles are not checked until real measurements exist.
+Image references also use existing codes: `unknown-reference` (`plates[i].images[j].colorId` → colors, `frames[i].images[j].plateId` → plates), `color-category-mismatch` (`plates[i].images[j].colorId`), and `unreachable-compatibility` (`frames[i].images[j].plateId`, using `isFrameCompatible`; `relatedPath` = the plate).
+
+Allowed (not issues): an empty catalog; `pending` dimensions; no `images`, intrinsic sizes, or placement metadata; one file referenced by several image entries; a square or rectangular plate with `supportsFrame: false`; empty `supportedColorIds` (colors pending); omitted `compatibility.plateIds`. Equal sides for squares and circles are not checked until real measurements exist.
 
 A component whose ID is renamed or removed also produces `unknown-reference` at every place that referenced it.
 

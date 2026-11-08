@@ -52,7 +52,7 @@ src/
 │   └── preview/      # SVG preview (M3)
 ├── hooks/            # configuration state hook (M2)
 └── services/         # export (M4)
-public/catalog/{placas,quadros}/  # visual assets (M1, when provided)
+public/catalog/{plates,frames,colors}/{owner-id}/  # real images (M1.3b; docs/07)
 tests/{unit,e2e}/
 ```
 
@@ -68,7 +68,7 @@ Directories are created only when their increment needs them.
 | `src/domain/catalog-validation.ts` | Pure `validateCatalog(catalog)` integrity check.                                                    |
 
 - Components are referenced by stable kebab-case string IDs, unique across the whole catalog (D-019).
-- Asset references are paths under `public/catalog/`; a missing asset must degrade gracefully, never crash.
+- Asset references are same-origin paths `/catalog/{plates|frames|colors}/{owner-id}/…` validated by catalog integrity (D-031); a missing asset must degrade gracefully, never crash.
 - Unknown dimensions are `{ status: 'pending' }`.
 - The catalog is **empty** until the store provides real data.
 
@@ -140,7 +140,9 @@ The final preview and export are composed from **real product image assets** for
 
 ### Implications for M1.3 / M3 (catalog and renderer)
 
-- **Catalog model extensions (pending, P-06/P-07):** today `Plate.asset` and `Frame.assets` are single references. Real color/finish variations will need images per plate model × color (e.g. a color-keyed asset map), and layer placement needs metadata in image coordinates (text safe area, frame aperture/offset, scale relative to real dimensions). These will be designed from the actual assets in M1.3, with integrity checks for every new reference.
+- **Catalog contract (M1.3a, implemented):** `Plate.images` holds one photograph per `(colorCategory, colorId?)` (D-032); `Frame.images` holds `back`/optional `front` layers per compatible plate model (D-033); optional `NormalizedBox` placement (`objectBounds`, `text.area`, `platePlacement`) in image coordinates (D-034). Pure lookups `findPlateImage` / `findFrameImage` return `available` or `pending` by exact match. Real files and calibration values arrive in M1.3b. Details: [07-product-assets.md](07-product-assets.md).
+- **Layer contract for M3:** frame `back` → plate image placed so its `objectBounds` fill `platePlacement` (or the plate image alone when no frame) → text inside `text.area` → frame `front`. A `pending` lookup or an image that fails to load (renderer `error` event) shows a visible unavailable state; nothing is substituted. Clipping/masking of circular or irregular outlines is an M3 decision: a bounding box does not describe them.
+- **Text boundary:** raw text (`Configuration`), layout (catalog `TextLayout`), and typography/material effects (M3+, pending P-04) are separate; stamped or raised lettering is not assumed reproducible with plain text.
 - **Renderer choice (D-007, still proposed):** with raster layers, SVG `<image>` composition and Canvas 2D are both viable. The choice is confirmed in M3 against preview/export pixel consistency, text rendering quality, and mobile performance.
 
 ## Preview rendering strategy (proposed — D-007)

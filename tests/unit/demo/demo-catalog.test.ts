@@ -24,10 +24,10 @@ describe('demo catalog (D-028)', () => {
 
   it('invents no assets, swatches, or dimensions', () => {
     for (const plate of demoCatalog.plates) {
-      expect(plate.asset).toBeUndefined();
+      expect(plate.images).toBeUndefined();
       expect(plate.dimensions).toEqual({ status: 'pending' });
     }
-    for (const frame of demoCatalog.frames) expect(frame.assets).toBeUndefined();
+    for (const frame of demoCatalog.frames) expect(frame.images).toBeUndefined();
     for (const color of demoCatalog.colors) {
       expect(color.swatch).toBeUndefined();
       expect(color).not.toHaveProperty('hex');

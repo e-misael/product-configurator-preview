@@ -78,5 +78,6 @@ docs/        Product and technical documentation
 4. [Data model](docs/04-data-model.md)
 5. [Backlog](docs/05-backlog.md)
 6. [Decisions](docs/06-decisions.md)
+7. [Product assets](docs/07-product-assets.md)
 
 Contributor and AI-assistant guidance: [CLAUDE.md](CLAUDE.md).

@@ -26,10 +26,64 @@ export type Dimensions =
   | { readonly status: 'pending' }
   | { readonly status: 'defined'; readonly widthMm: number; readonly heightMm: number };
 
-/** Reference to a visual asset. The asset may be missing at runtime. */
+/**
+ * Reference to a same-origin image under `/catalog/{plates|frames|colors}/{owner-id}/`
+ * (D-031). The file may still be missing or fail to load at runtime.
+ */
 export interface AssetRef {
   readonly src: string;
   readonly alt?: string;
+  /** Intrinsic pixel size of the file, when known. Both or neither. */
+  readonly widthPx?: number;
+  readonly heightPx?: number;
+}
+
+/**
+ * A rectangle in an image's own coordinates, as fractions (0–1) of its
+ * width and height, origin top-left (D-034). Positioning metadata only:
+ * it does not describe the exact outline of a circular or irregular object.
+ */
+export interface NormalizedBox {
+  readonly x: number;
+  readonly y: number;
+  readonly width: number;
+  readonly height: number;
+}
+
+export const TEXT_ALIGNMENTS = ['left', 'center', 'right'] as const;
+export type TextAlignment = (typeof TEXT_ALIGNMENTS)[number];
+
+/** Where personalized text may be laid out on a plate image. Typography is pending (P-04). */
+export interface TextLayout {
+  readonly area: NormalizedBox;
+  readonly align?: TextAlignment;
+}
+
+/**
+ * The photograph of one real variation of a plate model (D-032). Matched
+ * exactly against the configuration's category and shade, never approximated.
+ * Placement fields are optional until calibrated from the real photograph.
+ */
+export interface PlateImage {
+  readonly colorCategory: ColorCategory;
+  /** Omitted: the photograph for the category with no specific shade chosen. */
+  readonly colorId?: string;
+  readonly image: AssetRef;
+  /** Bounding box of the ceramic object within the photograph. */
+  readonly objectBounds?: NormalizedBox;
+  readonly text?: TextLayout;
+}
+
+/**
+ * Frame imagery calibrated for one plate model (D-033). `back` is drawn
+ * behind the plate; the optional `front` overlay is drawn above plate and text.
+ */
+export interface FrameImage {
+  readonly plateId: string;
+  readonly back: AssetRef;
+  readonly front?: AssetRef;
+  /** Where the plate's `objectBounds` are placed within `back`. */
+  readonly platePlacement?: NormalizedBox;
 }
 
 interface CatalogComponentBase {
@@ -57,7 +111,8 @@ export interface Plate extends CatalogComponentBase {
   /** Specific colors this plate can be made in. May be empty while colors are pending. */
   readonly supportedColorIds: readonly string[];
   readonly dimensions: Dimensions;
-  readonly asset?: AssetRef;
+  /** Photographs per color variation. A variation without an entry has a pending image. */
+  readonly images?: readonly PlateImage[];
 }
 
 /**
@@ -74,7 +129,8 @@ export interface FrameCompatibility {
 export interface Frame extends CatalogComponentBase {
   readonly type: 'frame';
   readonly compatibility: FrameCompatibility;
-  readonly assets?: Readonly<Partial<Record<PlateShape, AssetRef>>>;
+  /** Imagery per compatible plate model. A plate without an entry has a pending image. */
+  readonly images?: readonly FrameImage[];
 }
 
 export type CatalogComponent = Plate | Frame | PlateColor;
@@ -128,12 +184,14 @@ export type CatalogIssueCode =
   | 'unknown-reference'
   | 'unreachable-compatibility'
   | 'empty-list'
-  | 'unsupported-shape-key'
   | 'frame-capability-conflict'
   | 'unsupported-frame-shape'
   | 'color-category-mismatch'
   | 'invalid-dimension'
-  | 'invalid-asset';
+  | 'invalid-asset'
+  | 'unsupported-variation'
+  | 'duplicate-variation'
+  | 'invalid-placement';
 
 /**
  * A catalog integrity problem. `path` locates the offending value

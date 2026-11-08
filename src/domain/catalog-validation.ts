@@ -6,7 +6,7 @@
  * See docs/04-data-model.md and D-018.
  */
 
-import { FRAMELESS_SHAPES } from './types';
+import { FRAMELESS_SHAPES, TEXT_ALIGNMENTS } from './types';
 import type {
   AssetRef,
   Catalog,
@@ -14,8 +14,9 @@ import type {
   CatalogIssueCode,
   CatalogValidationResult,
   Dimensions,
-  PlateShape,
+  NormalizedBox,
 } from './types';
+import { isFrameCompatible } from './validation';
 
 /** Lowercase kebab-case, e.g. `placa-quadrada-01` (D-019). */
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -23,6 +24,48 @@ const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 /** Accepts `unknown` so malformed runtime data is rejected, not coerced. */
 export function isValidCatalogId(id: unknown): boolean {
   return typeof id === 'string' && ID_PATTERN.test(id);
+}
+
+export type AssetOwner = 'plates' | 'frames' | 'colors';
+
+/**
+ * `/catalog/{owner}/{owner-id}/{name}.{webp|png|jpg}` with kebab-case
+ * segments (D-031). Being an allowlist, it excludes external URLs, schemes
+ * (`data:`, `javascript:`), traversal, query strings, and encoded characters.
+ */
+const ASSET_PATH_PATTERN =
+  /^\/catalog\/(plates|frames|colors)\/([a-z0-9]+(?:-[a-z0-9]+)*)\/[a-z0-9]+(?:-[a-z0-9]+)*\.(?:webp|png|jpg)$/;
+
+/** Whether `src` is a well-formed asset path inside the folder of the given owner. */
+export function isValidAssetPath(src: unknown, owner: AssetOwner, ownerId: string): boolean {
+  if (typeof src !== 'string') return false;
+  const match = ASSET_PATH_PATTERN.exec(src);
+  return match !== null && match[1] === owner && match[2] === ownerId;
+}
+
+/** Tolerance for floating-point sums such as `x + width`. */
+const EPSILON = 1e-9;
+
+function isValidBox(box: NormalizedBox): boolean {
+  const { x, y, width, height } = box;
+  return (
+    [x, y, width, height].every(Number.isFinite) &&
+    x >= 0 &&
+    y >= 0 &&
+    width > 0 &&
+    height > 0 &&
+    x + width <= 1 + EPSILON &&
+    y + height <= 1 + EPSILON
+  );
+}
+
+function isBoxInside(inner: NormalizedBox, outer: NormalizedBox): boolean {
+  return (
+    inner.x >= outer.x - EPSILON &&
+    inner.y >= outer.y - EPSILON &&
+    inner.x + inner.width <= outer.x + outer.width + EPSILON &&
+    inner.y + inner.height <= outer.y + outer.height + EPSILON
+  );
 }
 
 /** Maps each ID to its first occurrence; later duplicates never overwrite it. */
@@ -62,26 +105,36 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
     });
   }
 
-  function checkAsset(asset: AssetRef, path: string, id: string) {
-    if (asset.src.trim().length === 0) {
+  function checkAsset(asset: AssetRef, path: string, owner: AssetOwner, id: string) {
+    if (!isValidAssetPath(asset.src, owner, id)) {
       report('invalid-asset', `${path}.src`, id);
+    }
+    // Intrinsic size is optional, but both sides are declared together.
+    if (asset.widthPx === undefined && asset.heightPx === undefined) return;
+    for (const side of ['widthPx', 'heightPx'] as const) {
+      const value = asset[side];
+      if (!Number.isSafeInteger(value) || (value ?? 0) <= 0) {
+        report('invalid-asset', `${path}.${side}`, id);
+      }
     }
   }
 
-  /** Frame assets are keyed by shape; keys must be among the frame's shapes. */
-  function checkFrameAssets(
-    assets: Readonly<Partial<Record<PlateShape, AssetRef>>> | undefined,
-    supported: readonly PlateShape[],
-    path: string,
-    id: string,
-  ) {
-    if (assets === undefined) return;
-    for (const [shape, asset] of Object.entries(assets)) {
-      if (!supported.some((candidate) => candidate === shape)) {
-        report('unsupported-shape-key', `${path}.${shape}`, id);
+  /** Reports a malformed box; returns whether it is usable for further checks. */
+  function checkBox(box: NormalizedBox | undefined, path: string, id: string): boolean {
+    if (box === undefined) return false;
+    if (isValidBox(box)) return true;
+    report('invalid-placement', path, id);
+    return false;
+  }
+
+  /** Reports entries whose key repeats an earlier entry's key. */
+  function checkVariationKeys(keys: readonly string[], path: string, id: string) {
+    keys.forEach((key, index) => {
+      const first = keys.indexOf(key);
+      if (first !== index) {
+        report('duplicate-variation', `${path}[${index}]`, id, `${path}[${first}]`);
       }
-      if (asset !== undefined) checkAsset(asset, `${path}.${shape}`, id);
-    }
+    });
   }
 
   function checkDimensions(dimensions: Dimensions, path: string, id: string) {
@@ -114,7 +167,9 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
   catalog.colors.forEach((color, i) => {
     const path = `colors[${i}]`;
     checkId(color.id, path);
-    if (color.swatch !== undefined) checkAsset(color.swatch, `${path}.swatch`, color.id);
+    if (color.swatch !== undefined) {
+      checkAsset(color.swatch, `${path}.swatch`, 'colors', color.id);
+    }
   });
 
   catalog.plates.forEach((plate, i) => {
@@ -135,7 +190,45 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
       }
     });
     checkDimensions(plate.dimensions, `${path}.dimensions`, plate.id);
-    if (plate.asset !== undefined) checkAsset(plate.asset, `${path}.asset`, plate.id);
+
+    const images = plate.images ?? [];
+    images.forEach((entry, j) => {
+      const imagePath = `${path}.images[${j}]`;
+      if (!plate.supportedColorCategories.includes(entry.colorCategory)) {
+        report('unsupported-variation', `${imagePath}.colorCategory`, plate.id);
+      }
+      if (entry.colorId !== undefined) {
+        const colorPath = `${imagePath}.colorId`;
+        const color = colorsById.get(entry.colorId)?.item;
+        if (color === undefined) {
+          report('unknown-reference', colorPath, plate.id);
+        } else if (color.category !== entry.colorCategory) {
+          report('color-category-mismatch', colorPath, plate.id);
+        } else if (!plate.supportedColorIds.includes(entry.colorId)) {
+          report('unsupported-variation', colorPath, plate.id);
+        }
+      }
+      checkAsset(entry.image, `${imagePath}.image`, 'plates', plate.id);
+      const bounds = entry.objectBounds;
+      const hasBounds = checkBox(bounds, `${imagePath}.objectBounds`, plate.id);
+      if (entry.text !== undefined) {
+        const areaPath = `${imagePath}.text.area`;
+        const hasArea = checkBox(entry.text.area, areaPath, plate.id);
+        if (hasArea && hasBounds && bounds && !isBoxInside(entry.text.area, bounds)) {
+          report('invalid-placement', areaPath, plate.id, `${imagePath}.objectBounds`);
+        }
+        const { align } = entry.text;
+        if (align !== undefined && !TEXT_ALIGNMENTS.includes(align)) {
+          report('invalid-placement', `${imagePath}.text.align`, plate.id);
+        }
+      }
+    });
+    // One photograph per category/shade combination (D-032).
+    checkVariationKeys(
+      images.map((entry) => `${entry.colorCategory}|${entry.colorId ?? ''}`),
+      `${path}.images`,
+      plate.id,
+    );
   });
 
   catalog.frames.forEach((frame, i) => {
@@ -166,7 +259,28 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
         }
       });
     }
-    checkFrameAssets(frame.assets, shapes, `${path}.assets`, frame.id);
+
+    const images = frame.images ?? [];
+    images.forEach((entry, j) => {
+      const imagePath = `${path}.images[${j}]`;
+      const target = platesById.get(entry.plateId);
+      if (target === undefined) {
+        report('unknown-reference', `${imagePath}.plateId`, frame.id);
+      } else if (!isFrameCompatible(frame, target.item)) {
+        // Same rule as configuration validation: imagery only for offerable pairs.
+        report('unreachable-compatibility', `${imagePath}.plateId`, frame.id, target.path);
+      }
+      checkAsset(entry.back, `${imagePath}.back`, 'frames', frame.id);
+      if (entry.front !== undefined) {
+        checkAsset(entry.front, `${imagePath}.front`, 'frames', frame.id);
+      }
+      checkBox(entry.platePlacement, `${imagePath}.platePlacement`, frame.id);
+    });
+    checkVariationKeys(
+      images.map((entry) => entry.plateId),
+      `${path}.images`,
+      frame.id,
+    );
   });
 
   return issues.length === 0 ? { status: 'valid' } : { status: 'invalid', issues };
