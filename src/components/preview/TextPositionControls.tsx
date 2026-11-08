@@ -6,10 +6,8 @@ import {
   PRESET_COLUMNS,
   PRESET_ROWS,
   presetPlacement,
-  TEXT_ALIGNMENTS,
   type PresetColumn,
   type PresetRow,
-  type TextAlignment,
   type TextPlacement,
 } from '../../domain';
 import type { TextBlock } from '../../preview/scene';
@@ -22,7 +20,6 @@ interface TextPositionControlsProps {
   readonly moveMode: boolean;
   readonly onToggleMoveMode: () => void;
   readonly onPlace: (placement: TextPlacement) => void;
-  readonly onAlign: (align: TextAlignment) => void;
   readonly onNudge: (dx: number, dy: number) => void;
   readonly onReset: () => void;
 }
@@ -36,11 +33,6 @@ const COLUMN_LABELS: Record<PresetColumn, string> = {
   left: 'à esquerda',
   center: 'ao centro',
   right: 'à direita',
-};
-const ALIGN_LABELS: Record<TextAlignment, string> = {
-  left: 'À esquerda',
-  center: 'Ao centro',
-  right: 'À direita',
 };
 
 const presetLabel = (row: PresetRow, column: PresetColumn) =>
@@ -71,10 +63,10 @@ const VECTORS: Record<Direction, readonly [number, number]> = {
 const percent = (value: number) => `${Math.round(value * 100)}%`;
 
 /**
- * Text alignment and position (D-044): nine presets (alignment and position
- * together), line alignment alone, 2% / 10% (Shift) directional moves by
- * button or arrow key, the touch "Mover texto" mode, and reset to the catalog
- * default. Disabled while no text is drawn on the image.
+ * Text position (D-044, simplified by D-047): nine presets that set the line
+ * alignment and the block position together, 2% / 10% (Shift) directional
+ * moves by button or arrow key, the touch "Mover texto" mode, and reset to the
+ * catalog default. Disabled while no text is drawn on the image.
  */
 export function TextPositionControls({
   block,
@@ -82,13 +74,15 @@ export function TextPositionControls({
   moveMode,
   onToggleMoveMode,
   onPlace,
-  onAlign,
   onNudge,
   onReset,
 }: TextPositionControlsProps) {
   const placement: TextPlacement | undefined =
     block === undefined ? undefined : { align: block.align, x: block.x, y: block.y };
   const canMove = { x: (block?.slack.x ?? 0) > 0, y: (block?.slack.y ?? 0) > 0 };
+  const current = PRESET_ROWS.flatMap((row) =>
+    PRESET_COLUMNS.map((column) => ({ row, column })),
+  ).find(({ row, column }) => placement !== undefined && matchesPreset(placement, row, column));
 
   const move = (direction: Direction, large: boolean) => {
     const [dx, dy] = VECTORS[direction];
@@ -114,66 +108,72 @@ export function TextPositionControls({
         <p className="field__info">Disponível quando o texto aparece na pré-visualização.</p>
       )}
 
-      <div className="position__presets" role="group" aria-label="Posições predefinidas">
-        {PRESET_ROWS.flatMap((row) =>
-          PRESET_COLUMNS.map((column) => {
-            const label = presetLabel(row, column);
-            return (
+      <div className="position__controls">
+        <div className="position__group">
+          <p className="field__info position__caption" id="position-presets-label">
+            Posições predefinidas
+          </p>
+          <div className="position__presets" role="group" aria-labelledby="position-presets-label">
+            {PRESET_ROWS.flatMap((row) =>
+              PRESET_COLUMNS.map((column) => {
+                const label = presetLabel(row, column);
+                return (
+                  <button
+                    key={`${row}-${column}`}
+                    type="button"
+                    className={`position__preset position__preset--${row} position__preset--${column}`}
+                    aria-label={label}
+                    title={label}
+                    aria-pressed={current?.row === row && current.column === column}
+                    onClick={() => onPlace(presetPlacement(row, column))}
+                  >
+                    {/* Three short lines, aligned and placed like the text will be. */}
+                    <span className="position__glyph" aria-hidden="true">
+                      <span />
+                      <span />
+                      <span />
+                    </span>
+                  </button>
+                );
+              }),
+            )}
+          </div>
+        </div>
+
+        <div className="position__group">
+          <p className="field__info position__caption" id="position-moves-label">
+            Ajuste fino
+          </p>
+          <div
+            className="position__moves"
+            role="group"
+            aria-labelledby="position-moves-label"
+            aria-describedby="position-keys"
+          >
+            {DIRECTIONS.map(({ direction, label, symbol }) => (
               <button
-                key={`${row}-${column}`}
+                key={direction}
                 type="button"
-                className="position__preset"
+                className={`button position__move position__move--${direction}`}
                 aria-label={label}
                 title={label}
-                aria-pressed={placement !== undefined && matchesPreset(placement, row, column)}
-                onClick={() => onPlace(presetPlacement(row, column))}
+                disabled={direction === 'up' || direction === 'down' ? !canMove.y : !canMove.x}
+                onClick={(event: MouseEvent<HTMLButtonElement>) => move(direction, event.shiftKey)}
+                onKeyDown={onKeyDown}
               >
-                <span className="position__dot" aria-hidden="true" />
+                <span aria-hidden="true">{symbol}</span>
               </button>
-            );
-          }),
-        )}
-      </div>
-
-      <fieldset className="position__align">
-        <legend className="field__info">Alinhamento das linhas</legend>
-        <div className="position__align-options">
-          {TEXT_ALIGNMENTS.map((align) => (
-            <label key={align} className="option">
-              <input
-                type="radio"
-                name="line-align"
-                value={align}
-                checked={placement?.align === align}
-                onChange={() => onAlign(align)}
-              />
-              <span>{ALIGN_LABELS[align]}</span>
-            </label>
-          ))}
+            ))}
+          </div>
         </div>
-      </fieldset>
-
-      <div
-        className="position__moves"
-        role="group"
-        aria-label="Mover o texto"
-        aria-describedby="position-keys"
-      >
-        {DIRECTIONS.map(({ direction, label, symbol }) => (
-          <button
-            key={direction}
-            type="button"
-            className={`button position__move position__move--${direction}`}
-            aria-label={label}
-            title={label}
-            disabled={direction === 'up' || direction === 'down' ? !canMove.y : !canMove.x}
-            onClick={(event: MouseEvent<HTMLButtonElement>) => move(direction, event.shiftKey)}
-            onKeyDown={onKeyDown}
-          >
-            <span aria-hidden="true">{symbol}</span>
-          </button>
-        ))}
       </div>
+      <p className="field__info position__current">
+        {placement === undefined
+          ? ''
+          : current === undefined
+            ? 'Posição personalizada.'
+            : `Posição: ${presetLabel(current.row, current.column)}.`}
+      </p>
       <p className="field__info" id="position-keys">
         Setas do teclado: 2% por passo, 10% com Shift.
       </p>

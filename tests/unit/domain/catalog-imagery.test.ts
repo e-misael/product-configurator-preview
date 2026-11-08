@@ -4,14 +4,13 @@ import {
   type AssetRef,
   type Catalog,
   type CatalogIssue,
-  type FrameImage,
   type NormalizedBox,
   type PlateImage,
   type TextLayout,
 } from '../../../src/domain';
 import { getCatalog } from '../../../src/catalog';
 import { demoCatalog } from '../../../src/demo/demo-catalog';
-import { at, buildImageCatalog } from './catalog-fixtures';
+import { buildImageCatalog } from './catalog-fixtures';
 
 /** Image catalog with plate A's photograph replaced. */
 function withPlateImage(image: PlateImage): Catalog {
@@ -19,15 +18,6 @@ function withPlateImage(image: PlateImage): Catalog {
   return {
     ...catalog,
     plates: catalog.plates.map((p, i) => (i === 0 ? { ...p, image } : p)),
-  };
-}
-
-/** Image catalog with frame test-frame-any's images replaced. */
-function withFrameImages(images: readonly FrameImage[]): Catalog {
-  const catalog = buildImageCatalog();
-  return {
-    ...catalog,
-    frames: catalog.frames.map((f, i) => (i === 0 ? { ...f, images } : f)),
   };
 }
 
@@ -56,13 +46,6 @@ describe('catalog imagery', () => {
     expect(validateCatalog(withPlateImage(plateImage({ src: PLATE_SRC })))).toEqual({
       status: 'valid',
     });
-    expect(
-      validateCatalog(
-        withFrameImages([
-          { plateId: 'test-plate-b', back: { src: '/catalog/frames/test-frame-any/b.webp' } },
-        ]),
-      ),
-    ).toEqual({ status: 'valid' });
   });
 
   describe('asset paths', () => {
@@ -71,7 +54,7 @@ describe('catalog imagery', () => {
       '/catalog/plates/test-plate-a/beige-2.png',
       '/catalog/plates/test-plate-a/beige-3.jpg',
     ])('accepts %s', (src) => {
-      expect(isValidAssetPath(src, 'plates', 'test-plate-a')).toBe(true);
+      expect(isValidAssetPath(src, 'test-plate-a')).toBe(true);
     });
 
     it.each([
@@ -95,10 +78,10 @@ describe('catalog imagery', () => {
       ['no extension', '/catalog/plates/test-plate-a/beige'],
       ['nested folder', '/catalog/plates/test-plate-a/extra/beige.webp'],
       ['another plate folder', '/catalog/plates/test-plate-b/beige.webp'],
-      ['another owner type', '/catalog/frames/test-plate-a/beige.webp'],
+      ['a folder other than plates (D-046)', '/catalog/frames/test-plate-a/beige.webp'],
       ['outside /catalog/', '/images/plates/test-plate-a/beige.webp'],
     ])('rejects %s', (_label, src) => {
-      expect(isValidAssetPath(src, 'plates', 'test-plate-a')).toBe(false);
+      expect(isValidAssetPath(src, 'test-plate-a')).toBe(false);
       expectOnly(withPlateImage(plateImage({ src })), {
         code: 'invalid-asset',
         path: 'plates[0].image.image.src',
@@ -107,20 +90,7 @@ describe('catalog imagery', () => {
     });
 
     it('rejects a non-string src from malformed runtime data', () => {
-      expect(isValidAssetPath(42, 'plates', 'test-plate-a')).toBe(false);
-    });
-
-    it('requires frame layers in their owner folder', () => {
-      expectOnly(
-        withFrameImages([
-          {
-            plateId: 'test-plate-b',
-            back: { src: '/catalog/frames/test-frame-any/back.webp' },
-            front: { src: '/catalog/frames/test-frame-plate-a/front.png' },
-          },
-        ]),
-        { code: 'invalid-asset', path: 'frames[0].images[0].front.src', id: 'test-frame-any' },
-      );
+      expect(isValidAssetPath(42, 'test-plate-a')).toBe(false);
     });
   });
 
@@ -142,72 +112,6 @@ describe('catalog imagery', () => {
           id: 'test-plate-a',
         })),
       });
-    });
-  });
-
-  describe('frame images', () => {
-    const back = { src: '/catalog/frames/test-frame-any/back.webp' };
-
-    it('reports an unknown plate', () => {
-      expectOnly(withFrameImages([{ plateId: 'test-plate-x', back }]), {
-        code: 'unknown-reference',
-        path: 'frames[0].images[0].plateId',
-        id: 'test-frame-any',
-      });
-    });
-
-    it.each([
-      ['a frameless circular plate', 'test-plate-c', 'plates[2]', 0],
-      ['a plate outside the plate restriction', 'test-plate-b', 'plates[1]', 1],
-    ])('reports imagery for %s using the domain compatibility rule', (_l, plateId, rel, frame) => {
-      const catalog = buildImageCatalog();
-      const frames = catalog.frames.map((f, i) =>
-        i === frame
-          ? { ...f, images: [{ plateId, back: { src: `/catalog/frames/${f.id}/back.webp` } }] }
-          : { ...f, images: [] },
-      );
-      expectOnly(
-        { ...catalog, frames },
-        {
-          code: 'unreachable-compatibility',
-          path: `frames[${frame}].images[0].plateId`,
-          id: at(catalog.frames, frame).id,
-          relatedPath: rel,
-        },
-      );
-    });
-
-    it('accepts imagery for a plate allowed by the restriction', () => {
-      const catalog = buildImageCatalog();
-      const frames = catalog.frames.map((f, i) =>
-        i === 1
-          ? {
-              ...f,
-              images: [
-                {
-                  plateId: 'test-plate-a',
-                  back: { src: '/catalog/frames/test-frame-plate-a/a.png' },
-                },
-              ],
-            }
-          : f,
-      );
-      expect(validateCatalog({ ...catalog, frames })).toEqual({ status: 'valid' });
-    });
-
-    it('reports duplicate imagery for the same plate', () => {
-      expectOnly(
-        withFrameImages([
-          { plateId: 'test-plate-a', back },
-          { plateId: 'test-plate-a', back },
-        ]),
-        {
-          code: 'duplicate-variation',
-          path: 'frames[0].images[1]',
-          id: 'test-frame-any',
-          relatedPath: 'frames[0].images[0]',
-        },
-      );
     });
   });
 
@@ -239,24 +143,10 @@ describe('catalog imagery', () => {
       ).toEqual({ status: 'valid' });
     });
 
-    it('reports an invalid text area and frame placement', () => {
+    it('reports an invalid text area', () => {
       expectOnly(
         withPlateImage(plateImage({ src: PLATE_SRC }, { text: { area: { ...BOX, width: -1 } } })),
         { code: 'invalid-placement', path: 'plates[0].image.text.area', id: 'test-plate-a' },
-      );
-      expectOnly(
-        withFrameImages([
-          {
-            plateId: 'test-plate-b',
-            back: { src: '/catalog/frames/test-frame-any/b.webp' },
-            platePlacement: { ...BOX, y: 0.9 },
-          },
-        ]),
-        {
-          code: 'invalid-placement',
-          path: 'frames[0].images[0].platePlacement',
-          id: 'test-frame-any',
-        },
       );
     });
 

@@ -10,27 +10,20 @@ type Rgba = readonly [number, number, number, number];
 
 const BEGE: Rgba = [226, 208, 186, 255];
 const WHITE: Rgba = [255, 255, 255, 255];
-const RIM: Rgba = [60, 40, 24, 255];
 const WOOD: readonly Rgba[] = [
   [150, 118, 84, 255],
   [132, 102, 70, 255],
-];
-const WOOD_DARK: readonly Rgba[] = [
-  [88, 70, 56, 255],
-  [72, 56, 44, 255],
 ];
 
 const canvas = (page: Page) => page.locator('.preview__canvas');
 const preview = (page: Page) => page.getByRole('region', { name: 'Pré-visualização' });
 const model = (page: Page, name: RegExp) =>
   page.getByRole('group', { name: 'Modelo' }).getByRole('radio', { name });
-const frame = (page: Page, name: RegExp) =>
-  page.getByRole('group', { name: 'Moldura (opcional)' }).getByRole('radio', { name });
 
 const CERAMIC_PLATE = /Placa cerâmica/;
-const QUADRO = /Quadro \(20 cm/;
-const TRAY_8 = /~ 8 cm/;
-const TRAY_11 = /~ 11 cm/;
+const QUADRO = /Quadro — 20/;
+const TRAY_8 = /Bandeja ondulada M/;
+const TRAY_11 = /Bandeja ondulada G/;
 
 async function sample(page: Page, x: number, y: number): Promise<Rgba> {
   return canvas(page).evaluate(
@@ -159,18 +152,18 @@ test.describe('exact image selection', () => {
 
     await model(page, CERAMIC_PLATE).check();
     await expectPixel(page, 0.5, 0.8, BEGE);
-    await expect(canvas(page)).toHaveAttribute('aria-label', /Placa cerâmica 10 cm x 10 cm/);
+    await expect(canvas(page)).toHaveAttribute('aria-label', /Placa cerâmica 10 × 10 cm/);
 
     await model(page, QUADRO).check();
-    await expectPixel(page, 0.5, 0.8, BEGE);
-    await expect(canvas(page)).toHaveAttribute('aria-label', /Quadro 20 cm x 20 cm/);
+    await expectPixel(page, 0.5, 0.75, BEGE);
+    await expect(canvas(page)).toHaveAttribute('aria-label', /Quadro 20 × 20 cm/);
 
     await model(page, TRAY_8).check();
     await expectPixel(page, 0.5, 0.8, BEGE);
-    await expect(canvas(page)).toHaveAttribute('aria-label', /~ 8 cm/);
+    await expect(canvas(page)).toHaveAttribute('aria-label', /Bandeja ondulada M Aprox\. 8 cm/);
 
     await model(page, TRAY_11).check();
-    await expect(canvas(page)).toHaveAttribute('aria-label', /~ 11 cm/);
+    await expect(canvas(page)).toHaveAttribute('aria-label', /Bandeja ondulada G Aprox\. 11 cm/);
   });
 
   test('labels the demonstration images for assistive technology', async ({ page }) => {
@@ -181,9 +174,9 @@ test.describe('exact image selection', () => {
 });
 
 test.describe('model shapes', () => {
-  test('keeps the Quadro (20 cm x 20 cm) square', async ({ page }) => {
+  test('keeps the Quadro square', async ({ page }) => {
     await model(page, QUADRO).check();
-    await expectPixel(page, 0.5, 0.8, BEGE);
+    await expectPixel(page, 0.5, 0.75, BEGE);
 
     const box = await boxOf(canvas(page));
     expect(box.width / box.height).toBeCloseTo(1, 1);
@@ -197,56 +190,38 @@ test.describe('model shapes', () => {
     await expectPixel(page, 0.5, 0.8, BEGE);
     // The corner of the image is outside the tray: only the opaque white background.
     await expectPixel(page, 0.03, 0.03, WHITE);
-    await expect(page.getByRole('group', { name: 'Moldura (opcional)' })).toHaveCount(0);
+    await expect(page.getByRole('group', { name: /Moldura/ })).toHaveCount(0);
   });
 });
 
-test.describe('frame layering', () => {
-  async function framedPlate(page: Page) {
-    await model(page, CERAMIC_PLATE).check();
-    await frame(page, /Moldura clara/).check();
-  }
-
-  test('draws frame back, then plate, then the frame front over the plate', async ({ page }) => {
-    await framedPlate(page);
-
-    // Frame back's wooden band, outside the opening.
-    await expectPixel(page, 0.02, 0.5, WOOD);
-    // The plate fills the opening.
-    await expectPixel(page, 0.5, 0.8, BEGE);
-    // The front rim lies over the plate's edge (the plate alone would show its border hatch here).
-    await expectPixel(page, 0.11, 0.5, RIM);
-  });
-
-  test('uses the frame image calibrated for the chosen frame', async ({ page }) => {
-    await model(page, CERAMIC_PLATE).check();
-    await frame(page, /Moldura escura/).check();
-
-    await expectPixel(page, 0.02, 0.5, WOOD_DARK);
-  });
-
-  test('puts the same frame on the Quadro model, using that model’s own image', async ({
+test.describe('assembled Quadro (D-046)', () => {
+  test('paints the Quadro from its one photograph, frame included, with no extra layers', async ({
     page,
   }) => {
+    const requested: string[] = [];
+    page.on('request', (request) => {
+      if (request.url().includes('/catalog/')) requested.push(new URL(request.url()).pathname);
+    });
     await model(page, QUADRO).check();
-    await frame(page, /Moldura clara/).check();
 
-    await expectPixel(page, 0.02, 0.5, WOOD);
-    await expectPixel(page, 0.5, 0.8, BEGE);
+    // The wooden frame is part of the photograph; the ceramic sits inside it.
+    await expectPixel(page, 0.14, 0.5, WOOD);
+    await expectPixel(page, 0.5, 0.75, BEGE);
+    await expectPixel(page, 0.03, 0.03, WHITE);
+    expect(requested).toEqual(['/catalog/plates/demo-quadro/bege.png']);
   });
 
-  test('does not paint an incompatible frame', async ({ page }) => {
-    await model(page, CERAMIC_PLATE).check();
-    await frame(page, /Moldura escura/).check();
-    await expectPixel(page, 0.02, 0.5, WOOD_DARK);
-
+  test('keeps the Quadro text inside the ceramic, clear of the frame', async ({ page }) => {
     await model(page, QUADRO).check();
+    await page.getByLabel('Texto', { exact: true }).fill('HHHHHHHHHHHH');
+    await page
+      .getByRole('group', { name: 'Posição do texto' })
+      .getByRole('button', { name: 'Superior à esquerda', exact: true })
+      .click();
 
-    await expect(preview(page)).toContainText(
-      'A moldura selecionada é incompatível e não é exibida.',
-    );
-    // The standalone Quadro is shown instead, with no wood anywhere on its edge.
-    await expectPixel(page, 0.02, 0.5, WHITE);
+    // The frame band and the ceramic margin keep their own colors.
+    await expectPixel(page, 0.14, 0.4, WOOD);
+    await expectPixel(page, 0.22, 0.4, BEGE);
   });
 });
 
@@ -302,8 +277,9 @@ test.describe('personalized text', () => {
       .getByRole('group', { name: 'Cor do texto' })
       .getByRole('radio', { name: /Letra azul/ })
       .check();
+    await page.getByRole('button', { name: 'Usar segunda cor' }).click();
     await page
-      .getByRole('group', { name: 'Segunda cor (opcional)' })
+      .getByRole('group', { name: 'Segunda cor' })
       .getByRole('radio', { name: /Letra vinho/ })
       .check();
     const WINE = [0x8c, 0x1f, 0x3d] as const;
@@ -317,17 +293,6 @@ test.describe('personalized text', () => {
 
     await expect.poll(() => textPixels(page, WINE)).toBeGreaterThan(20);
     expect(await textPixels(page, BLUE)).toBeGreaterThan(20);
-  });
-
-  test('moves with the plate when a frame is added', async ({ page }) => {
-    await model(page, CERAMIC_PLATE).check();
-    await page.getByLabel('Texto', { exact: true }).fill('HHH');
-    await expect.poll(async () => (await textRuns(page)).runs).toBe(1);
-    await frame(page, /Moldura clara/).check();
-
-    // The framed canvas is larger, but the text keeps its place on the plate.
-    await expectPixel(page, 0.5, 0.8, BEGE);
-    await expect.poll(async () => (await textRuns(page)).runs).toBe(1);
   });
 
   test('warns about text that does not fit instead of clipping it', async ({ page }) => {
@@ -427,8 +392,6 @@ test.describe('text position (D-044)', () => {
   const position = (page: Page) => page.getByRole('group', { name: 'Posição do texto' });
   const preset = (page: Page, name: string) =>
     position(page).getByRole('button', { name, exact: true });
-  const lineAlign = (page: Page, name: string) =>
-    page.getByRole('group', { name: 'Alinhamento das linhas' }).getByRole('radio', { name });
 
   async function withText(page: Page, text = 'HHH') {
     await model(page, CERAMIC_PLATE).check();
@@ -468,41 +431,40 @@ test.describe('text position (D-044)', () => {
     expect(seen.size).toBe(9);
   });
 
-  test('aligns multiline text inside the block without moving the block', async ({ page }) => {
+  test('aligns multiline text by the preset column, with no separate alignment control', async ({
+    page,
+  }) => {
     await withText(page, 'HHHHHH\nHH');
-    await preset(page, 'Centro').click();
-    const longLeft = (await settledBox(page, () => true)).left;
+    await expect(page.getByRole('group', { name: 'Alinhamento das linhas' })).toHaveCount(0);
 
     const check = async (accept: (long: Box, short: Box) => boolean) => {
       await expect
         .poll(async () => {
           const [long, short] = await textLines(page);
-          return (
-            long !== undefined &&
-            short !== undefined &&
-            near(long.left, longLeft, 0.004) &&
-            accept(long, short)
-          );
+          return long !== undefined && short !== undefined && accept(long, short);
         })
         .toBe(true);
     };
 
-    await lineAlign(page, 'À esquerda').check();
+    await preset(page, 'Superior à esquerda').click();
     await check(
-      (long, short) => near(short.left, long.left, 0.006) && short.right < long.right - 0.05,
+      (long, short) =>
+        near(long.left, SQUARE_AREA.x0) &&
+        near(short.left, long.left, 0.006) &&
+        short.right < long.right - 0.05,
     );
-    await lineAlign(page, 'À direita').check();
+    await preset(page, 'Superior à direita').click();
     await check(
-      (long, short) => near(short.right, long.right, 0.006) && short.left > long.left + 0.05,
+      (long, short) =>
+        near(long.right, SQUARE_AREA.x1) &&
+        near(short.right, long.right, 0.006) &&
+        short.left > long.left + 0.05,
     );
-    await lineAlign(page, 'Ao centro').check();
+    await preset(page, 'Centro').click();
     await check((long, short) =>
       near((short.left + short.right) / 2, (long.left + long.right) / 2, 0.006),
     );
-    // Alignment alone is not a preset.
-    await expect(preset(page, 'Centro')).toHaveAttribute('aria-pressed', 'true');
-    await lineAlign(page, 'À esquerda').check();
-    await expect(preset(page, 'Centro')).toHaveAttribute('aria-pressed', 'false');
+    await expect(position(page).getByText('Posição: Centro.')).toBeVisible();
   });
 
   test('drags the text with the mouse, changing only its position', async ({ page, isMobile }) => {
@@ -524,8 +486,8 @@ test.describe('text position (D-044)', () => {
     const after = await settledBox(page, (b) => b.left > before.left + 0.1);
     expect(after.left - before.left).toBeCloseTo(0.15, 1);
     expect(after.top - before.top).toBeCloseTo(0.1, 1);
-    await expect(lineAlign(page, 'À esquerda')).toBeChecked();
     await expect(preset(page, 'Superior à esquerda')).toHaveAttribute('aria-pressed', 'false');
+    await expect(position(page).getByText('Posição personalizada.')).toBeVisible();
   });
 
   test('moves with touch only after "Mover texto" is turned on', async ({
@@ -627,7 +589,7 @@ test.describe('text position (D-044)', () => {
 
     const reset = await settledBox(page, (b) => near(b.left, initial.left, 0.002));
     expect(reset.top).toBeCloseTo(initial.top, 3);
-    await expect(lineAlign(page, 'Ao centro')).toBeChecked();
+    await expect(preset(page, 'Centro')).toHaveAttribute('aria-pressed', 'true');
     await expectNoHorizontalScroll(page);
   });
 });
@@ -645,29 +607,14 @@ test.describe('missing and broken images', () => {
 
     // Another model still loads normally.
     await model(page, QUADRO).check();
-    await expectPixel(page, 0.5, 0.8, BEGE);
-  });
-
-  test('shows the plate alone when a frame file fails to load', async ({ page }) => {
-    await page.route('**/catalog/frames/demo-moldura-clara/front.png', (route) => route.abort());
-
-    await model(page, CERAMIC_PLATE).check();
-    await frame(page, /Moldura clara/).check();
-
-    await expect(preview(page)).toContainText(
-      'Não foi possível carregar a imagem da moldura; a moldura não é exibida.',
-    );
-    await expectPixel(page, 0.5, 0.8, BEGE);
-    // No frame at all: the corner of the plate photograph shows the white background.
-    await expectPixel(page, 0.02, 0.02, WHITE);
+    await expectPixel(page, 0.5, 0.75, BEGE);
   });
 });
 
 test.describe('responsive layout', () => {
   test('fits the viewport and keeps the image aspect ratio', async ({ page }) => {
     await model(page, CERAMIC_PLATE).check();
-    await frame(page, /Moldura clara/).check();
-    await expectPixel(page, 0.02, 0.5, WOOD);
+    await expectPixel(page, 0.5, 0.8, BEGE);
 
     const viewport = page.viewportSize();
     const box = await boxOf(canvas(page));

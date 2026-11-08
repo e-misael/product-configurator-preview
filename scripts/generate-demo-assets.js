@@ -2,8 +2,8 @@
 //
 // The images are deliberately NOT photographs: flat colors, hatched borders,
 // an outlined text area, and a "DEMO" stamp. They exist only to exercise the
-// preview with deterministic geometry (square and scalloped models, frame back
-// and front layers). Dimensions and boxes below must match
+// preview with deterministic geometry (square and scalloped models, and the
+// Quadro photographed assembled with its frame, D-046). Dimensions and boxes below must match
 // src/demo/demo-catalog.ts; tests/unit/demo checks that they do.
 //
 // Run: npm run generate:demo-assets   (output is committed)
@@ -19,6 +19,9 @@ const TRANSPARENT = [0, 0, 0, 0];
 const OBJECT_BOUNDS = { x: 0.1, y: 0.1, width: 0.8, height: 0.8 };
 const SQUARE_TEXT_AREA = { x: 0.2, y: 0.3, width: 0.6, height: 0.4 };
 const SCALLOPED_TEXT_AREA = { x: 0.25, y: 0.35, width: 0.5, height: 0.3 };
+/** The Quadro's ceramic inside its wooden frame; the frame fills the rest of OBJECT_BOUNDS. */
+const QUADRO_CERAMIC = { x: 0.18, y: 0.18, width: 0.64, height: 0.64 };
+const QUADRO_TEXT_AREA = { x: 0.25, y: 0.35, width: 0.5, height: 0.3 };
 
 const BEGE = {
   base: [226, 208, 186],
@@ -27,19 +30,12 @@ const BEGE = {
     [206, 186, 160],
   ],
 };
-const WOOD_LIGHT = {
+const WOOD = {
   hatch: [
     [150, 118, 84],
     [132, 102, 70],
   ],
 };
-const WOOD_DARK = {
-  hatch: [
-    [88, 70, 56],
-    [72, 56, 44],
-  ],
-};
-const BACKING = [236, 236, 232];
 const RIM = [60, 40, 24];
 const OUTLINE = [70, 70, 70];
 const STAMP = [90, 90, 90];
@@ -89,17 +85,18 @@ function onOutline(x, y, box, w, h, thickness = 2) {
 
 const hatchColor = (palette, x, y) => palette.hatch[((x + y) >> 3) & 1];
 
-function plateImage({ width, height, shape, palette, textArea }) {
+/** Paint function for a ceramic object within `bounds`; transparent outside it. */
+function ceramic({ width, height, shape, palette, textArea, bounds = OBJECT_BOUNDS }) {
   const cx = width / 2;
   const cy = height / 2;
   const stampLeft = Math.round((width - STAMP_WIDTH) / 2);
-  const stampTop = Math.round(OBJECT_BOUNDS.y * height + 24);
-  return paintImage(width, height, (x, y) => {
+  const stampTop = Math.round(bounds.y * height + 24);
+  return (x, y) => {
     let inside;
     let edgeDistance;
     if (shape === 'scalloped') {
       // Wavy outline: 12 gentle lobes around a circle.
-      const base = (OBJECT_BOUNDS.width * width) / 2;
+      const base = (bounds.width * width) / 2;
       const dx = x + 0.5 - cx;
       const dy = y + 0.5 - cy;
       const radius = base * (0.95 + 0.05 * Math.cos(12 * Math.atan2(dy, dx)));
@@ -107,14 +104,14 @@ function plateImage({ width, height, shape, palette, textArea }) {
       inside = distance <= radius;
       edgeDistance = radius - distance;
     } else {
-      inside = inBox(x, y, OBJECT_BOUNDS, width, height);
-      const left = x - OBJECT_BOUNDS.x * width;
-      const top = y - OBJECT_BOUNDS.y * height;
+      inside = inBox(x, y, bounds, width, height);
+      const left = x - bounds.x * width;
+      const top = y - bounds.y * height;
       edgeDistance = Math.min(
         left,
         top,
-        (OBJECT_BOUNDS.x + OBJECT_BOUNDS.width) * width - 1 - x,
-        (OBJECT_BOUNDS.y + OBJECT_BOUNDS.height) * height - 1 - y,
+        (bounds.x + bounds.width) * width - 1 - x,
+        (bounds.y + bounds.height) * height - 1 - y,
       );
     }
     if (!inside) return TRANSPARENT;
@@ -122,30 +119,29 @@ function plateImage({ width, height, shape, palette, textArea }) {
     if (onOutline(x, y, textArea, width, height)) return OUTLINE;
     if (edgeDistance < 8) return hatchColor(palette, x, y);
     return palette.base;
-  });
-}
-
-function frameBack({ width, height, placement, palette }) {
-  const stampLeft = Math.round((width - STAMP_WIDTH) / 2);
-  const stampTop = 14;
-  return paintImage(width, height, (x, y) => {
-    if (inStamp(x, y, stampLeft, stampTop)) return STAMP;
-    return inBox(x, y, placement, width, height) ? BACKING : hatchColor(palette, x, y);
-  });
-}
-
-/** Opaque rim just inside the opening, drawn above the plate; transparent elsewhere. */
-function frameFront({ width, height, placement }) {
-  const rim = 10;
-  const inner = {
-    x: placement.x + rim / width,
-    y: placement.y + rim / height,
-    width: placement.width - (2 * rim) / width,
-    height: placement.height - (2 * rim) / height,
   };
-  return paintImage(width, height, (x, y) =>
-    inBox(x, y, placement, width, height) && !inBox(x, y, inner, width, height) ? RIM : TRANSPARENT,
-  );
+}
+
+function plateImage(spec) {
+  return paintImage(spec.width, spec.height, ceramic(spec));
+}
+
+/** The Quadro as one assembled product: ceramic plate inside a wooden frame (D-046). */
+function quadroImage(spec) {
+  const plate = ceramic({ ...spec, bounds: QUADRO_CERAMIC });
+  const rim = 4;
+  const inner = {
+    x: QUADRO_CERAMIC.x - rim / spec.width,
+    y: QUADRO_CERAMIC.y - rim / spec.height,
+    width: QUADRO_CERAMIC.width + (2 * rim) / spec.width,
+    height: QUADRO_CERAMIC.height + (2 * rim) / spec.height,
+  };
+  return paintImage(spec.width, spec.height, (x, y) => {
+    if (inBox(x, y, QUADRO_CERAMIC, spec.width, spec.height)) return plate(x, y);
+    if (inBox(x, y, inner, spec.width, spec.height)) return RIM;
+    if (inBox(x, y, OBJECT_BOUNDS, spec.width, spec.height)) return hatchColor(WOOD, x, y);
+    return TRANSPARENT;
+  });
 }
 
 function paintImage(width, height, paint) {
@@ -220,17 +216,15 @@ const scalloped = (size) => ({
   shape: 'scalloped',
   textArea: SCALLOPED_TEXT_AREA,
 });
-const FRAME = { width: 500, height: 500, placement: OBJECT_BOUNDS };
-
 const assets = {
   'plates/demo-placa-ceramica/bege.png': plateImage({ ...square(400), palette: BEGE }),
-  'plates/demo-quadro/bege.png': plateImage({ ...square(480), palette: BEGE }),
+  'plates/demo-quadro/bege.png': quadroImage({
+    ...square(480),
+    textArea: QUADRO_TEXT_AREA,
+    palette: BEGE,
+  }),
   'plates/demo-bandeja-ondulada-m-8/bege.png': plateImage({ ...scalloped(320), palette: BEGE }),
-  'plates/demo-bandeja-ondulada-m-11/bege.png': plateImage({ ...scalloped(440), palette: BEGE }),
-  'frames/demo-moldura-clara/back.png': frameBack({ ...FRAME, palette: WOOD_LIGHT }),
-  'frames/demo-moldura-clara/front.png': frameFront(FRAME),
-  'frames/demo-moldura-escura/back.png': frameBack({ ...FRAME, palette: WOOD_DARK }),
-  'frames/demo-moldura-escura/front.png': frameFront(FRAME),
+  'plates/demo-bandeja-ondulada-g-11/bege.png': plateImage({ ...scalloped(440), palette: BEGE }),
 };
 
 for (const [path, image] of Object.entries(assets)) {

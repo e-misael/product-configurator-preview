@@ -1,26 +1,23 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   addRange,
-  alignPlacement,
   createEmptyConfiguration,
   effectivePlacement,
   nudgePlacement,
   remapRanges,
   removeRange,
-  selectPlate,
   validateConfiguration,
   type Catalog,
   type Configuration,
   type ConfigurationField,
   type FontFamily,
-  type TextAlignment,
   type TextPlacement,
   type ValidationIssue,
   type ValidationResult,
 } from '../domain';
 
 /** A one-off message about a change the app made on the user's behalf. */
-export type Notice = 'frame-cleared' | 'formatting-removed';
+export type Notice = 'formatting-removed';
 
 interface State {
   readonly config: Configuration;
@@ -28,9 +25,9 @@ interface State {
 }
 
 /**
- * Configuration state over the pure domain functions. The only automatic
- * change is the one `selectPlate` makes (D-026); everything else is stored
- * exactly as chosen and reported by validation.
+ * Configuration state over the pure domain functions. Selections are stored
+ * exactly as chosen and reported by validation; the only automatic change is
+ * formatting that cannot follow an ambiguous text edit (D-042).
  */
 export function useConfiguration(catalog: Catalog) {
   const [state, setState] = useState<State>(() => ({
@@ -42,20 +39,7 @@ export function useConfiguration(catalog: Catalog) {
     setState(({ config }) => ({ config: { ...config, ...patch }, notice: null }));
   }, []);
 
-  const choosePlate = useCallback(
-    (plateId: string) => {
-      setState(({ config }) => {
-        const result = selectPlate(config, plateId, catalog);
-        return {
-          config: result.config,
-          notice: result.cleared.includes('frameId') ? 'frame-cleared' : null,
-        };
-      });
-    },
-    [catalog],
-  );
-
-  const chooseFrame = useCallback((frameId: string | null) => update({ frameId }), [update]);
+  const choosePlate = useCallback((plateId: string) => update({ plateId }), [update]);
   /**
    * The secondary-color ranges follow the edit (D-042). `caret` is the textarea
    * selection after the edit; when the edit cannot be located the affected
@@ -76,18 +60,15 @@ export function useConfiguration(catalog: Catalog) {
     (textColorId: string | null) => update({ textColorId }),
     [update],
   );
-  /** `null` ("Sem segunda cor") is the only action that also clears the ranges. */
+  /** Changing the second color keeps its ranges: they are drawn in the new color. */
   const chooseSecondaryColor = useCallback(
-    (secondaryColorId: string | null) =>
-      setState(({ config }) => ({
-        config: {
-          ...config,
-          secondaryColorId,
-          secondaryRanges: secondaryColorId === null ? [] : config.secondaryRanges,
-        },
-        notice: null,
-      })),
-    [],
+    (secondaryColorId: string) => update({ secondaryColorId }),
+    [update],
+  );
+  /** "Remover segunda cor": the only action that clears the color and all its ranges. */
+  const removeSecondaryColor = useCallback(
+    () => update({ secondaryColorId: null, secondaryRanges: [] }),
+    [update],
   );
   const applySecondaryColor = useCallback(
     (start: number, end: number) =>
@@ -100,7 +81,7 @@ export function useConfiguration(catalog: Catalog) {
       })),
     [],
   );
-  const removeSecondaryColor = useCallback(
+  const unapplySecondaryColor = useCallback(
     (start: number, end: number) =>
       setState(({ config }) => ({
         config: {
@@ -115,18 +96,6 @@ export function useConfiguration(catalog: Catalog) {
   // Text placement (D-044). The placement survives model changes: it is relative
   // to whichever calibrated text area the selected model has.
   const placeText = useCallback((textLayout: TextPlacement) => update({ textLayout }), [update]);
-  /** Changes only the line alignment; the block stays where it is. */
-  const alignText = useCallback(
-    (align: TextAlignment) =>
-      setState(({ config }) => ({
-        config: {
-          ...config,
-          textLayout: alignPlacement(effectivePlacement(config, catalog), align),
-        },
-        notice: null,
-      })),
-    [catalog],
-  );
   /** Moves the block by fractions of the free space (2%, or 10% with Shift). */
   const nudgeText = useCallback(
     (dx: number, dy: number) =>
@@ -152,15 +121,14 @@ export function useConfiguration(catalog: Catalog) {
     notice: state.notice,
     validation,
     choosePlate,
-    chooseFrame,
     setText,
     setFontFamily,
     chooseTextColor,
     chooseSecondaryColor,
     applySecondaryColor,
+    unapplySecondaryColor,
     removeSecondaryColor,
     placeText,
-    alignText,
     nudgeText,
     resetTextLayout,
   };

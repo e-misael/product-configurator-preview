@@ -13,7 +13,7 @@ It is an internal business tool with a customer-facing interface. It is **not** 
 
 ## Main user problem
 
-Customers cannot currently see what their personalized piece will look like before ordering. Choices about the model, optional frame, and text are communicated informally, which causes uncertainty for the customer and rework for the store.
+Customers cannot currently see what their personalized piece will look like before ordering. Choices about the model and text are communicated informally, which causes uncertainty for the customer and rework for the store.
 
 ## Expected benefits
 
@@ -26,7 +26,7 @@ Customers cannot currently see what their personalized piece will look like befo
 | Option                    | Required                                                     |
 | ------------------------- | ------------------------------------------------------------ |
 | Model (Modelo)            | Yes — Placa cerâmica, Quadro, Bandeja ondulada M (two sizes) |
-| Frame (Moldura)           | Optional, only on models that take one (none confirmed yet)  |
+| Frame                     | No separate choice: the Quadro includes its frame (D-046)    |
 | Piece color (Cor da peça) | Not a choice: fixed per model (Bege), shown read-only        |
 | Custom text (Texto)       | Yes                                                          |
 | Real-time preview         | —                                                            |

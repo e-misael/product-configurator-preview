@@ -25,10 +25,11 @@ Visual accuracy is a functional requirement: the preview must show exactly what 
 
 ## Form controls (pt-BR)
 
-- Labels: "Modelo", "Moldura (opcional)", "Texto"; "Sem moldura" for no frame. Product names such as "Placa cerâmica" and "Quadro" are kept as supplied; options read `displayName (sizeLabel)`.
+- Labels: "Modelo", "Texto", "Fonte", "Cor do texto", "Posição do texto". Product names and size labels are kept as supplied; options read `displayName — sizeLabel` (e.g. "Quadro — 20 × 20 cm"). There is no "Moldura" field: the Quadro includes its frame (D-046).
 - The shape is internal and not shown (D-040). The fixed ceramic color is shown read-only as "Cor da peça: Bege" inside the Modelo field; never offer it as a control (D-041).
-- "Moldura (opcional)" offers only `getFrameOptions(...)` and is hidden when the model takes no frame and none is selected. A selected frame that is not among the options stays visible, marked invalid with its validation message, with "Remover moldura" and the compatible options as replacements; never show "Sem moldura" as selected while a frame is selected (D-030).
-- When `selectPlate` reports `cleared: ['frameId']`, announce it visibly and via `aria-live="polite"` (e.g. "A moldura foi removida porque o modelo escolhido não aceita moldura.").
+- Lettering colors are labeled swatches on native radios (visually hidden input, chip, visible name); the selected one shows a check and a heavier border, never color alone (D-047).
+- The second color is progressive disclosure: "Usar segunda cor" (`aria-expanded`/`aria-controls`) reveals its swatches; the selection actions appear only once a second color is chosen and the section is open. Collapsing only hides; "Remover segunda cor" is the one action that clears the color and its trechos. An invalid kept choice stays visible (D-030).
+- "Posição do texto": nine presets set alignment and position together (glyph of aligned lines, inverted when selected, named in text); a compact directional pad beside them. No separate alignment control (D-047).
 - Use native elements: `<fieldset>`/`<legend>` + radio inputs for choice groups, `<textarea>` for text.
 - Every control has a visible, associated label.
 - Touch targets ≥ 44×44 px.
@@ -46,15 +47,15 @@ Visual accuracy is a functional requirement: the preview must show exactly what 
 ## Preview behavior
 
 - Update on every relevant change.
-- The preview is a Canvas 2D composition of catalog images (D-035): `composePreview` → `buildScene` → `drawScene` in `src/preview/`. Keep product rules and per-product coordinates out of it; positions come from catalog `NormalizedBox` data. Layer order: frame back → plate → text → frame front (D-037).
-- Image not registered, loading, and failed to load are three different states with three different messages; never substitute another product's or finish's image, and never draw a frame that is invalid or uncalibrated.
+- The preview is a Canvas 2D composition of catalog images (D-035): `composePreview` → `buildScene` → `drawScene` in `src/preview/`. Keep product rules and per-product coordinates out of it; positions come from catalog `NormalizedBox` data. Layer order: model photograph → text (D-037, D-046).
+- Image not registered, loading, and failed to load are three different states with three different messages; never substitute another product's image.
 - Text is drawn only in the catalog's text area, never altered, never silently clipped; overflow is a visible warning (D-038).
 - Demo images are synthetic, labeled, and live in `src/demo/public/`, served only in demo mode (D-036). Never put them in `public/`.
 - Incomplete configuration → show what is known and indicate what's missing.
 
 ## Preview/export consistency
 
-- Export paints the preview's own scene with `drawScene` (D-008, D-009); never recompose it separately. Both use an opaque white background; the export is the base image's native size (≤ 4000 px longest edge).
+- Export paints the preview's own scene with `drawScene` (D-008, D-009); never recompose it separately. Both use an opaque white background; the export is the model photograph's native size (≤ 4000 px longest edge).
 - Export is blocked while the configuration is not valid or any preview notice exists; the blocked button stays focusable (`aria-disabled`) with visible reasons.
 - No customer image uploads or image URL inputs (FR-09, D-045).
 
@@ -63,6 +64,6 @@ Visual accuracy is a functional requirement: the preview must show exactly what 
 - [ ] Works at 360px, 768px, 1280px without horizontal scroll.
 - [ ] All controls labeled, keyboard operable, focus visible.
 - [ ] Touch targets ≥ 44px.
-- [ ] UI text in pt-BR; "Modelo"/"Moldura" used, product names preserved.
+- [ ] UI text in pt-BR; "Modelo" used, product names and size labels preserved.
 - [ ] Long and multi-line text handled.
 - [ ] Preview matches the selected configuration.

@@ -4,7 +4,6 @@ import type { ConfigurationField, InvalidCode, Plate, ValidationIssue } from '..
 
 export const FIELD_LABELS: Record<ConfigurationField, string> = {
   plateId: 'Modelo',
-  frameId: 'Moldura',
   text: 'Texto',
   fontFamily: 'Fonte',
   textColorId: 'Cor do texto',
@@ -17,13 +16,6 @@ const INVALID_MESSAGES: Record<ConfigurationField, Partial<Record<InvalidCode, s
   plateId: {
     'unknown-reference': 'Este modelo não está no catálogo.',
     unavailable: 'Este modelo está indisponível no momento.',
-  },
-  frameId: {
-    'unknown-reference': 'Moldura não encontrada no catálogo.',
-    unavailable: 'Esta moldura está indisponível no momento.',
-    'frame-not-supported': 'Este modelo não aceita moldura.',
-    'incompatible-shape': 'Esta moldura não serve no formato deste modelo.',
-    'incompatible-plate': 'Esta moldura não é compatível com este modelo.',
   },
   text: {
     blank: 'O texto não pode ficar em branco.',
@@ -54,13 +46,10 @@ export function invalidMessage(issue: ValidationIssue): string {
   return INVALID_MESSAGES[issue.field][issue.code] ?? 'Esta escolha não é válida.';
 }
 
-/** Customer-facing model label: the name plus the supplied size description. */
+/** Customer-facing model label as supplied, e.g. "Placa cerâmica — 10 × 10 cm" (D-046). */
 export function modelLabel(plate: Pick<Plate, 'displayName' | 'sizeLabel'>): string {
-  return `${plate.displayName} (${plate.sizeLabel})`;
+  return `${plate.displayName} — ${plate.sizeLabel}`;
 }
 
 export const FORMATTING_REMOVED_NOTICE =
   'A segunda cor foi removida dos trechos afetados porque a edição não pôde ser localizada com segurança.';
-
-export const FRAME_CLEARED_NOTICE =
-  'A moldura foi removida porque o modelo escolhido não aceita moldura.';

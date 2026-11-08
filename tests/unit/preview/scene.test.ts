@@ -1,9 +1,7 @@
 import { composePreview } from '../../../src/preview/composition';
 import { FALLBACK_TEXT_COLOR } from '../../../src/preview/text-style';
 import {
-  ASPECT_TOLERANCE,
   buildScene,
-  placePlate,
   type ImageSize,
   type ImageState,
   type Scene,
@@ -37,54 +35,9 @@ function sceneFor(
   return buildScene(composePreview(previewCatalog, value, validate(value)), images, measure);
 }
 
-const order = (scene: Scene<TestImage>) =>
-  scene.layers.map((layer) => (layer.kind === 'image' ? layer.role : layer.kind));
+const order = (scene: Scene<TestImage>) => scene.layers.map((layer) => layer.kind);
 
-const SQUARE_BACK = '/catalog/frames/test-frame-any/square-back.webp';
-const SQUARE_FRONT = '/catalog/frames/test-frame-any/square-front.webp';
 const SQUARE_NUDE = '/catalog/plates/test-plate-square/beige.webp';
-
-describe('placePlate', () => {
-  const placement = { x: 50, y: 50, width: 400, height: 400 };
-
-  it('fills a placement of the same aspect ratio', () => {
-    expect(placePlate({ naturalWidth: 400, naturalHeight: 400 }, undefined, placement)).toEqual({
-      x: 50,
-      y: 50,
-      width: 400,
-      height: 400,
-    });
-  });
-
-  it('scales uniformly and centers when the aspect ratios differ', () => {
-    // 600×400 image into a square: width-limited, centered vertically.
-    const rect = placePlate({ naturalWidth: 600, naturalHeight: 400 }, undefined, placement);
-
-    expect(rect.width).toBeCloseTo(400);
-    expect(rect.height).toBeCloseTo(400 / 1.5);
-    expect(rect.x).toBeCloseTo(50);
-    expect(rect.y).toBeCloseTo(50 + (400 - 400 / 1.5) / 2);
-  });
-
-  it('places the object box, not the whole image, in the placement', () => {
-    // Object box is the middle 80% of a 400×400 image: it must exactly fill the placement.
-    const bounds = { x: 0.1, y: 0.1, width: 0.8, height: 0.8 };
-    const rect = placePlate({ naturalWidth: 400, naturalHeight: 400 }, bounds, placement);
-
-    expect(rect.width).toBeCloseTo(500);
-    expect(rect.x + bounds.x * rect.width).toBeCloseTo(50);
-    expect(rect.y + bounds.y * rect.height).toBeCloseTo(50);
-    expect(bounds.width * rect.width).toBeCloseTo(400);
-  });
-
-  it('does not assume the object is centered in the photograph', () => {
-    const bounds = { x: 0, y: 0, width: 0.5, height: 0.5 };
-    const rect = placePlate({ naturalWidth: 400, naturalHeight: 400 }, bounds, placement);
-
-    // The top-left quarter fills the placement, so the image extends past it.
-    expect(rect).toEqual({ x: 50, y: 50, width: 800, height: 800 });
-  });
-});
 
 describe('buildScene: standalone plate', () => {
   it('uses the plate image size and draws the plate, then the text', () => {
@@ -92,7 +45,7 @@ describe('buildScene: standalone plate', () => {
 
     expect(scene.width).toBe(400);
     expect(scene.height).toBe(400);
-    expect(order(scene)).toEqual(['plate', 'text']);
+    expect(order(scene)).toEqual(['image', 'text']);
     expect(scene.layers[0]).toMatchObject({ rect: { x: 0, y: 0, width: 400, height: 400 } });
     expect(scene.description).toBe('Square');
   });
@@ -125,113 +78,9 @@ describe('buildScene: standalone plate', () => {
   });
 });
 
-describe('buildScene: framed plate', () => {
-  it('paints frame back, plate, text, then frame front', () => {
-    expect(order(sceneFor({ frameId: 'test-frame-any' }))).toEqual([
-      'frame-back',
-      'plate',
-      'text',
-      'frame-front',
-    ]);
-  });
-
-  it('uses the frame back as the base size and fits the plate in the placement', () => {
-    const scene = sceneFor({ frameId: 'test-frame-any' });
-    const plate = scene.layers.find((layer) => layer.kind === 'image' && layer.role === 'plate');
-
-    expect([scene.width, scene.height]).toEqual([500, 500]);
-    // Placement: the middle 80% of 500 → 400 px at (50, 50). The plate's object box
-    // (80% of its photo) fills it, so the whole photo is 500 px and starts at the origin.
-    expect(plate?.kind === 'image' && plate.rect).toEqual({ x: 0, y: 0, width: 500, height: 500 });
-  });
-
-  it('draws the front overlay over the whole frame image', () => {
-    const front = sceneFor({ frameId: 'test-frame-any' }).layers.at(-1);
-
-    expect(front).toMatchObject({
-      kind: 'image',
-      role: 'frame-front',
-      rect: { x: 0, y: 0, width: 500, height: 500 },
-    });
-  });
-
-  it('positions the text relative to the placed plate', () => {
-    const text = sceneFor({ frameId: 'test-frame-any' }).layers.find(
-      (layer) => layer.kind === 'text',
-    );
-
-    // The plate photo is 500 px at the origin; the text area is 0.2/0.3/0.6/0.4 of it.
-    expect(text?.kind === 'text' && text.block.area).toEqual({
-      x: 100,
-      y: 150,
-      width: 300,
-      height: 200,
-    });
-  });
-
-  it('describes both product images', () => {
-    expect(sceneFor({ frameId: 'test-frame-any' }).description).toBe('Frame, square; Square');
-  });
-});
-
-describe('buildScene: frame problems keep the plate', () => {
-  it('shows the plate alone for an uncalibrated frame', () => {
-    const scene = sceneFor({
-      plateId: 'test-plate-rectangle',
-      frameId: 'test-frame-any',
-      text: '',
-    });
-
-    expect(order(scene)).toEqual(['plate']);
-    expect(scene.notices).toEqual(['frame-not-calibrated']);
-  });
-
-  it('shows the plate alone when a frame file fails to load', () => {
-    const scene = sceneFor(
-      { frameId: 'test-frame-any' },
-      states({ [SQUARE_FRONT]: { status: 'error' } }),
-    );
-
-    expect(order(scene)).toEqual(['plate', 'text']);
-    expect(scene.notices).toEqual(['frame-image-error']);
-  });
-
-  it('drops the frame when its layers have different aspect ratios', () => {
-    const scene = sceneFor(
-      { frameId: 'test-frame-any' },
-      states({
-        [SQUARE_FRONT]: {
-          status: 'loaded',
-          image: { src: SQUARE_FRONT, naturalWidth: 600, naturalHeight: 400 },
-        },
-      }),
-    );
-
-    expect(order(scene)).toEqual(['plate', 'text']);
-    expect(scene.notices).toEqual(['frame-layers-mismatch']);
-  });
-
-  it('accepts layers within the aspect tolerance', () => {
-    const height = Math.round(500 * (1 + ASPECT_TOLERANCE / 2));
-    const scene = sceneFor(
-      { frameId: 'test-frame-any' },
-      states({
-        [SQUARE_FRONT]: {
-          status: 'loaded',
-          image: { src: SQUARE_FRONT, naturalWidth: 500, naturalHeight: height },
-        },
-      }),
-    );
-
-    expect(order(scene)).toContain('frame-front');
-  });
-});
-
 describe('buildScene: image states', () => {
-  it('draws nothing while any needed file is loading', () => {
-    const images = states();
-    images.delete(SQUARE_BACK);
-    const scene = sceneFor({ frameId: 'test-frame-any' }, images);
+  it('draws nothing while the photograph is loading', () => {
+    const scene = sceneFor({}, states({ [SQUARE_NUDE]: { status: 'loading' } }));
 
     expect(scene.layers).toEqual([]);
     expect(scene.notices).toEqual(['plate-image-loading']);
@@ -245,10 +94,7 @@ describe('buildScene: image states', () => {
   });
 
   it('draws nothing, and substitutes nothing, when the plate file fails to load', () => {
-    const scene = sceneFor(
-      { frameId: 'test-frame-any' },
-      states({ [SQUARE_NUDE]: { status: 'error' } }),
-    );
+    const scene = sceneFor({}, states({ [SQUARE_NUDE]: { status: 'error' } }));
 
     expect(scene.layers).toEqual([]);
     expect(scene.notices).toEqual(['plate-image-error']);
@@ -322,7 +168,7 @@ describe('buildScene: text', () => {
   it('has no text layer, and keeps the notice, when the area is not calibrated', () => {
     const scene = sceneFor({ plateId: 'test-plate-rectangle' });
 
-    expect(order(scene)).toEqual(['plate']);
+    expect(order(scene)).toEqual(['image']);
     expect(scene.notices).toEqual(['text-area-pending']);
   });
 });

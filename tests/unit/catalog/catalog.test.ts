@@ -11,29 +11,28 @@ describe('production catalog', () => {
     expect(validateCatalog(getCatalog())).toEqual({ status: 'valid' });
   });
 
-  it('registers exactly the four supplied models (D-040) and nothing else', () => {
-    const { plates, frames } = getCatalog();
+  it('registers exactly the four supplied models (D-040, D-046) and nothing else', () => {
+    const { plates } = getCatalog();
 
     expect(
       plates.map(({ id, displayName, sizeLabel, shape }) => [id, displayName, sizeLabel, shape]),
     ).toEqual([
-      ['placa-ceramica-10', 'Placa cerâmica', '10 cm x 10 cm', 'square'],
-      ['quadro-20', 'Quadro', '20 cm x 20 cm', 'square'],
-      ['bandeja-ondulada-m-8', 'Bandeja ondulada M', '~ 8 cm', 'scalloped'],
-      ['bandeja-ondulada-m-11', 'Bandeja ondulada M', '~ 11 cm', 'scalloped'],
+      ['placa-ceramica-10', 'Placa cerâmica', '10 × 10 cm', 'square'],
+      ['quadro-20', 'Quadro', '20 × 20 cm', 'square'],
+      ['bandeja-ondulada-m-8', 'Bandeja ondulada M', 'Aprox. 8 cm', 'scalloped'],
+      ['bandeja-ondulada-g-11', 'Bandeja ondulada G', 'Aprox. 11 cm', 'scalloped'],
     ]);
-    expect(frames).toEqual([]);
+    expect(Object.keys(getCatalog())).toEqual(['plates', 'textColors']);
   });
 
   it('invents no lettering colors: the palette stays empty until Taavi supplies it', () => {
     expect(getCatalog().textColors).toEqual([]);
   });
 
-  it('invents no dimensions, images, or frame support; every model is Bege', () => {
+  it('invents no dimensions or images; every model is Bege', () => {
     for (const plate of getCatalog().plates) {
       expect(plate.dimensions).toEqual({ status: 'pending' });
       expect(plate.image).toBeUndefined();
-      expect(plate.supportsFrame).toBe(false);
       expect(plate.ceramicColor).toBe('Bege');
     }
   });
@@ -47,7 +46,7 @@ describe('production catalog', () => {
 
   it('has a freeze assertion that detects unfrozen nested objects', () => {
     const partlyFrozen = Object.freeze({
-      plates: Object.freeze([{ supportsFrame: false, tags: [] }]),
+      plates: Object.freeze([{ shape: 'square', tags: [] }]),
     });
     expect(() => expectDeeplyFrozen(partlyFrozen)).toThrow();
   });

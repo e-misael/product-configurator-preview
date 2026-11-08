@@ -14,7 +14,6 @@ import { isValidPlacement } from './text-placement';
 import type {
   Catalog,
   Configuration,
-  Frame,
   Plate,
   PlateShape,
   TextColor,
@@ -25,7 +24,6 @@ import type {
 export function createEmptyConfiguration(): Configuration {
   return {
     plateId: null,
-    frameId: null,
     text: '',
     fontFamily: 'sans-serif',
     textColorId: null,
@@ -39,10 +37,6 @@ export function findPlate(catalog: Catalog, id: string): Plate | undefined {
   return catalog.plates.find((plate) => plate.id === id);
 }
 
-export function findFrame(catalog: Catalog, id: string): Frame | undefined {
-  return catalog.frames.find((frame) => frame.id === id);
-}
-
 export function findTextColor(catalog: Catalog, id: string): TextColor | undefined {
   return catalog.textColors.find((color) => color.id === id);
 }
@@ -54,24 +48,6 @@ export function isAvailable(component: { readonly available?: boolean }): boolea
 /** The shape is a property of the plate model, never a separate selection (D-023). */
 export function getPlateShape(catalog: Catalog, plateId: string): PlateShape | undefined {
   return findPlate(catalog, plateId)?.shape;
-}
-
-/**
- * Declared compatibility only. A `true` result is not proof of physical fit
- * until real dimensions and mounting constraints exist.
- */
-export function isFrameCompatible(frame: Frame, plate: Plate): boolean {
-  return (
-    plate.supportsFrame &&
-    frame.compatibility.shapes.includes(plate.shape) &&
-    isFrameAllowedForPlate(frame, plate)
-  );
-}
-
-/** Checks only the frame's optional plate restriction; independent of shape. */
-export function isFrameAllowedForPlate(frame: Frame, plate: Plate): boolean {
-  const { plateIds } = frame.compatibility;
-  return plateIds === undefined || plateIds.includes(plate.id);
 }
 
 /**
@@ -97,23 +73,6 @@ export function validateConfiguration(config: Configuration, catalog: Catalog): 
     issues.push({ kind: 'invalid', field: 'plateId', code: 'unknown-reference' });
   } else if (!isAvailable(plate)) {
     issues.push({ kind: 'invalid', field: 'plateId', code: 'unavailable' });
-  }
-
-  // Frame is optional: `null` is a valid "no frame" choice. Plate-dependent
-  // rules need a known plate; an unknown plate is already reported on plateId.
-  if (config.frameId !== null) {
-    const frame = findFrame(catalog, config.frameId);
-    if (frame === undefined) {
-      issues.push({ kind: 'invalid', field: 'frameId', code: 'unknown-reference' });
-    } else if (!isAvailable(frame)) {
-      issues.push({ kind: 'invalid', field: 'frameId', code: 'unavailable' });
-    } else if (plate !== undefined && !plate.supportsFrame) {
-      issues.push({ kind: 'invalid', field: 'frameId', code: 'frame-not-supported' });
-    } else if (plate !== undefined && !frame.compatibility.shapes.includes(plate.shape)) {
-      issues.push({ kind: 'invalid', field: 'frameId', code: 'incompatible-shape' });
-    } else if (plate !== undefined && !isFrameAllowedForPlate(frame, plate)) {
-      issues.push({ kind: 'invalid', field: 'frameId', code: 'incompatible-plate' });
-    }
   }
 
   if (config.text.length === 0) {

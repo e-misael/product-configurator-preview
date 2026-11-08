@@ -32,7 +32,7 @@ describe('deepFreeze', () => {
     expect(Object.isFrozen(catalog)).toBe(true);
     expectAssignmentRejected(catalog, 'plates', []);
     expectPushRejected(catalog.plates, {});
-    expectPushRejected(catalog.frames, {});
+    expectPushRejected(catalog.textColors, {});
   });
 
   it('freezes component objects', () => {
@@ -40,22 +40,16 @@ describe('deepFreeze', () => {
     const plate = at(catalog.plates, 0);
 
     expect(Object.isFrozen(plate)).toBe(true);
-    expect(Object.isFrozen(at(catalog.frames, 0))).toBe(true);
+    expect(Object.isFrozen(at(catalog.textColors, 0))).toBe(true);
     expectAssignmentRejected(plate, 'displayName', 'changed');
     expectAssignmentRejected(plate, 'ceramicColor', 'changed');
   });
 
-  it('freezes compatibility arrays', () => {
+  it('freezes the shape and lettering colors', () => {
     const catalog = deepFreeze(buildValidCatalog());
-    const plate = at(catalog.plates, 0);
-    const { compatibility } = at(catalog.frames, 1);
 
-    expectAssignmentRejected(plate, 'shape', 'circle');
-    expectAssignmentRejected(plate, 'supportsFrame', false);
-    expect(Object.isFrozen(compatibility)).toBe(true);
-    expectAssignmentRejected(compatibility, 'plateIds', undefined);
-    expectPushRejected(compatibility.shapes, 'rectangle');
-    expectPushRejected(defined(compatibility.plateIds), 'test-plate-x');
+    expectAssignmentRejected(at(catalog.plates, 0), 'shape', 'circle');
+    expectAssignmentRejected(at(catalog.textColors, 0), 'hex', '#000000');
   });
 
   it('freezes dimension and asset objects', () => {
@@ -67,10 +61,9 @@ describe('deepFreeze', () => {
     expectAssignmentRejected(plate, 'dimensions', { status: 'pending' });
   });
 
-  it('freezes plate and frame imagery and placement metadata', () => {
+  it('freezes model imagery and placement metadata', () => {
     const catalog = deepFreeze(buildImageCatalog());
     const plateImage = defined(at(catalog.plates, 0).image);
-    const frameImage = at(defined(at(catalog.frames, 0).images), 0);
 
     expectAssignmentRejected(plateImage, 'image', undefined);
     expectAssignmentRejected(plateImage.image, 'src', '/catalog/plates/x/y.png');
@@ -78,10 +71,6 @@ describe('deepFreeze', () => {
     expectAssignmentRejected(defined(plateImage.objectBounds), 'x', 0.5);
     expectAssignmentRejected(defined(plateImage.text).area, 'width', 0.1);
     expectAssignmentRejected(defined(plateImage.text), 'align', 'left');
-    expectAssignmentRejected(frameImage, 'plateId', 'test-plate-a');
-    expectAssignmentRejected(frameImage.back, 'src', '');
-    expectAssignmentRejected(defined(frameImage.front), 'src', '');
-    expectAssignmentRejected(defined(frameImage.platePlacement), 'height', 1);
   });
 
   it('freezes shared references and is idempotent', () => {

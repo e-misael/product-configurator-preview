@@ -1,5 +1,4 @@
 import {
-  findFrameImage,
   findPlateImage,
   validateConfiguration,
   type Catalog,
@@ -10,7 +9,6 @@ import { at, buildImageCatalog, buildValidCatalog } from './catalog-fixtures';
 const catalog = buildImageCatalog();
 const plateA = at(catalog.plates, 0);
 const plateB = at(catalog.plates, 1);
-const frameAny = at(catalog.frames, 0);
 const imageSrc = (lookup: ReturnType<typeof findPlateImage>) =>
   lookup.status === 'available' ? lookup.image.image.src : undefined;
 
@@ -32,24 +30,6 @@ describe('findPlateImage', () => {
   });
 });
 
-describe('findFrameImage', () => {
-  it('returns the layers calibrated for the plate model', () => {
-    const lookup = findFrameImage(frameAny, 'test-plate-b');
-    expect(lookup.status === 'available' && lookup.image).toMatchObject({
-      back: { src: '/catalog/frames/test-frame-any/test-plate-b-back.webp' },
-      front: { src: '/catalog/frames/test-frame-any/test-plate-b-front.png' },
-    });
-  });
-
-  it('is pending for a compatible plate without calibrated imagery', () => {
-    expect(findFrameImage(frameAny, 'test-plate-a')).toEqual({ status: 'pending' });
-  });
-
-  it('is pending for a frame without images', () => {
-    expect(findFrameImage(at(catalog.frames, 1), 'test-plate-a')).toEqual({ status: 'pending' });
-  });
-});
-
 describe('configuration validation is independent of imagery', () => {
   const style = {
     fontFamily: 'sans-serif',
@@ -59,28 +39,13 @@ describe('configuration validation is independent of imagery', () => {
     textLayout: null,
   } as const;
   const configs: Configuration[] = [
-    {
-      plateId: 'test-plate-a',
-      frameId: null,
-      text: 'Ana',
-      ...style,
-    },
-    {
-      plateId: 'test-plate-a',
-      frameId: 'test-frame-any',
-      text: '',
-      ...style,
-    },
-    {
-      plateId: 'test-plate-b',
-      frameId: 'test-frame-plate-a',
-      text: 'Ana',
-      ...style,
-    },
+    { plateId: 'test-plate-a', text: 'Ana', ...style },
+    { plateId: 'test-plate-a', text: '', ...style },
+    { plateId: 'test-plate-b', text: 'Ana', ...style },
   ];
   const withoutImages: Catalog = buildValidCatalog();
 
-  it.each(configs.map((config) => [config.plateId, config] as const))(
+  it.each(configs.map((config) => [`${config.plateId} "${config.text}"`, config] as const))(
     'gives the same result with and without images (%s)',
     (_id, config) => {
       expect(validateConfiguration(config, catalog)).toEqual(

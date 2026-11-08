@@ -6,8 +6,6 @@
  */
 
 import {
-  findFrame,
-  findFrameImage,
   findPlate,
   findPlateImage,
   findTextColor,
@@ -30,12 +28,6 @@ export type PreviewNoticeCode =
   | 'plate-image-pending'
   | 'plate-image-loading'
   | 'plate-image-error'
-  | 'frame-invalid'
-  | 'frame-image-pending'
-  | 'frame-not-calibrated'
-  | 'frame-image-loading'
-  | 'frame-image-error'
-  | 'frame-layers-mismatch'
   | 'text-area-pending'
   | 'text-color-provisional'
   | 'text-overflow';
@@ -43,16 +35,6 @@ export type PreviewNoticeCode =
 export interface PlateLayer {
   readonly src: string;
   readonly alt: string | undefined;
-  /** Where the ceramic object sits in the photograph; the whole image when pending. */
-  readonly objectBounds: NormalizedBox | undefined;
-}
-
-export interface FrameLayer {
-  readonly backSrc: string;
-  readonly frontSrc: string | undefined;
-  readonly alt: string | undefined;
-  /** Where the plate's object box goes within the frame's images. */
-  readonly platePlacement: NormalizedBox;
 }
 
 export interface TextLayer {
@@ -74,7 +56,6 @@ export interface TextLayer {
 
 export interface Composition {
   readonly plate: PlateLayer | undefined;
-  readonly frame: FrameLayer | undefined;
   readonly text: TextLayer | undefined;
   readonly notices: readonly PreviewNoticeCode[];
 }
@@ -93,7 +74,7 @@ export function composePreview(
   config: Configuration,
   validation: ValidationResult,
 ): Composition {
-  const nothing = { plate: undefined, frame: undefined, text: undefined } as const;
+  const nothing = { plate: undefined, text: undefined } as const;
 
   if (config.plateId === null) {
     return { ...nothing, notices: ['plate-not-selected'] };
@@ -113,34 +94,10 @@ export function composePreview(
     plateLayer = {
       src: lookup.image.image.src,
       alt: lookup.image.image.alt,
-      objectBounds: lookup.image.objectBounds,
     };
     textLayout = lookup.image.text;
   } else {
     notices.push('plate-image-pending');
-  }
-
-  // Frame: drawn only when valid and calibrated; otherwise the plate stands alone.
-  let frameLayer: FrameLayer | undefined;
-  if (config.frameId !== null) {
-    const frame = findFrame(catalog, config.frameId);
-    if (frame === undefined || hasIssue(validation, 'frameId', 'invalid')) {
-      notices.push('frame-invalid');
-    } else {
-      const lookup = findFrameImage(frame, plate.id);
-      if (lookup.status === 'pending') {
-        notices.push('frame-image-pending');
-      } else if (lookup.image.platePlacement === undefined) {
-        notices.push('frame-not-calibrated');
-      } else {
-        frameLayer = {
-          backSrc: lookup.image.back.src,
-          frontSrc: lookup.image.front?.src,
-          alt: lookup.image.back.alt,
-          platePlacement: lookup.image.platePlacement,
-        };
-      }
-    }
   }
 
   // Text: needs the plate photograph's calibrated area; the entered text is never altered.
@@ -169,7 +126,7 @@ export function composePreview(
     }
   }
 
-  return { plate: plateLayer, frame: frameLayer, text: textLayer, notices };
+  return { plate: plateLayer, text: textLayer, notices };
 }
 
 /** The hex of a chosen lettering color, or undefined when none is chosen or it is invalid. */
@@ -197,12 +154,7 @@ function secondaryStyle(
   return color === undefined ? undefined : { color, ranges: config.secondaryRanges };
 }
 
-/** Every image file the composition needs, in painting order, without duplicates. */
+/** Every image file the composition needs: the model's photograph, when there is one. */
 export function compositionSources(composition: Composition): readonly string[] {
-  const sources = [
-    composition.frame?.backSrc,
-    composition.plate?.src,
-    composition.frame?.frontSrc,
-  ].filter((src): src is string => src !== undefined);
-  return [...new Set(sources)];
+  return composition.plate === undefined ? [] : [composition.plate.src];
 }

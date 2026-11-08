@@ -6,17 +6,11 @@
  */
 
 /**
- * Classification of a model's outline, used for frame compatibility. It implies
- * no geometry: `scalloped` (wavy-edged trays) says nothing about the exact outline.
+ * Classification of a model's outline. It implies no geometry: `scalloped`
+ * (wavy-edged trays) says nothing about the exact outline.
  */
 export const PLATE_SHAPES = ['square', 'rectangle', 'circle', 'scalloped'] as const;
 export type PlateShape = (typeof PLATE_SHAPES)[number];
-
-/**
- * Shapes that can never take a frame (D-024). Used only by catalog integrity
- * checks; everything else relies on `Plate.supportsFrame`.
- */
-export const FRAMELESS_SHAPES: readonly PlateShape[] = ['circle'];
 
 /**
  * Physical dimensions. Unknown values are explicitly `pending` and must
@@ -27,7 +21,7 @@ export type Dimensions =
   | { readonly status: 'defined'; readonly widthMm: number; readonly heightMm: number };
 
 /**
- * Reference to a same-origin image under `/catalog/{plates|frames|colors}/{owner-id}/`
+ * Reference to a same-origin image under `/catalog/plates/{owner-id}/`
  * (D-031). The file may still be missing or fail to load at runtime.
  */
 export interface AssetRef {
@@ -60,8 +54,9 @@ export interface TextLayout {
 }
 
 /**
- * The photograph of a model (D-032, revised by D-041). The ceramic color is a
- * fixed property of the model, so each model has one photograph. Placement
+ * The photograph of a model (D-032, revised by D-041 and D-046). The ceramic
+ * color is a fixed property of the model, so each model has one photograph;
+ * a model sold with a frame (the Quadro) is photographed assembled. Placement
  * fields are optional until calibrated from the real photograph.
  */
 export interface PlateImage {
@@ -69,18 +64,6 @@ export interface PlateImage {
   /** Bounding box of the ceramic object within the photograph. */
   readonly objectBounds?: NormalizedBox;
   readonly text?: TextLayout;
-}
-
-/**
- * Frame imagery calibrated for one plate model (D-033). `back` is drawn
- * behind the plate; the optional `front` overlay is drawn above plate and text.
- */
-export interface FrameImage {
-  readonly plateId: string;
-  readonly back: AssetRef;
-  readonly front?: AssetRef;
-  /** Where the plate's `objectBounds` are placed within `back`. */
-  readonly platePlacement?: NormalizedBox;
 }
 
 interface CatalogComponentBase {
@@ -98,34 +81,14 @@ interface CatalogComponentBase {
 export interface Plate extends CatalogComponentBase {
   readonly type: 'plate';
   readonly shape: PlateShape;
-  /** Customer-facing size as supplied, e.g. "10 cm x 10 cm" or "~ 8 cm". Display only. */
+  /** Customer-facing size as supplied, e.g. "10 × 10 cm" or "Aprox. 8 cm". Display only. */
   readonly sizeLabel: string;
   /** Fixed ceramic color shown read-only, e.g. "Bege". Owned by the catalog, never chosen (D-041). */
   readonly ceramicColor: string;
-  /** Explicit capability; never inferred from shape at use sites (D-024). */
-  readonly supportsFrame: boolean;
   /** Physical dimensions; `pending` until measured. `sizeLabel` is not a measurement. */
   readonly dimensions: Dimensions;
   /** The model's photograph. Omitted while pending. */
   readonly image?: PlateImage;
-}
-
-/**
- * Declared frame compatibility. Matching shapes is a necessary condition,
- * not proof of physical fit: real dimensions and mounting constraints are
- * required before production use (see docs/06-decisions.md).
- */
-export interface FrameCompatibility {
-  readonly shapes: readonly PlateShape[];
-  /** When present, restricts the frame to these plate IDs. */
-  readonly plateIds?: readonly string[];
-}
-
-export interface Frame extends CatalogComponentBase {
-  readonly type: 'frame';
-  readonly compatibility: FrameCompatibility;
-  /** Imagery per compatible plate model. A plate without an entry has a pending image. */
-  readonly images?: readonly FrameImage[];
 }
 
 /**
@@ -138,11 +101,10 @@ export interface TextColor extends CatalogComponentBase {
   readonly hex: string;
 }
 
-export type CatalogComponent = Plate | Frame | TextColor;
+export type CatalogComponent = Plate | TextColor;
 
 export interface Catalog {
   readonly plates: readonly Plate[];
-  readonly frames: readonly Frame[];
   readonly textColors: readonly TextColor[];
 }
 
@@ -173,12 +135,11 @@ export interface TextPlacement {
 
 /**
  * The user's current selection. Serializable (plain JSON) and independent
- * of UI details. `null` means "not selected"; for `frameId` it means "no frame".
+ * of UI details. `null` means "not selected".
  * The shape is not stored: it is derived from the selected plate (D-023).
  */
 export interface Configuration {
   readonly plateId: string | null;
-  readonly frameId: string | null;
   /** Raw user text, preserved exactly as entered. */
   readonly text: string;
   readonly fontFamily: FontFamily;
@@ -197,9 +158,6 @@ export type ConfigurationField = keyof Configuration;
 export type InvalidCode =
   | 'unknown-reference'
   | 'unavailable'
-  | 'frame-not-supported'
-  | 'incompatible-shape'
-  | 'incompatible-plate'
   | 'blank'
   | 'unsupported-font'
   | 'same-as-primary'
@@ -220,16 +178,9 @@ export type ValidationResult =
 export type CatalogIssueCode =
   | 'invalid-id'
   | 'duplicate-id'
-  | 'duplicate-entry'
-  | 'unknown-reference'
-  | 'unreachable-compatibility'
-  | 'empty-list'
-  | 'frame-capability-conflict'
-  | 'unsupported-frame-shape'
   | 'invalid-dimension'
   | 'invalid-asset'
   | 'empty-label'
-  | 'duplicate-variation'
   | 'invalid-placement'
   | 'invalid-color';
 

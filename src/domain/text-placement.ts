@@ -90,8 +90,3 @@ export function nudgePlacement(placement: TextPlacement, dx: number, dy: number)
     y: round(clampUnit(placement.y + dy)),
   };
 }
-
-/** Changes only the line alignment; the block keeps its position (D-044). */
-export function alignPlacement(placement: TextPlacement, align: TextAlignment): TextPlacement {
-  return { ...placement, align };
-}

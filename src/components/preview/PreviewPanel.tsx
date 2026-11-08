@@ -1,11 +1,9 @@
 import { useMemo, useState } from 'react';
 import {
-  findFrame,
   findTextColor,
   type Catalog,
   type Configuration,
   type Plate,
-  type TextAlignment,
   type TextPlacement,
   type ValidationResult,
 } from '../../domain';
@@ -27,7 +25,6 @@ interface PreviewPanelProps {
   readonly validation: ValidationResult;
   readonly positioning: {
     readonly place: (placement: TextPlacement) => void;
-    readonly align: (align: TextAlignment) => void;
     readonly nudge: (dx: number, dy: number) => void;
     readonly reset: () => void;
   };
@@ -68,11 +65,6 @@ export function PreviewPanel({
     if (block !== undefined) positioning.place({ align: block.align, ...position });
   };
 
-  const frameName =
-    config.frameId === null
-      ? 'Sem moldura'
-      : (findFrame(catalog, config.frameId)?.displayName ?? config.frameId);
-
   return (
     <section className="preview" aria-labelledby="preview-title">
       <h2 className="preview__title" id="preview-title">
@@ -104,7 +96,6 @@ export function PreviewPanel({
         moveMode={moveMode}
         onToggleMoveMode={() => setMoveMode((on) => !on)}
         onPlace={positioning.place}
-        onAlign={positioning.align}
         onNudge={positioning.nudge}
         onReset={positioning.reset}
       />
@@ -117,8 +108,6 @@ export function PreviewPanel({
       <dl className="preview__summary" id="preview-summary">
         <dt>Modelo</dt>
         <dd>{plate ? modelLabel(plate) : '—'}</dd>
-        <dt>Moldura</dt>
-        <dd>{frameName}</dd>
         <dt>Cor da peça</dt>
         <dd>{plate?.ceramicColor ?? '—'}</dd>
         <dt>Fonte</dt>

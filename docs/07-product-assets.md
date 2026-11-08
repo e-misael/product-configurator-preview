@@ -18,14 +18,14 @@ How Taavi's real product photographs become catalog imagery (FR-08, D-027, D-031
 
 The lifestyle photographs shared so far are **visual references only**. They contain lettering, backgrounds, shadows, and product combinations, so they cannot be used as compositing layers. In particular:
 
-- the wooden shadowbox-style frame holding a smaller square ceramic plaque shows a frame–plate combination, not separate clean layers;
+- the wooden shadowbox-style frame holding a smaller square ceramic plaque is the Quadro as sold; the real asset is a clean photograph of it assembled, not separate layers (D-046);
 - the standalone square plaque with lettering is not a blank plate image;
 - the scalloped dishes are the Bandeja ondulada M models (`scalloped` classification only, D-040); no circular model is registered.
 
 ## Expected source photographs (M1.3b inputs)
 
-1. One photograph per model without lettering: Placa cerâmica (10 cm x 10 cm), Quadro (20 cm x 20 cm), Bandeja ondulada M (~ 8 cm), and Bandeja ondulada M (~ 11 cm). Each model has a single fixed color (Bege), so there are no color variations.
-2. Empty wooden frames, photographed independently (and, where needed, a front layer such as the rim around the opening), only if some model is confirmed to take a frame (P-13).
+1. One photograph per model without lettering: Placa cerâmica — 10 × 10 cm, Quadro — 20 × 20 cm, Bandeja ondulada M — Aprox. 8 cm, and Bandeja ondulada G — Aprox. 11 cm. Each model has a single fixed color (Bege), so there are no color variations.
+2. The Quadro is photographed **assembled**, ceramic plate in its wooden frame, as one product (D-046). No separate frame photographs or layers are needed.
 
 Recommended capture: consistent lighting, camera height, and angle across the models; the object fully visible and as frontal as possible; high resolution relative to the intended display size; no lettering, props, or busy backgrounds. These are recommendations, not invented requirements: exact resolutions are decided with the real files (P-08).
 
@@ -33,38 +33,36 @@ Recommended capture: consistent lighting, camera height, and angle across the mo
 
 ```text
 public/catalog/
-├── plates/{plate-id}/{name}.{webp|png|jpg}    # Plate.image.image
-└── frames/{frame-id}/{name}.{webp|png|jpg}    # Frame.images[].back / .front
+└── plates/{plate-id}/{name}.{webp|png|jpg}    # Plate.image.image
 ```
 
 - Catalog `src` values are served paths: `/catalog/plates/placa-ceramica-10/bege.webp`.
-- The folder name is the owner's stable catalog ID; catalog integrity rejects a file in another owner's folder.
-- File names are lowercase kebab-case. Suggested names: `bege` for a model's photograph, `{plate-id}-back` / `{plate-id}-front` for frame layers.
+- The folder name is the model's stable catalog ID; catalog integrity rejects a file in another model's folder or outside `plates/` (the former `frames/` folder no longer exists, D-046).
+- File names are lowercase kebab-case. Suggested name: `bege` for a model's photograph.
 - One folder level per owner; no nested folders.
-- A file used by several entries (e.g. one frame layer calibrated for two plates) is stored once and referenced by each entry; do not copy it.
 - The folder is created by M1.3b together with the first real file. `public/` contents ship in the production build, so demo or test images never go there.
 
 ## Formats and transparency
 
-| Format | Use                                                                                           |
-| ------ | --------------------------------------------------------------------------------------------- |
-| WebP   | Preferred. Lossy or lossless, with alpha. Good size/quality for photographs.                  |
-| PNG    | Lossless with alpha, when WebP artifacts are visible on edges or masks.                       |
-| JPEG   | Opaque images only (no transparency), e.g. a frame back layer that fills its whole rectangle. |
+| Format | Use                                                                                |
+| ------ | ---------------------------------------------------------------------------------- |
+| WebP   | Preferred. Lossy or lossless, with alpha. Good size/quality for photographs.       |
+| PNG    | Lossless with alpha, when WebP artifacts are visible on edges or masks.            |
+| JPEG   | Opaque images only (no transparency), on the white background used by the preview. |
 
-- **Transparent** (alpha required): plate cut-outs composed over a frame or background; frame `front` overlays (the opening must be transparent).
-- **Opaque** acceptable: a frame `back` layer that covers the full composition.
+- **Transparent** (preferred): product cut-outs composed over the opaque white canvas background, so circular and scalloped outlines stay clean.
+- **Opaque** acceptable when the photograph's own background is the white the preview uses.
 - SVG and other formats are rejected by catalog integrity: product imagery is photographic.
 
-## Catalog association (D-032, D-033)
+## Catalog association (D-041, D-046)
 
 - **Plate photograph** — `Plate.image`, one per model: `{ image, objectBounds?, text? }`. Lookup (`findPlateImage`) is exact: a model without a photograph is pending. There is no fallback to another model's image (D-041).
-- **Frame imagery** — `Frame.images[]`, one entry per compatible plate model: `{ plateId, back, front?, platePlacement? }`. Placement depends on the plate model, so one photograph is never assumed to fit every compatible geometry. Entries are allowed only for plate/frame pairs that configuration validation accepts (`isFrameCompatible`).
+- **Quadro** — its single photograph shows the plate in its frame. `objectBounds` covers the whole product, and `text.area` lies inside the ceramic, clear of the frame.
 - **Colors** — the ceramic color is a fixed text property of the model (`Plate.ceramicColor`), never derived from or applied to a photograph.
 
 ## Replacing an image
 
-Product identity is the catalog ID, never the file. To replace a photograph, overwrite the file at the same path (preferred) or point `src` to the new file in the same owner folder; the model or frame ID never changes. Update `widthPx`/`heightPx` and recalibrate placement, because a new photograph changes the coordinates.
+Product identity is the catalog ID, never the file. To replace a photograph, overwrite the file at the same path (preferred) or point `src` to the new file in the same owner folder; the model ID never changes. Update `widthPx`/`heightPx` and recalibrate placement, because a new photograph changes the coordinates.
 
 ## Intrinsic size
 
@@ -74,17 +72,16 @@ Product identity is the catalog ID, never the file. To replace a photograph, ove
 
 All placement values are `NormalizedBox`es — `{ x, y, width, height }` as fractions (0–1) of the image they belong to, origin top-left. Screen pixels and physical millimeters are never used.
 
-| Field                       | In image   | Meaning                                                       |
-| --------------------------- | ---------- | ------------------------------------------------------------- |
-| `PlateImage.objectBounds`   | plate      | Bounding box of the ceramic object in the photograph.         |
-| `PlateImage.text.area`      | plate      | Text safe area; must lie inside `objectBounds` when both set. |
-| `PlateImage.text.align`     | —          | `left`, `center`, or `right`.                                 |
-| `FrameImage.platePlacement` | frame back | Where the plate's `objectBounds` go inside the frame.         |
+| Field                     | Meaning                                                                      |
+| ------------------------- | ---------------------------------------------------------------------------- |
+| `PlateImage.objectBounds` | Bounding box of the product in the photograph (the Quadro's frame included). |
+| `PlateImage.text.area`    | Text safe area; must lie inside `objectBounds` when both set.                |
+| `PlateImage.text.align`   | `left`, `center`, or `right`: the catalog default alignment.                 |
 
 - Every placement field is **optional** and stays omitted until it is measured from the real processed file. Never estimate it.
 - The center of a photograph is not assumed to be the center of the object; `objectBounds` records where the object actually is.
-- **Calibration (M1.3b):** open the final processed file at full resolution, measure the pixel rectangle of the object, the usable lettering area (agreed with the store against real stamped pieces), and the frame opening; divide by the image width/height; then check the result visually against the original photograph and a real product.
-- A bounding box is **positioning metadata only**. It cannot describe the exact outline of a circular, scalloped, or irregular object, nor the shape of a frame opening. Precise clipping/masking (alpha in the file, the plate's `shape`, or a separate mask asset) is an **M3 decision**.
+- **Calibration (M1.3b):** open the final processed file at full resolution, measure the pixel rectangle of the object, and the usable lettering area (agreed with the store against real stamped pieces; for the Quadro, inside the ceramic); divide by the image width/height; then check the result visually against the original photograph and a real product.
+- A bounding box is **positioning metadata only**. It cannot describe the exact outline of a circular, scalloped, or irregular object, nor the inner edge of the Quadro's frame. Precise clipping/masking (alpha in the file, the plate's `shape`, or a separate mask asset) is an **M3 decision**.
 
 ## Text boundary
 
@@ -99,41 +96,39 @@ All placement values are `NormalizedBox`es — `{ x, y, width, height }` as frac
 
 The Canvas preview (D-035–D-037) reads the catalog like this; see [03-architecture.md](03-architecture.md#preview-rendering-implemented-in-m31--d-035d-038).
 
-| Catalog field                | Used for                                                                                      | If omitted (pending)                                                              |
-| ---------------------------- | --------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------- |
-| `PlateImage.image`           | The plate layer for the exact category/shade.                                                 | Preview says the photograph is not yet available; nothing else is shown.          |
-| `PlateImage.objectBounds`    | Fitting the plate into a frame: the box is scaled uniformly and centered in `platePlacement`. | The whole photograph is fitted — correct only for tightly cropped images.         |
-| `PlateImage.text.area`       | Where text is laid out, as a fraction of the plate photograph.                                | Text is not drawn on the image; a message says so. The text stays in the summary. |
-| `PlateImage.text.align`      | Text alignment.                                                                               | Centered.                                                                         |
-| `FrameImage.back` / `.front` | Layers drawn behind the plate and over plate and text. They must share one aspect ratio (1%). | No frame image: frame not drawn, message shown. Mismatched ratios: not drawn.     |
-| `FrameImage.platePlacement`  | Where the plate sits inside the frame images.                                                 | Frame not drawn, plate shown alone, message shown.                                |
-| `AssetRef.widthPx/heightPx`  | Not used by the renderer: it reads each file's natural size once loaded. Checked in M1.3b.    | —                                                                                 |
+| Catalog field               | Used for                                                                                   | If omitted (pending)                                                              |
+| --------------------------- | ------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------- |
+| `PlateImage.image`          | The model layer (the only image layer).                                                    | Preview says the photograph is not yet available; nothing else is shown.          |
+| `PlateImage.objectBounds`   | Catalog integrity only (the text area must lie inside it); not used for drawing.           | —                                                                                 |
+| `PlateImage.text.area`      | Where text is laid out, as a fraction of the plate photograph.                             | Text is not drawn on the image; a message says so. The text stays in the summary. |
+| `PlateImage.text.align`     | Default text alignment (before a preset is chosen).                                        | Centered.                                                                         |
+| `AssetRef.widthPx/heightPx` | Not used by the renderer: it reads each file's natural size once loaded. Checked in M1.3b. | —                                                                                 |
 
-Layer order is frame back → plate → text → frame front. The scene's logical size is the natural pixel size of the frame back (or of the plate photograph without a frame); the canvas backing store never exceeds it.
+Layer order is model photograph → text (D-046). The scene's logical size is the natural pixel size of the photograph; the canvas backing store never exceeds it, and the PNG export uses it.
 
-Photograph guidance that follows from this: shoot or crop plates and frame layers so that `objectBounds` and `platePlacement` can be measured exactly; export a frame's `back` and `front` at the same pixel size so their aspect ratios match; keep the frame opening transparent in `front`. Circular and irregular outlines are taken from the image's own transparency — a bounding box cannot describe them, and whether a separate mask is needed is an M3.2 decision.
+Photograph guidance that follows from this: shoot or crop each model so that `objectBounds` and the text area can be measured exactly; photograph the Quadro assembled, frontal, with the frame fully visible. Circular and irregular outlines are taken from the image's own transparency — a bounding box cannot describe them, and whether a separate mask is needed is an M3.2 decision.
 
 ## Missing and broken images
 
-| State                         | Detected by                                                                       | Behavior in the preview (implemented in M3.1)                                             |
-| ----------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
-| Image available               | `findPlateImage` / `findFrameImage` → `available`, and the file loads             | Painted.                                                                                  |
-| Image pending in the catalog  | Lookup → `pending`                                                                | "A foto deste modelo ainda não está disponível." Nothing else is substituted.             |
-| Reference exists, file broken | Asset gate test (missing file, at test time); the browser's load error at runtime | "Não foi possível carregar a imagem do modelo / da moldura." Nothing else is substituted. |
+| State                         | Detected by                                                                       | Behavior in the preview (implemented in M3.1)                                 |
+| ----------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Image available               | `findPlateImage` → `available`, and the file loads                                | Painted.                                                                      |
+| Image pending in the catalog  | Lookup → `pending`                                                                | "A foto deste modelo ainda não está disponível." Nothing else is substituted. |
+| Reference exists, file broken | Asset gate test (missing file, at test time); the browser's load error at runtime | "Não foi possível carregar a imagem do modelo." Nothing else is substituted.  |
 
 Pending, loading, and failed are separate messages. Configuration validity never depends on any of these states.
 
 ## Fidelity limitations
 
 - A composited preview is an approximation of the handmade piece: glaze variation, texture, and stamped lettering differ piece to piece.
-- Declared frame compatibility and calibrated placement are not proof of physical fit (D-014); real dimensions remain pending (P-01, P-03).
+- Calibrated placement is not a physical measurement; real dimensions remain pending (P-01).
 
 ## M1.3b checklist
 
 - [ ] Receive clean photographs; archive originals outside the repository.
 - [ ] Process (crop, background removal/masking, perspective correction) and export from the originals.
-- [ ] Confirm the four model IDs, add each model's photograph, and register any frames in `src/catalog/data.ts` with store-confirmed data.
+- [ ] Confirm the four model IDs and add each model's photograph (the Quadro assembled) in `src/catalog/data.ts` with store-confirmed data.
 - [ ] Add files under `public/catalog/` following this guide.
 - [ ] Declare `widthPx`/`heightPx` and add the check that they match the files.
-- [ ] Calibrate `objectBounds`, `text`, and `platePlacement`; verify visually against the originals.
+- [ ] Calibrate `objectBounds` and `text`; verify visually against the originals.
 - [ ] Record provenance for each file.

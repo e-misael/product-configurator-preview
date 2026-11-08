@@ -12,7 +12,6 @@ describe('useConfiguration', () => {
 
     expect(result.current.config).toEqual({
       plateId: null,
-      frameId: null,
       text: '',
       fontFamily: 'sans-serif',
       textColorId: null,
@@ -28,13 +27,11 @@ describe('useConfiguration', () => {
     const { result } = setup();
 
     act(() => result.current.choosePlate('test-plate-square'));
-    act(() => result.current.chooseFrame('test-frame-any'));
     act(() => result.current.setText('  Linha 1\nLinha 2 '));
     act(() => result.current.chooseTextColor('test-text-color-a'));
 
     expect(result.current.config).toEqual({
       plateId: 'test-plate-square',
-      frameId: 'test-frame-any',
       text: '  Linha 1\nLinha 2 ',
       fontFamily: 'sans-serif',
       textColorId: 'test-text-color-a',
@@ -45,33 +42,22 @@ describe('useConfiguration', () => {
     expect(result.current.validation).toEqual({ status: 'valid' });
   });
 
-  it('clears the frame on a frameless plate and raises a notice until the next change', () => {
+  it('changes the model without touching any other choice', () => {
     const { result } = setup();
-
-    act(() => result.current.choosePlate('test-plate-square'));
-    act(() => result.current.chooseFrame('test-frame-any'));
-    act(() => result.current.choosePlate('test-plate-circle'));
-
-    expect(result.current.config.frameId).toBeNull();
-    expect(result.current.notice).toBe('frame-cleared');
-
     act(() => result.current.setText('Ana'));
+    act(() => result.current.placeText({ align: 'left', x: 0, y: 1 }));
+
+    act(() => result.current.choosePlate('test-plate-circle'));
+    act(() => result.current.choosePlate('bandeja-inexistente'));
+
+    expect(result.current.config).toMatchObject({
+      plateId: 'bandeja-inexistente',
+      text: 'Ana',
+      textLayout: { align: 'left', x: 0, y: 1 },
+    });
     expect(result.current.notice).toBeNull();
-  });
-
-  it('keeps a frame that becomes incompatible and reports it as invalid', () => {
-    const { result } = setup();
-
-    act(() => result.current.choosePlate('test-plate-square'));
-    act(() => result.current.chooseFrame('test-frame-square'));
-    act(() => result.current.choosePlate('test-plate-rectangle'));
-
-    expect(result.current.config.frameId).toBe('test-frame-square');
-    expect(result.current.notice).toBeNull();
-    expect(issueFor(result.current.validation, 'frameId')).toEqual({
-      kind: 'invalid',
-      field: 'frameId',
-      code: 'incompatible-shape',
+    expect(issueFor(result.current.validation, 'plateId')).toMatchObject({
+      code: 'unknown-reference',
     });
   });
 });
@@ -102,7 +88,7 @@ describe('useConfiguration: lettering', () => {
     expect(result.current.config.secondaryRanges).toEqual([{ start: 0, end: 4 }]);
     expect(result.current.config.text).toBe('Casa da Ana');
 
-    act(() => result.current.removeSecondaryColor(0, 4));
+    act(() => result.current.unapplySecondaryColor(0, 4));
     expect(result.current.config.secondaryRanges).toEqual([]);
     expect(result.current.config.text).toBe('Casa da Ana');
   });
@@ -111,20 +97,20 @@ describe('useConfiguration: lettering', () => {
     const { result } = withText('Casa');
 
     act(() => result.current.applySecondaryColor(0, 2));
-    act(() => result.current.removeSecondaryColor(0, 2));
+    act(() => result.current.unapplySecondaryColor(0, 2));
 
     expect(result.current.config.secondaryColorId).toBe('test-text-color-b');
     expect(result.current.config.secondaryRanges).toEqual([]);
   });
 
-  it('clears the color and every range only on "no secondary color"', () => {
+  it('clears the color and every range only on "Remover segunda cor"', () => {
     const { result } = withText('Casa');
     act(() => result.current.applySecondaryColor(0, 2));
 
     act(() => result.current.chooseSecondaryColor('test-text-color-a'));
     expect(result.current.config.secondaryRanges).toEqual([{ start: 0, end: 2 }]);
 
-    act(() => result.current.chooseSecondaryColor(null));
+    act(() => result.current.removeSecondaryColor());
     expect(result.current.config.secondaryColorId).toBeNull();
     expect(result.current.config.secondaryRanges).toEqual([]);
   });
@@ -167,28 +153,21 @@ describe('useConfiguration: lettering', () => {
 });
 
 describe('useConfiguration: text placement', () => {
-  it('stores a preset, then moves only the alignment or only the position', () => {
+  it('stores a preset (alignment and position together), then moves only the position', () => {
     const { result } = setup();
     act(() => result.current.choosePlate('test-plate-square'));
 
-    act(() => result.current.placeText({ align: 'left', x: 0, y: 0 }));
-    act(() => result.current.alignText('right'));
-    expect(result.current.config.textLayout).toEqual({ align: 'right', x: 0, y: 0 });
-
+    act(() => result.current.placeText({ align: 'right', x: 0, y: 0 }));
     act(() => result.current.nudgeText(0.1, 0.02));
     expect(result.current.config.textLayout).toEqual({ align: 'right', x: 0.1, y: 0.02 });
   });
 
-  it('starts nudges and alignment changes from the catalog default', () => {
+  it('starts nudges from the catalog default', () => {
     const { result } = setup();
     act(() => result.current.choosePlate('test-plate-square'));
 
     act(() => result.current.nudgeText(-0.02, 0));
     expect(result.current.config.textLayout).toEqual({ align: 'center', x: 0.48, y: 0.5 });
-
-    act(() => result.current.resetTextLayout());
-    act(() => result.current.alignText('left'));
-    expect(result.current.config.textLayout).toEqual({ align: 'left', x: 0.5, y: 0.5 });
   });
 
   it('keeps the placement across model changes and resets to the catalog default', () => {

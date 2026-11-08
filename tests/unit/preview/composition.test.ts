@@ -40,71 +40,8 @@ describe('composePreview: plate image', () => {
     expect(compose({ plateId: 'does-not-exist' }).notices).toEqual(['plate-invalid']);
   });
 
-  it('exposes the catalog object bounds', () => {
-    expect(compose().plate?.objectBounds).toEqual({ x: 0.1, y: 0.1, width: 0.8, height: 0.8 });
-    expect(compose({ plateId: 'test-plate-rectangle' }).plate?.objectBounds).toBeUndefined();
-  });
-});
-
-describe('composePreview: frame', () => {
-  it('uses the layers calibrated for the plate model', () => {
-    const { frame, notices } = compose({ frameId: 'test-frame-any' });
-
-    expect(frame).toEqual({
-      backSrc: '/catalog/frames/test-frame-any/square-back.webp',
-      frontSrc: '/catalog/frames/test-frame-any/square-front.webp',
-      alt: 'Frame, square',
-      platePlacement: { x: 0.1, y: 0.1, width: 0.8, height: 0.8 },
-    });
-    expect(notices).toEqual([]);
-  });
-
-  it('has no frame layer without a frame', () => {
-    expect(compose().frame).toBeUndefined();
-  });
-
-  it('does not draw an incompatible frame as if the configuration were valid', () => {
-    // test-frame-square only fits squares; the rectangular plate is still shown alone.
-    const { frame, plate, notices } = compose({
-      plateId: 'test-plate-rectangle',
-      frameId: 'test-frame-square',
-      text: '',
-    });
-
-    expect(frame).toBeUndefined();
-    expect(plate?.src).toBe('/catalog/plates/test-plate-rectangle/beige.webp');
-    expect(notices).toEqual(['frame-invalid']);
-  });
-
-  it('does not draw a frame on a plate without frame support', () => {
-    const { frame, notices } = compose({ plateId: 'test-plate-circle', frameId: 'test-frame-any' });
-
-    expect(frame).toBeUndefined();
-    expect(notices).toEqual(['frame-invalid']);
-  });
-
-  it('does not draw an unknown frame', () => {
-    expect(compose({ frameId: 'does-not-exist' }).notices).toEqual(['frame-invalid']);
-  });
-
-  it('reports a compatible frame whose image is not registered', () => {
-    const { frame, plate, notices } = compose({ frameId: 'test-frame-square' });
-
-    expect(frame).toBeUndefined();
-    expect(plate).toBeDefined();
-    expect(notices).toEqual(['frame-image-pending']);
-  });
-
-  it('does not draw a frame without placement calibration, but keeps the plate', () => {
-    const { frame, plate, notices } = compose({
-      plateId: 'test-plate-rectangle',
-      frameId: 'test-frame-any',
-      text: '',
-    });
-
-    expect(frame).toBeUndefined();
-    expect(plate).toBeDefined();
-    expect(notices).toEqual(['frame-not-calibrated']);
+  it('composes the photograph as the only image layer (D-046)', () => {
+    expect(Object.keys(compose())).toEqual(['plate', 'text', 'notices']);
   });
 });
 
@@ -206,12 +143,8 @@ describe('composePreview: lettering style', () => {
 });
 
 describe('compositionSources', () => {
-  it('lists each file once, in painting order', () => {
-    expect(compositionSources(compose({ frameId: 'test-frame-any' }))).toEqual([
-      '/catalog/frames/test-frame-any/square-back.webp',
-      '/catalog/plates/test-plate-square/beige.webp',
-      '/catalog/frames/test-frame-any/square-front.webp',
-    ]);
+  it("lists only the model's photograph", () => {
+    expect(compositionSources(compose())).toEqual(['/catalog/plates/test-plate-square/beige.webp']);
   });
 
   it('is empty when nothing is shown', () => {

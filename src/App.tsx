@@ -34,7 +34,6 @@ export function App({ catalog = getCatalog(), banner }: AppProps) {
             validation={state.validation}
             positioning={{
               place: state.placeText,
-              align: state.alignText,
               nudge: state.nudgeText,
               reset: state.resetTextLayout,
             }}

@@ -16,10 +16,10 @@ describe('App shell', () => {
 
     const models = within(screen.getByRole('group', { name: 'Modelo' }));
     for (const name of [
-      'Placa cerâmica (10 cm x 10 cm)',
-      'Quadro (20 cm x 20 cm)',
-      'Bandeja ondulada M (~ 8 cm)',
-      'Bandeja ondulada M (~ 11 cm)',
+      'Placa cerâmica — 10 × 10 cm',
+      'Quadro — 20 × 20 cm',
+      'Bandeja ondulada M — Aprox. 8 cm',
+      'Bandeja ondulada G — Aprox. 11 cm',
     ]) {
       expect(models.getByRole('radio', { name })).toBeInTheDocument();
     }
@@ -36,7 +36,7 @@ describe('App shell', () => {
   });
 
   it('handles an empty catalog', () => {
-    render(<App catalog={{ plates: [], frames: [], textColors: [] }} />);
+    render(<App catalog={{ plates: [], textColors: [] }} />);
 
     expect(screen.getByText('Nenhum modelo disponível no momento.')).toBeInTheDocument();
     expect(screen.queryByRole('form')).not.toBeInTheDocument();

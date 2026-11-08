@@ -53,7 +53,7 @@ const codes = (overrides: Parameters<typeof config>[0], images?: Map<string, Ima
 describe('exportBlockers', () => {
   it('allows a valid configuration whose scene shows everything selected', () => {
     expect(codes({})).toEqual([]);
-    expect(codes({ frameId: 'test-frame-any' })).toEqual([]);
+    expect(codes({ plateId: 'test-plate-circle' })).toEqual([]);
   });
 
   it('blocks an incomplete or invalid configuration, listing each issue', () => {
@@ -71,20 +71,6 @@ describe('exportBlockers', () => {
     const plate = '/catalog/plates/test-plate-square/beige.webp';
     expect(codes({}, loaded({ [plate]: { status: 'loading' } }))).toEqual(['plate-image-loading']);
     expect(codes({}, loaded({ [plate]: { status: 'error' } }))).toEqual(['plate-image-error']);
-  });
-
-  it('blocks a selected frame that is missing, broken, or uncalibrated, but not an unselected one', () => {
-    expect(codes({ frameId: null })).toEqual([]);
-    expect(codes({ frameId: 'test-frame-square' })).toEqual(['frame-image-pending']);
-    expect(
-      codes(
-        { frameId: 'test-frame-any' },
-        loaded({ '/catalog/frames/test-frame-any/square-back.webp': { status: 'error' } }),
-      ),
-    ).toEqual(['frame-image-error']);
-    expect(codes({ plateId: 'test-plate-rectangle', frameId: 'test-frame-any' })).toContain(
-      'frame-not-calibrated',
-    );
   });
 
   it('blocks text without a calibrated area and text that overflows', () => {
@@ -132,7 +118,6 @@ describe('exportFileName', () => {
 describe('renderPng', () => {
   it('paints the preview scene at the export size and encodes PNG', async () => {
     const { scene } = sceneFor({
-      frameId: 'test-frame-any',
       secondaryColorId: 'test-text-color-b',
       secondaryRanges: [{ start: 0, end: 1 }],
       textLayout: { align: 'right', x: 1, y: 0 },
@@ -142,13 +127,13 @@ describe('renderPng', () => {
 
     expect(blob.type).toBe('image/png');
     if (!canvas) throw new Error('No canvas');
-    // Framed scene: the frame back's native 500×500.
-    expect([canvas.width, canvas.height]).toEqual([500, 500]);
+    // The photograph's native 400×400.
+    expect([canvas.width, canvas.height]).toEqual([400, 400]);
     const calls = contextOf(canvas).calls;
     expect(calls[2]).toMatchObject({ op: 'fillRect', fillStyle: '#ffffff' });
     expect(
       contextOf(canvas).drawn.map((call) => (call.op === 'fillText' ? call.fillStyle : 'image')),
-    ).toEqual(['image', 'image', '#aa2200', '#112233', 'image']);
+    ).toEqual(['image', '#aa2200', '#112233']);
   });
 
   const failing = async (scene: Scene, create: () => HTMLCanvasElement) =>
@@ -175,7 +160,7 @@ describe('renderPng', () => {
       await failing(
         {
           ...scene,
-          layers: [{ kind: 'image', role: 'plate', image: null as never, rect: null as never }],
+          layers: [{ kind: 'image', image: null as never, rect: null as never }],
         },
         () => document.createElement('canvas'),
       ),

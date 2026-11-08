@@ -16,12 +16,6 @@ function listAssets(catalog: Catalog): { path: string; asset: AssetRef }[] {
   catalog.plates.forEach((plate, i) => {
     if (plate.image) refs.push({ path: `plates[${i}].image.image`, asset: plate.image.image });
   });
-  catalog.frames.forEach((frame, i) => {
-    frame.images?.forEach((entry, j) => {
-      refs.push({ path: `frames[${i}].images[${j}].back`, asset: entry.back });
-      if (entry.front) refs.push({ path: `frames[${i}].images[${j}].front`, asset: entry.front });
-    });
-  });
   return refs;
 }
 
@@ -44,7 +38,7 @@ describe('production catalog assets', () => {
   it('accepts files that exist', () => {
     expect(
       missingFiles(buildImageCatalog(), new Set(['/catalog/plates/test-plate-a/beige.webp'])),
-    ).toHaveLength(2);
+    ).toEqual([]);
   });
 
   it('references only files that exist under public/', () => {
@@ -54,8 +48,6 @@ describe('production catalog assets', () => {
   it('detects missing files (synthetic catalog, no files on disk)', () => {
     expect(missingFiles(buildImageCatalog(), new Set())).toEqual([
       'plates[0].image.image: /catalog/plates/test-plate-a/beige.webp',
-      'frames[0].images[0].back: /catalog/frames/test-frame-any/test-plate-b-back.webp',
-      'frames[0].images[0].front: /catalog/frames/test-frame-any/test-plate-b-front.png',
     ]);
   });
 });

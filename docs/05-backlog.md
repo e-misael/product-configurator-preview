@@ -62,7 +62,7 @@ Status: **Done** — commit `b369edb` (committed with the message intended for M
 
 ### M1.2 — Plate models with fixed shape and frame capability
 
-Status: **In progress** — implemented; pending owner review.
+Status: **In progress** — implemented; pending owner review. The frame capability and frame selection rules below were removed in M4.2 (D-046).
 
 - [x] `PlateShape` extended with `circle` (D-025)
 - [x] Each plate model has one fixed `shape`; `dimensions` and `asset` are no longer keyed by shape (D-023)
@@ -88,10 +88,10 @@ Status: **Done** — implemented; pending owner review. No real products or imag
 
 Status: **Partly done**: the four supplied models are registered without images or measurements (M4.1a, D-040). The rest is **blocked on clean photographs and measurements from the store.**
 
-- Confirm the four provisional model IDs (P-12), which models take an optional frame (P-13), and any frames with compatibility.
+- Confirm the four provisional model IDs (P-12). No model takes a separate frame (P-13 resolved by D-046); the Quadro is photographed assembled.
 - Processed images under `public/catalog/` (background removal/masking, perspective correction as needed); originals archived outside the repository with provenance.
 - Declared intrinsic sizes plus a check that they match the files.
-- Calibrated `objectBounds`, text areas, and frame placement; visual verification against the originals.
+- Calibrated `objectBounds` and text areas (for the Quadro, inside the ceramic); visual verification against the originals.
 - Checklist: [07-product-assets.md](07-product-assets.md#m13b-checklist).
 
 ## M2 — Configuration interface
@@ -196,6 +196,19 @@ Status: **Done** (accepted 2026-11-08, D-008, D-009). Evidence: typecheck, lint,
 - [x] Unit, component, and Playwright tests: real downloads, PNG header and decoded dimensions, white background, layer order, colors, text position, and preview/export consistency at normalized coordinates on desktop and mobile
 - Real-photo export depends on M1.3b (photographs and calibration) and P-02 (lettering palette).
 - **Acceptance criterion (D-039):** the preview and the exported image render the same font family lettering colors (including secondary ranges, M4.1b-1), and text alignment and position (M4.1b-2), from the same scene (`buildScene` + `drawScene`).
+
+## M4.2 — Catalog and customization UX simplification
+
+Status: **Done** (accepted 2026-11-08, D-046, D-047). Evidence: typecheck, lint, format check, 430 unit tests, production build, demo isolation check, demo build with markers present, and 78 Playwright tests passed (2 intentionally skipped per device).
+
+- [x] Labels as supplied: "Placa cerâmica — 10 × 10 cm", "Quadro — 20 × 20 cm", "Bandeja ondulada M — Aprox. 8 cm", "Bandeja ondulada G — Aprox. 11 cm" (`displayName — sizeLabel`); no dimensions invented
+- [x] ID migration `bandeja-ondulada-m-11` → `bandeja-ondulada-g-11` (and the demo ID, asset folder, and generator output), recorded in D-046
+- [x] The Quadro is one complete product with one photograph (Option A); the demo Quadro image now includes a synthetic wooden frame and its text area sits inside the ceramic
+- [x] Frame concept removed: types, catalog collection, `supportsFrame`, `frameId`, validation and integrity codes, `selectPlate`/`getFrameOptions`, frame-cleared notice, composition and scene layers, frame notices and export blockers, "Moldura" field and summary row, demo frames and their PNGs; superseded decisions kept traceable
+- [x] "Posição do texto": nine presets set alignment and position together, drawn as aligned-line glyphs, selected one inverted and named in text; "Alinhamento das linhas" removed; compact directional pad; drag, touch mode, reset, and keyboard unchanged
+- [x] Lettering colors as labeled swatches on native radios; selected state with check mark and heavier border
+- [x] "Usar segunda cor" disclosure; secondary swatches and selection actions only when relevant; collapsing keeps the color and trechos; "Remover segunda cor" clears both; invalid second color stays visible
+- [x] Unit, component, and Playwright tests updated; preview/export consistency verified on the assembled Quadro
 
 ## M5 — Quality and usability
 

@@ -62,13 +62,13 @@ describe('drawScene', () => {
     installFakeCanvas();
   });
 
-  it('paints frame back, plate, text, then frame front', () => {
-    const { ctx } = paint({ frameId: 'test-frame-any' }, 500);
+  it('paints the photograph, then the text (D-046)', () => {
+    const { ctx } = paint({}, 400);
     const order = ctx.drawn.map((call) =>
       call.op === 'fillText' ? 'text' : srcOf(call).split('/').at(-1),
     );
 
-    expect(order).toEqual(['square-back.webp', 'beige.webp', 'text', 'square-front.webp']);
+    expect(order).toEqual(['beige.webp', 'text']);
   });
 
   it('scales logical units to the canvas width, then clears to opaque white', () => {
@@ -80,13 +80,11 @@ describe('drawScene', () => {
     expect(CANVAS_BACKGROUND).toBe('#ffffff');
   });
 
-  it('draws each image at its scene rectangle', () => {
-    const { ctx } = paint({ frameId: 'test-frame-any' }, 500);
-    const plate = ctx.calls.find(
-      (call) => call.op === 'drawImage' && srcOf(call).includes('plates'),
-    );
+  it('draws the photograph over the whole scene', () => {
+    const { ctx } = paint({}, 400);
+    const plate = ctx.calls.find((call) => call.op === 'drawImage');
 
-    expect(plate).toMatchObject({ x: 0, y: 0, width: 500, height: 500 });
+    expect(plate).toMatchObject({ x: 0, y: 0, width: 400, height: 400 });
   });
 
   it('draws one text line per line, centered on the text area', () => {
@@ -182,7 +180,7 @@ describe('drawScene', () => {
   });
 
   it('never tints or blends: no filter, composite, or alpha changes', () => {
-    const { ctx } = paint({ frameId: 'test-frame-any' }, 500);
+    const { ctx } = paint({}, 400);
 
     expect(ctx.filter).toBe('none');
     expect(ctx.globalCompositeOperation).toBe('source-over');

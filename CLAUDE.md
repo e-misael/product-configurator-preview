@@ -1,6 +1,6 @@
 # Taavi Configurator
 
-Visual configurator for Taavi's handmade ceramics: the customer picks a model (Modelo: Placa cerâmica, Quadro, Bandeja ondulada M in two sizes; in code a `Plate`), an optional frame (Moldura) on models that take one, and text; sees a real-time preview; exports an image. The ceramic color is fixed per model and read-only. Static client-side app, independent from Nuvemshop. Internal business tool, **not** SaaS.
+Visual configurator for Taavi's handmade ceramics: the customer picks a model (Modelo: Placa cerâmica, Quadro, Bandeja ondulada M and G; in code a `Plate`; the Quadro is one complete product, plate plus wooden frame, photographed assembled) and text; sees a real-time preview; exports an image. The ceramic color is fixed per model and read-only. Static client-side app, independent from Nuvemshop. Internal business tool, **not** SaaS.
 
 ## Read first
 
@@ -16,8 +16,8 @@ Visual configurator for Taavi's handmade ceramics: the customer picks a model (M
 
 ## MVP boundaries
 
-In scope: model (fixed shape classification: square, rectangle, circle, scalloped), frame (optional; only on models with `supportsFrame`), fixed read-only ceramic color, text with font family, up to two lettering colors, alignment, and position (M4.1b), live preview, PNG image export (M4).
-Out of scope: customer image uploads of any kind (file picker, drag-and-drop, image URLs, image storage or upload APIs; images are curated by Taavi in the catalog only, FR-09, D-045), Nuvemshop integration, cart, checkout, orders, payments, accounts, auth, database, backend, cloud storage, inventory, pricing, AI previews, 3D, admin, analytics. Do not add these or abstractions for them.
+In scope: model (fixed shape classification: square, rectangle, circle, scalloped), fixed read-only ceramic color, text with font family, up to two lettering colors, position presets that also set the alignment (M4.1b, M4.2), live preview, PNG image export (M4).
+Out of scope: a separately chosen frame (Moldura) or frame layers (D-046), customer image uploads of any kind (file picker, drag-and-drop, image URLs, image storage or upload APIs; images are curated by Taavi in the catalog only, FR-09, D-045), Nuvemshop integration, cart, checkout, orders, payments, accounts, auth, database, backend, cloud storage, inventory, pricing, AI previews, 3D, admin, analytics. Do not add these or abstractions for them.
 
 ## Stack
 
@@ -40,7 +40,7 @@ docs/          product and technical docs
 .claude/       skills and agents
 ```
 
-Future folders (`services`, `public/catalog/{plates,frames}/{owner-id}/` — real images only, D-031) are created only by the increment that needs them.
+Future folders (`services`, `public/catalog/plates/{owner-id}/` — real images only, D-031) are created only by the increment that needs them.
 
 ## Domain invariants
 
@@ -49,7 +49,7 @@ Future folders (`services`, `public/catalog/{plates,frames}/{owner-id}/` — rea
 - Catalog is deep-frozen and must pass `validateCatalog` (test gate); configuration stores only IDs and raw user input.
 - Validation reports `valid` / `incomplete` / `invalid`; it never replaces a selection.
 - Text is stored exactly as typed.
-- Frame compatibility is declared explicitly; matching shape ≠ physical fit. Frame support is the model's `supportsFrame` capability, never a shape check. No model is assumed to take a frame until confirmed.
+- There is no frame entity, field, or layer: the Quadro's frame is part of the product and of its one photograph (D-046). Do not reintroduce frames without a new approved decision.
 - The ceramic color is a catalog property of the model (`ceramicColor`), never a configuration field. Size labels are display text as supplied; dimensions stay `pending`.
 - Preview and export must represent the same configuration, composed from the same **real product images** (D-027). No CSS tinting of photos to fake ceramic colors; vector/synthetic visuals are demo-only.
 
@@ -59,7 +59,7 @@ Simplicity first. Domain logic pure and tested. Rendering contains no product ru
 
 ## Language
 
-Code, docs, comments in English. UI text in pt-BR; generic terms are "Modelo" and "Moldura", and product names such as "Placa cerâmica" and "Quadro" are kept as supplied.
+Code, docs, comments in English. UI text in pt-BR; the generic term is "Modelo", and product names and size labels such as "Placa cerâmica — 10 × 10 cm" and "Quadro" are kept as supplied.
 
 ## Commands
 

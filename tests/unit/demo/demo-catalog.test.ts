@@ -1,7 +1,7 @@
 import { validateCatalog, type AssetRef, type Catalog } from '../../../src/domain';
 import { demoCatalog } from '../../../src/demo/demo-catalog';
 
-const entries = [...demoCatalog.plates, ...demoCatalog.frames, ...demoCatalog.textColors];
+const entries = [...demoCatalog.plates, ...demoCatalog.textColors];
 
 describe('demo catalog (D-028)', () => {
   it('passes catalog validation', () => {
@@ -32,10 +32,10 @@ describe('demo catalog (D-028)', () => {
 
   it('mirrors the four production models by size label and shape', () => {
     expect(demoCatalog.plates.map(({ sizeLabel, shape }) => [sizeLabel, shape])).toEqual([
-      ['10 cm x 10 cm', 'square'],
-      ['20 cm x 20 cm', 'square'],
-      ['~ 8 cm', 'scalloped'],
-      ['~ 11 cm', 'scalloped'],
+      ['10 × 10 cm', 'square'],
+      ['20 × 20 cm', 'square'],
+      ['Aprox. 8 cm', 'scalloped'],
+      ['Aprox. 11 cm', 'scalloped'],
     ]);
   });
 
@@ -47,9 +47,13 @@ describe('demo catalog (D-028)', () => {
     }
   });
 
-  it('covers frameless scalloped trays and a frame restricted to one model', () => {
-    expect(demoCatalog.plates.some((p) => p.shape === 'scalloped' && !p.supportsFrame)).toBe(true);
-    expect(demoCatalog.frames.some((f) => f.compatibility.plateIds !== undefined)).toBe(true);
+  it('mirrors the production model IDs with a demo- prefix (D-046)', () => {
+    expect(demoCatalog.plates.map((plate) => plate.id)).toEqual([
+      'demo-placa-ceramica',
+      'demo-quadro',
+      'demo-bandeja-ondulada-m-8',
+      'demo-bandeja-ondulada-g-11',
+    ]);
   });
 
   describe('synthetic imagery (D-036)', () => {
@@ -65,19 +69,9 @@ describe('demo catalog (D-028)', () => {
     );
 
     function assets(catalog: Catalog): { path: string; asset: AssetRef }[] {
-      return [
-        ...catalog.plates.flatMap((plate, i) =>
-          plate.image ? [{ path: `plates[${i}].image.image`, asset: plate.image.image }] : [],
-        ),
-        ...catalog.frames.flatMap((frame, i) =>
-          (frame.images ?? []).flatMap((entry, j) => [
-            { path: `frames[${i}].images[${j}].back`, asset: entry.back },
-            ...(entry.front
-              ? [{ path: `frames[${i}].images[${j}].front`, asset: entry.front }]
-              : []),
-          ]),
-        ),
-      ];
+      return catalog.plates.flatMap((plate, i) =>
+        plate.image ? [{ path: `plates[${i}].image.image`, asset: plate.image.image }] : [],
+      );
     }
 
     function bytesOf(src: string): Uint8Array {
@@ -121,15 +115,9 @@ describe('demo catalog (D-028)', () => {
       }
     });
 
-    it('gives every model an image and covers a frame composition', () => {
+    it('gives every model one image and no frame layers (D-046)', () => {
       expect(demoCatalog.plates.every((plate) => plate.image !== undefined)).toBe(true);
-      expect(demoCatalog.frames.some((frame) => (frame.images?.length ?? 0) > 0)).toBe(true);
-      for (const frame of demoCatalog.frames) {
-        for (const entry of frame.images ?? []) {
-          expect(entry.platePlacement).toBeDefined();
-          expect(entry.front).toBeDefined();
-        }
-      }
+      expect([...files.keys()].every((src) => src.startsWith('/catalog/plates/'))).toBe(true);
     });
   });
 });

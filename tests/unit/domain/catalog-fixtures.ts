@@ -1,4 +1,4 @@
-import type { Catalog, Frame, Plate, TextColor } from '../../../src/domain';
+import type { Catalog, Plate, TextColor } from '../../../src/domain';
 
 /**
  * Test-only synthetic catalog for integrity tests. Values (including the
@@ -20,7 +20,6 @@ export function buildValidCatalog(): Catalog {
       sizeLabel: 'Test size A',
       ceramicColor: 'Test beige',
       shape: 'square',
-      supportsFrame: true,
       dimensions: { status: 'defined', widthMm: 100, heightMm: 100 },
     },
     {
@@ -30,7 +29,6 @@ export function buildValidCatalog(): Catalog {
       sizeLabel: 'Test size B',
       ceramicColor: 'Test beige',
       shape: 'rectangle',
-      supportsFrame: true,
       dimensions: { status: 'pending' },
     },
     {
@@ -40,37 +38,21 @@ export function buildValidCatalog(): Catalog {
       sizeLabel: 'Test size C',
       ceramicColor: 'Test beige',
       shape: 'circle',
-      supportsFrame: false,
       dimensions: { status: 'pending' },
     },
   ];
-  const frames: Frame[] = [
-    {
-      id: 'test-frame-any',
-      type: 'frame',
-      displayName: 'Test frame any',
-      compatibility: { shapes: ['square', 'rectangle'] },
-    },
-    {
-      id: 'test-frame-plate-a',
-      type: 'frame',
-      displayName: 'Test frame plate A',
-      compatibility: { shapes: ['square'], plateIds: ['test-plate-a'] },
-    },
-  ];
-  return { plates, frames, textColors: TEST_TEXT_COLORS.map((color) => ({ ...color })) };
+  return { plates, textColors: TEST_TEXT_COLORS.map((color) => ({ ...color })) };
 }
 
 /**
  * The valid catalog with synthetic imagery: a plate photograph with placement
- * and text area, and frame layers. Paths, pixel sizes, and boxes are invented
+ * and text area. Paths, pixel sizes, and boxes are invented
  * test values; no files exist for them.
  */
 export function buildImageCatalog(): Catalog {
   const catalog = buildValidCatalog();
   const [plateA, ...plates] = catalog.plates;
-  const [frameAny, ...frames] = catalog.frames;
-  if (!plateA || !frameAny) throw new Error('Unexpected fixture shape');
+  if (!plateA) throw new Error('Unexpected fixture shape');
   return {
     textColors: catalog.textColors,
     plates: [
@@ -88,20 +70,6 @@ export function buildImageCatalog(): Catalog {
         },
       },
       ...plates,
-    ],
-    frames: [
-      {
-        ...frameAny,
-        images: [
-          {
-            plateId: 'test-plate-b',
-            back: { src: '/catalog/frames/test-frame-any/test-plate-b-back.webp' },
-            front: { src: '/catalog/frames/test-frame-any/test-plate-b-front.png' },
-            platePlacement: { x: 0.15, y: 0.2, width: 0.7, height: 0.6 },
-          },
-        ],
-      },
-      ...frames,
     ],
   };
 }

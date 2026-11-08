@@ -25,9 +25,9 @@ export type ExportBlocker =
   | { readonly kind: 'empty' };
 
 /**
- * Why export is not possible, in display order; empty when it is. A frame
- * that is not selected produces no notice and blocks nothing; a selected
- * frame that is incompatible, missing, broken, or uncalibrated does.
+ * Why export is not possible, in display order; empty when it is. Every
+ * preview notice blocks: a missing, broken, or uncalibrated photograph, the
+ * provisional text color, or overflowing text.
  */
 export function exportBlockers<I extends ImageSize>(
   validation: ValidationResult,

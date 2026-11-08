@@ -63,7 +63,7 @@ Status values:
 
 ### D-011 — Language
 
-- **Decision:** Code, technical docs, agent and skill instructions in English. User-facing UI in Brazilian Portuguese (pt-BR), preserving the product terms "Placa" and "Quadro"; the generic words are "Modelo" (a product) and "Moldura" (the optional frame) (D-040).
+- **Decision:** Code, technical docs, agent and skill instructions in English. User-facing UI in Brazilian Portuguese (pt-BR), preserving the product terms "Placa" and "Quadro"; the generic word for a product is "Modelo" (D-040; "Moldura" is no longer used as a choice, D-046).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -83,7 +83,7 @@ Status values:
 
 - **Decision:** Every frame declares compatible shapes and may restrict plate IDs. There is no implicit "fits all".
 - **Caveat:** Matching shapes is not proof of physical compatibility. Actual dimensions and mounting constraints are required before production use.
-- **Status:** Approved. Amended by D-024: a frame also requires the plate to declare `supportsFrame: true`.
+- **Status:** Superseded by D-046 (M4.2): the frame concept was removed; the Quadro is one complete product photographed assembled.
 - **Date:** 2026-11-07.
 
 ### D-015 — Browser test coverage
@@ -98,6 +98,7 @@ Status values:
 - **Decision:** Every field is evaluated and reports at most one issue, chosen by a fixed, documented precedence (docs/04-data-model.md). For frames, `incompatible-shape` precedes `incompatible-plate`; `incompatible-plate` is evaluated whenever the plate is known, independently of shape selection. Since M1.2 (D-023, D-024) the frame order is: `unknown-reference` → `unavailable` → `frame-not-supported` → `incompatible-shape` (plate's shape) → `incompatible-plate`, with the last three requiring a known plate.
 - **Rationale:** One actionable message per field suits the UI; deterministic order makes results testable.
 - **Alternatives:** Report every failing rule per field (deferred; not needed by any current consumer).
+- **Update (M4.2):** The frame precedence no longer applies; there is no `frameId` (D-046).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -126,6 +127,7 @@ Status values:
 - **Rationale:** Stable, URL- and filename-safe, unambiguous in logs, exports, and future store links.
 - **Alternatives:** Only reject empty/whitespace IDs; uniqueness per collection only.
 - **Update (M4.1a):** There is no `colors` collection any more (D-041); IDs are unique across plates and frames. `placa-quadrada-01` is only a format example.
+- **Update (M4.2):** IDs are unique across plates and text colors (D-046).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -151,7 +153,7 @@ Status values:
 - **Decision:** For each entry in a frame's `compatibility.plateIds` that resolves to a plate, report `unreachable-compatibility` (path `frames[i].compatibility.plateIds[j]`, `relatedPath` = the plate) when the frame's `compatibility.shapes` and the plate's `supportedShapes` share no shape. Entries are evaluated independently; skipped when either shape list is empty (already `empty-list`). Since M1.2: reported when the plate has `supportsFrame: false` or its single `shape` is not among the frame's shapes; the shape comparison is skipped only when the frame's shape list is empty. Unrestricted frames are not checked against existing plates.
 - **Rationale:** Same reasoning as rejecting an empty `plateIds`: a declared restriction that can never apply is a definition error. No dimensions are required; a shared shape remains a necessary, not sufficient, condition (D-014).
 - **Alternatives:** Report once per frame; also flag unrestricted frames matching no existing plate (depends on catalog contents, deferred).
-- **Status:** Approved.
+- **Status:** Superseded by D-046 (M4.2): the frame concept was removed; the Quadro is one complete product photographed assembled.
 - **Date:** 2026-11-07.
 
 ### D-023 — Plate models with one fixed shape; shape not stored in the configuration
@@ -168,7 +170,7 @@ Status values:
 - **Decision:** Every plate declares a required `supportsFrame` boolean. Circular plates never support frames; square and rectangular plates may, subject to frame compatibility. Application code checks `supportsFrame`, never the shape. The circle rule is enforced once, by catalog integrity via `FRAMELESS_SHAPES`: `frame-capability-conflict` (circle plate with `supportsFrame: true`) and `unsupported-frame-shape` (`circle` in a frame's shapes). Configuration validation reports `frame-not-supported` for a frame on a frameless plate.
 - **Rationale:** One explicit capability instead of scattered shape checks; keeps future frameless square/rectangle models possible.
 - **Alternatives:** Derive frame support from `shape === 'circle'` at each use site.
-- **Status:** Approved.
+- **Status:** Superseded by D-046 (M4.2): the frame concept was removed; the Quadro is one complete product photographed assembled.
 - **Date:** 2026-11-07.
 
 ### D-025 — `circle` plate shape
@@ -182,7 +184,7 @@ Status values:
 - **Context:** Product decision: switching to a plate that does not support frames must clear a previously selected frame.
 - **Decision:** Pure `selectPlate(config, plateId, catalog)` sets the plate and, only when the new plate has `supportsFrame: false`, clears `frameId` and returns `cleared: ['frameId']` so the UI must announce it. An incompatible frame on a plate that supports frames, or an unknown plate, is not cleared; validation reports it. `getFrameOptions` lists frames offerable for a plate. This is the explicit, visible exception to "never auto-replace a selection" (D-005).
 - **Alternatives:** Also clear any frame that becomes incompatible (not approved); implement only in the UI (untestable without components).
-- **Status:** Approved.
+- **Status:** Superseded by D-046 (M4.2): the frame concept was removed; the Quadro is one complete product photographed assembled.
 - **Date:** 2026-11-07.
 
 ### D-027 — Real product imagery
@@ -201,6 +203,7 @@ Status values:
 - **Context:** Production product photographs do not exist yet (M1.3b), so the preview cannot be exercised or tested end to end with real imagery.
 - **Decision:** A Vite `demo` mode (`npm run dev:demo`, `npm run build:demo` → `dist-demo/`) loads `src/demo/demo-catalog.ts` and a "Modo demonstração" banner through a dynamic import guarded by `import.meta.env.MODE`. Demo entries use `demo-` IDs, names labeled "(demonstração)", and pending dimensions; they mirror the four production models, with `demo-quadro` made frame-capable only to exercise the frame flow. The production build must contain no demo data: `scripts/check-demo-isolation.js` scans every file in `dist/` (all chunks and assets) for demo markers, runs in CI after the build, and is checked against `dist-demo/` with `--expect-present` to prove it detects them. Playwright runs functional flows against the demo build and a smoke test against the production build.
 - **Alternatives:** Test fixtures only (no manual demo); demo entries in the production catalog behind a flag (rejected: risk of shipping fake products).
+- **Update (M4.2):** `demo-quadro` no longer has frame capability; it is drawn assembled with a synthetic wooden frame, and `demo-bandeja-ondulada-m-11` became `demo-bandeja-ondulada-g-11` (D-046).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -216,6 +219,7 @@ Status values:
 - **Decision:** Any selection that is invalid and not among the offered options (frame, shade, color category, unavailable plate) is shown with its name, an "incompatível/indisponível" title, and its validation message. Frames and shades offer a remove action; any listed option replaces it. "Sem quadro" is checked only when `frameId` is `null`, and the preview never shows "Sem quadro" while a frame is selected. Unavailable plates are not offered.
 - **Alternatives:** Silently clear the frame (rejected: auto-correction beyond D-026); show "Sem quadro" (rejected: misrepresents the configuration).
 - **Update (M4.1a):** Shades and color categories no longer exist (D-041); the frame wording is now "Sem moldura" and the model is "Modelo" (D-040).
+- **Update (M4.2):** Frames no longer exist (D-046); the rule still applies to unavailable lettering colors, and an invalid second color keeps its section open (D-047).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -225,6 +229,7 @@ Status values:
 - **Decision:** `AssetRef.src` must match `/catalog/{plates|frames|colors}/{owner-id}/{name}.{webp|png|jpg}` with kebab-case segments, where `owner-id` is the ID of the component that references it. The check is an allowlist at runtime (`isValidAssetPath`, `invalid-asset`), so external URLs, other schemes (`data:`, `javascript:`), traversal, query strings, and encoded characters are rejected; TypeScript types are not relied on. Assets are same-origin files under `public/catalog/` so a future canvas export is not tainted. File existence is verified by a test that lists `public/catalog/` at test time; there is no runtime fetch. Optional `widthPx`/`heightPx` are declared together as positive integers; M1.3b adds a check that they match the files. Originals stay outside the repository in Taavi's source archive (P-10). Guide: `docs/07-product-assets.md`.
 - **Alternatives:** Free-form paths checked only for non-blank (previous rule; too permissive); external hosting (out of scope).
 - **Update (M4.1a):** The `colors` owner folder no longer exists; paths are `/catalog/{plates|frames}/{owner-id}/…` (D-041).
+- **Update (M4.2):** The `frames` owner folder no longer exists; paths are `/catalog/plates/{owner-id}/…` (D-046).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -241,7 +246,7 @@ Status values:
 - **Context:** One frame photograph cannot be assumed to fit every compatible plate geometry, and a frame may need a layer above the plate (rim, opening).
 - **Decision:** `Frame.images` replaces the per-shape `Frame.assets`: one `FrameImage` per `plateId` with a required `back` layer (behind the plate), an optional `front` overlay (above plate and text), and optional `platePlacement`. Entries are allowed only where `isFrameCompatible(frame, plate)` holds — the same function configuration validation uses — otherwise `unreachable-compatibility`; unknown plates are `unknown-reference`; one entry per plate (`duplicate-variation`). Removes the obsolete `unsupported-shape-key` code. Frame finish variations are pending (P-09).
 - **Alternatives:** Images keyed by shape (previous model; no per-plate calibration); a generic layer list (unneeded before real assets).
-- **Status:** Approved.
+- **Status:** Superseded by D-046 (M4.2): the frame concept was removed; the Quadro is one complete product photographed assembled.
 - **Date:** 2026-11-07.
 
 ### D-034 — Optional normalized placement metadata
@@ -249,6 +254,7 @@ Status values:
 - **Context:** The renderer needs plate, frame, and text placement, but no values can be measured until real photographs exist.
 - **Decision:** Placement uses `NormalizedBox` (`x`, `y`, `width`, `height` as 0–1 fractions of the image it belongs to, origin top-left): `PlateImage.objectBounds`, `PlateImage.text.area` (with optional `align`), and `FrameImage.platePlacement`. All are optional until calibrated; none are invented. Integrity (`invalid-placement`): finite values, non-negative origin, positive size, inside the image, a known alignment, and the text area inside `objectBounds` when both are present. A box is positioning metadata only: it does not describe the outline of a circular or irregular object or a frame opening; precise clipping/masking is an M3 decision. Typography and material effects (stamped or raised lettering) are not modeled (P-04).
 - **Alternatives:** Pixel coordinates (tied to one file resolution); physical millimeters (dimensions pending).
+- **Update (M4.2):** `FrameImage.platePlacement` no longer exists (D-046). For the assembled Quadro, `objectBounds` covers the whole product and the text area lies inside the ceramic.
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -265,6 +271,7 @@ Status values:
 - **Context:** The preview needs images to be developed and tested while no real photographs exist, without ever shipping fake products.
 - **Decision:** `scripts/generate-demo-assets.js` (`npm run generate:demo-assets`) writes deterministic synthetic PNGs to `src/demo/public/catalog/…`; the output is committed. They are deliberately not photograph-like: flat fills, hatched borders, an outlined text area, a "DEMO" stamp, and an embedded PNG comment "Synthetic demonstration image - not a Taavi product photograph". They cover two square models and two scalloped trays (one image each), and two frames with back and front layers; the production catalog has no images, which exercises the pending state. Vite copies its public directory into every build, so `vite.config.ts` sets `publicDir` to `src/demo/public` only in demo mode and to the (currently absent) `public/` otherwise; demo files are never in the production public directory. Isolation is checked three ways: `scripts/check-demo-isolation.js` scans file contents and file names of `dist/` for demo markers (including the PNG comment); a unit test asserts `public/` has no `demo-` files; Playwright asserts the production build requests and serves no demo image. Tests verify the demo catalog's declared pixel sizes match the PNG headers, that no file is orphaned, and that every described image is labeled as a demonstration.
 - **Alternatives:** Demo files in `public/` with a build-time exclusion step (rejected: easy to get wrong); generating images at build time (rejected: less reviewable, less deterministic).
+- **Update (M4.2):** The demo images are now four model images and no frame layers; the Quadro image includes a synthetic wooden frame (D-046).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -272,6 +279,7 @@ Status values:
 
 - **Context:** The preview must never show a configuration or product that differs from the selection, and must say why something is not shown.
 - **Decision:** `composePreview(catalog, config, validation)` (pure) selects imagery by exact match (D-032, D-033) and returns the plate, frame, and text layers plus notice codes; it contains no product rules or coordinates. `buildScene` (pure) positions layers from the images' natural sizes and the catalog's normalized boxes, in painting order **frame back → plate → text → frame front**. Rules: (1) nothing is drawn for a plate that is not selected, unknown, or unavailable; (2) a color or shade that conflicts with the plate shows no photograph, never another variation; (3) a frame that fails configuration validation is not drawn; (4) a valid frame without registered imagery for the plate, without `platePlacement`, whose file fails to load, or whose layers differ in aspect ratio by more than 1% is not drawn, and the plate is shown alone; (5) a frame is only drawn together with its plate; (6) text is drawn only inside the plate photograph's calibrated `text.area` — without one it is not drawn and a message says so, while the entered text remains in the configuration and the summary; (7) nothing is drawn until every needed file has settled, so no partial composition flashes; (8) when a frame is used, the plate's `objectBounds` (the whole photograph when pending) are scaled uniformly to fit and centered in `platePlacement`, preserving the aspect ratio, and the front layer covers the frame image. Each state — not selected, color missing or invalid, image pending in the catalog, loading, file failed to load, frame problems, text area pending, text overflow — has its own pt-BR message beside the canvas (`aria-live="polite"`), distinct from the others. A catalog-pending image and a failed load are different states.
+- **Update (M4.2):** The painting order is now **model photograph → text**; rules (3), (4), (5), and (8) and the frame notices no longer apply (D-046).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -295,7 +303,8 @@ Status values:
 - **Context:** Taavi supplied the products currently sold: Placa cerâmica (10 cm x 10 cm), Quadro (20 cm x 20 cm), and two Bandeja ondulada M (~ 8 cm and ~ 11 cm). The earlier "Placa" and "Quadro" wording no longer fits: Quadro is now a product.
 - **Decision:** The customer chooses a **Modelo** (code type `Plate`); the optional frame is **Moldura** (`Frame`). The four models are registered in the production catalog with the supplied names and size labels, which are shown as `displayName (sizeLabel)` and kept as supplied, approximations included. The Quadro (20 cm x 20 cm) is a separate model, not a frame. `PlateShape` gains `scalloped` for the two wavy trays as a classification only: no geometry is inferred and no frame rule depends on it. Physical dimensions stay `pending` (`sizeLabel` is display text). Every model is `supportsFrame: false` because no model is confirmed to take an optional frame; the production catalog has no frames. Provisional IDs (`placa-ceramica-10`, `quadro-20`, `bandeja-ondulada-m-8`, `bandeja-ondulada-m-11`) become permanent once Taavi confirms them (P-12). The shape is no longer shown in the UI.
 - **Alternatives:** Keeping "Placa" as the generic word (ambiguous with the Placa cerâmica model); inferring shapes for the trays (rejected: invented data).
-- **Status:** Approved (IDs pending confirmation).
+- **Update (M4.2):** Superseded in part by D-046: there is no "Moldura" choice; the labels are now "Placa cerâmica — 10 × 10 cm", "Quadro — 20 × 20 cm", "Bandeja ondulada M — Aprox. 8 cm", and "Bandeja ondulada G — Aprox. 11 cm", shown as `displayName — sizeLabel`; and `bandeja-ondulada-m-11` was renamed `bandeja-ondulada-g-11`.
+- **Status:** Approved (IDs pending confirmation; amended by D-046).
 - **Date:** 2026-11-08.
 
 ### D-041 — Fixed ceramic color owned by the catalog; one image per model
@@ -309,6 +318,7 @@ Status values:
 
 - **Context:** The product needs font family, up to two lettering colors, and text positioning.
 - **Decision (design only, not implemented):** (1) `fontFamily` is `serif` or `sans-serif` ("Com serifa" / "Sem serifa", default sans-serif), mapped to provisional system font stacks; real typography stays pending (P-04). (2) `textColorId` is required (no default) and `secondaryColorId` is optional with `secondaryRanges` as UTF-16 offsets snapped to grapheme boundaries; the lettering palette is catalog data (P-02). (3) One source of truth for position: nine presets (left/center/right × top/middle/bottom) plus a normalized manual position inside the calibrated text area; dragging keeps the line alignment; "Redefinir posição" restores the catalog default; the position survives model changes constrained to the new safe area. (4) Touch movement requires an explicit "Mover texto" mode so scrolling is not hijacked; keyboard positioning is supported. (5) Editing text keeps secondary ranges when they map unambiguously and removes or invalidates them otherwise; grapheme clusters are never split. (6) The handmade disclaimer is shown near the controls: "Todas as solicitações de personalização estão sujeitas à análise da Taavi. Como nossas peças são produzidas artesanalmente, podem apresentar pequenas variações de formato, cor, acabamento e posicionamento em relação à pré-visualização." (7) A per-line text-length limit is a future rule, recorded in the backlog and not implemented.
+- **Update (M4.2):** "Sem segunda cor" is replaced by an explicit "Remover segunda cor" action behind the "Usar segunda cor" disclosure; collapsing never clears anything (D-047).
 - **Status:** Approved. Points 1, 2, 5, 6, 7 implemented in M4.1b-1 (D-043); points 3 and 4 implemented in M4.1b-2 (D-044, which refines the preset rule).
 - **Date:** 2026-11-08.
 
@@ -325,6 +335,7 @@ Status values:
 - **Context:** The customer needs to align the lines and place the text block inside the calibrated text area, consistently across models, screen sizes, and the future export.
 - **Decision:** `Configuration.textLayout` is `TextPlacement | null` with `{ align, x, y }`. `align` aligns lines inside the block (block width = widest line); `x`/`y` are fractions (0–1) of the free space around the block inside the calibrated text area, so every valid value keeps the text inside the area and the position carries over to any model's area unchanged. `null` is the catalog default (catalog alignment, `x` = its anchor, `y` = 0.5), which reproduces the earlier rendering exactly; "Redefinir posição" sets `null`. The nine presets set all three properties (column → alignment and `x` ∈ {0, 0.5, 1}; row → `y` ∈ {0, 0.5, 1}); "Alinhamento das linhas" changes only `align`. Text fitting is unchanged: the font size never depends on the position and the text is not enlarged to fill the area, so short text has room to move. On an axis without free space (overflow), the block keeps the established overflow placement (anchored by alignment horizontally, centered vertically) and the warning stays. Dragging (mouse/pen; touch only in "Mover texto" mode, which alone sets `touch-action: none`) converts pointer positions to scene units through the canvas's displayed rectangle, hit tests the block bounds with an 8 CSS-pixel tolerance, and moves each axis by the fraction of its free space travelled; it never changes the alignment. Directional buttons and arrow keys move 2% (10% with Shift). An invalid stored placement is reported (`invalid-layout`), never clamped, and drawn at the default. Export (M4) must be blocked while the scene reports `text-overflow`.
 - **Alternatives:** Positions as fractions of the whole area (rejected: the block could leave the area, and positions would not transfer between models); enlarging text to fill the area (rejected: presets would be indistinguishable); presets that keep the current alignment (rejected by the owner: presets set alignment too).
+- **Update (M4.2):** The separate "Alinhamento das linhas" control was removed; the presets set the alignment and the position together, and dragging or nudging keeps the alignment (D-047). `alignPlacement` was removed.
 - **Status:** Approved; implemented and accepted (2026-11-08).
 - **Date:** 2026-11-08.
 
@@ -333,6 +344,7 @@ Status values:
 - **Context:** M4 completes the workflow with a downloadable image.
 - **Decision:** PNG, rasterized client-side by painting the preview's scene on a separate canvas. Size: the base image's native pixel size (frame back when framed), never upscaled, longest edge capped at 4000 px with the aspect ratio preserved; dimensions are validated before a canvas is allocated (unusable or above 4000 × 4000 px of area → not exported, with a message). Background: opaque `#ffffff`, drawn by `drawScene` for preview and export alike. Filename: `taavi-{plateId}.png`, the ID reduced to `[a-z0-9-]`, at most 60 characters, never containing customer text. Export is blocked unless the configuration is valid and the scene has no preview notice, so a provisional color, a pending/failed image, an uncalibrated or broken selected frame, a pending text area, or overflowing text is never exported and nothing selected is silently left out. The blocked button stays focusable with `aria-disabled` and listed reasons. Canvas, context, drawing, encoding, object-URL, and download failures are caught and reported in pt-BR.
 - **Alternatives:** JPEG (lossy, no exact colors), SVG/PDF (would need a second renderer), transparent background (inconsistent with the opaque preview, rejected by the owner).
+- **Update (M4.2):** With frames removed (D-046), the export size is always the model photograph's native size.
 - **Status:** Approved; implemented and accepted (2026-11-08).
 - **Date:** 2026-11-08.
 
@@ -349,6 +361,26 @@ Status values:
 - **Status:** Approved.
 - **Date:** 2026-11-08.
 
+### D-046 — The Quadro is a complete product; no separate frame (M4.2)
+
+- **Context:** Product clarification: the Quadro (20 × 20 cm) is sold as one complete product, a ceramic plate in a wooden frame. No model takes a separately chosen frame, so the frame selection, its validation, its layering, and its export blockers had no product to represent (P-13 answered: none).
+- **Decision:** Option A — the Quadro is one catalog model with one photograph that shows it assembled, frame included. The frame concept is removed throughout: `Frame`, `FrameCompatibility`, `FrameImage`, `Catalog.frames`, `Plate.supportsFrame`, `FRAMELESS_SHAPES`, `Configuration.frameId`, the frame validation codes (`frame-not-supported`, `incompatible-shape`, `incompatible-plate`), the frame-only catalog codes (`duplicate-entry`, `unknown-reference`, `unreachable-compatibility`, `empty-list`, `frame-capability-conflict`, `unsupported-frame-shape`, `duplicate-variation`), `selectPlate`/`getFrameOptions` and the "frame cleared" notice, the frame composition and scene layers and notices, the "Moldura" field and summary row, and the `frames` asset folder. Rendering is the model photograph then the text; export uses the photograph's native size. The four labels are as supplied: "Placa cerâmica — 10 × 10 cm", "Quadro — 20 × 20 cm", "Bandeja ondulada M — Aprox. 8 cm", "Bandeja ondulada G — Aprox. 11 cm", shown as `displayName — sizeLabel`; no dimension beyond these labels is invented. `PlateShape` stays a classification only.
+- **ID migration:** `bandeja-ondulada-m-11` → `bandeja-ondulada-g-11` (production) and `demo-bandeja-ondulada-m-11` → `demo-bandeja-ondulada-g-11` (demo), with the demo asset folder and generator output renamed. Nothing persisted these IDs (no storage, no backend), so no data migration is needed; the old IDs are now unknown references. The other three IDs are unchanged.
+- **Rationale:** One photograph represents the real product exactly, keeps preview and export identical, and removes a whole class of states that could not occur.
+- **Alternatives:** Option B — keep the frame as a layer fixed to the Quadro (rejected: needs calibrated frame and plate layers for no customer choice).
+- **Supersedes:** D-014, D-022, D-024, D-026, D-033; amends D-016, D-019, D-028, D-030, D-031, D-034, D-036, D-037, D-040, D-008. Resolves P-03, P-09, and P-13.
+- **Status:** Approved; implemented and accepted (2026-11-08).
+- **Date:** 2026-11-08.
+
+### D-047 — Simplified text position and lettering-color controls (M4.2)
+
+- **Context:** UX review: a separate "Alinhamento das linhas" control duplicated what the presets already set, and the lettering-color radios and an always-visible second-color list made a simple choice look complex.
+- **Decision:** (1) "Posição do texto" keeps the nine presets, each setting the line alignment (column) and the block position (row/column) together, drawn as a small glyph of aligned lines placed where the text will be. The selected preset is inverted with a heavier border and named in text ("Posição: Superior à esquerda." or "Posição personalizada."). The separate alignment control is removed. The directional buttons sit beside the presets ("Ajuste fino"); dragging, touch "Mover texto" mode, reset, and the arrow keys are unchanged, and none of them changes the alignment. (2) Lettering colors are labeled swatches with native radio semantics (visually hidden radio, chip, and visible name; the selected chip shows a check and a heavier border, never color alone). The primary color stays required with no default. (3) The second color sits behind a "Usar segunda cor" disclosure button (`aria-expanded`, `aria-controls`). Its swatches appear only when expanded, the swatch equal to the primary is disabled, and the "Aplicar/Remover segunda cor da seleção" actions appear only when a second color is chosen and the section is open. Collapsing only hides: the color and its trechos stay, summarized as "Segunda cor em uso: … (n trechos)." "Remover segunda cor" is the one action that clears the color and every trecho, and focus returns to the disclosure button. An invalid second color (e.g. equal to a newly chosen primary) keeps its section open, without the toggle, until it is replaced or removed (D-030).
+- **Rationale:** Fewer controls with the same capabilities; visible state for every choice; no hidden data loss.
+- **Alternatives:** Keep alignment as a separate control (rejected by the product owner); clear the second color on collapse (rejected: collapsing must not erase choices).
+- **Status:** Approved; implemented and accepted (2026-11-08).
+- **Date:** 2026-11-08.
+
 ## Proposed
 
 ### D-007 — SVG preview rendering
@@ -359,15 +391,15 @@ Status values:
 
 - **P-01:** Real plate dimensions and aspect ratios per shape.
 - **P-02:** The production lettering-color palette (names and `#rrggbb` values) for `Catalog.textColors`; until supplied, a configuration cannot be completed in production once the text color is required. The ceramic color is resolved by D-041.
-- **P-03:** Frame dimensions and mounting constraints.
+- **P-03:** Resolved by D-046: no separate frames; the Quadro is photographed assembled.
 - **P-04:** Production typography rules and text limits (max length, lines).
 - **P-05:** Export resolution, transparency, background, file naming.
-- **P-06:** Real product images per model and per frame; each model now has one photograph (D-041).
-- **P-07:** Layer placement metadata: text safe area, frame aperture and offset, scale relative to real dimensions.
+- **P-06:** Real product images: one photograph per model (D-041), the Quadro assembled with its frame (D-046).
+- **P-07:** Placement metadata per photograph: object bounds and text safe area (inside the ceramic for the Quadro), scale relative to real dimensions.
 - **P-08:** Source image format, resolution, and consistency requirements (framing, lighting, background). Conventions and recommendations: `docs/07-product-assets.md`.
-- **P-09:** Whether frames have finish variations (e.g. wood tones) that need their own imagery.
+- **P-09:** Resolved by D-046: no frame choice, so no frame finish variations.
 - **P-10:** Location and naming of original photographs in Taavi's source archive, for provenance records.
 - **P-11:** Resolved by D-040: the scalloped dishes are the Bandeja ondulada M models. No circular model is registered.
 - **P-12:** Confirmation of the four permanent model IDs.
-- **P-13:** Whether any model takes an optional frame (`supportsFrame`), and if so which frames and imagery.
+- **P-13:** Resolved by D-046: no model takes an optional frame.
 - **P-14:** Real serif and sans-serif typefaces for the text (system stacks are provisional) and the per-line text-length limit.

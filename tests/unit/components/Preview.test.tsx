@@ -7,8 +7,6 @@ import { previewCatalog, previewSizes } from '../preview/fixtures';
 
 const SQUARE_PLATE = '/catalog/plates/test-plate-square/beige.webp';
 const RECTANGLE_PLATE = '/catalog/plates/test-plate-rectangle/beige.webp';
-const SQUARE_BACK = '/catalog/frames/test-frame-any/square-back.webp';
-const SQUARE_FRONT = '/catalog/frames/test-frame-any/square-front.webp';
 
 beforeEach(() => {
   installFakeImages(previewSizes);
@@ -126,100 +124,6 @@ describe('Preview', () => {
     });
   });
 
-  describe('frame', () => {
-    async function squareWithFrame() {
-      const { user } = setup();
-      await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Moldura (opcional)', 'Test frame any');
-      return { user };
-    }
-
-    it('layers frame back, plate, then frame front', async () => {
-      await squareWithFrame();
-      settle();
-
-      expect(painted(currentContext())).toEqual([SQUARE_BACK, SQUARE_PLATE, SQUARE_FRONT]);
-      expect(canvas()).toHaveAccessibleName('Frame, square; Square');
-    });
-
-    it('puts the text between the plate and the frame front', async () => {
-      const { user } = await squareWithFrame();
-      settle();
-
-      await user.type(screen.getByLabelText('Texto'), 'Ana');
-
-      expect(painted(currentContext())).toEqual([
-        SQUARE_BACK,
-        SQUARE_PLATE,
-        'text:Ana',
-        SQUARE_FRONT,
-      ]);
-    });
-
-    it('does not paint a frame that became incompatible, and says so', async () => {
-      const { user } = setup();
-      await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Moldura (opcional)', 'Test frame any');
-      settle();
-      expect(painted(currentContext())).toEqual([SQUARE_BACK, SQUARE_PLATE, SQUARE_FRONT]);
-
-      // Compatible with squares only, so the rectangular model cannot take it.
-      await choose(user, 'Moldura (opcional)', 'Test frame square');
-      await choosePlate(user, /^Test plate rectangle /);
-      settle();
-
-      expect(
-        within(preview()).getByText('A moldura selecionada é incompatível e não é exibida.'),
-      ).toBeVisible();
-      expect(painted(currentContext())).toEqual([RECTANGLE_PLATE]);
-    });
-
-    it('shows the plate alone, with a message, when the frame is not calibrated', async () => {
-      const { user } = setup();
-      await choosePlate(user, /^Test plate rectangle /);
-      await choose(user, 'Moldura (opcional)', 'Test frame any');
-      settle();
-
-      expect(
-        within(preview()).getByText(
-          'A posição do modelo nesta moldura ainda não foi calibrada; a moldura não é exibida.',
-        ),
-      ).toBeVisible();
-      expect(painted(currentContext())).toEqual([RECTANGLE_PLATE]);
-    });
-
-    it('shows the plate alone when a frame file fails to load', async () => {
-      await squareWithFrame();
-
-      act(() => {
-        FakeImage.load(SQUARE_PLATE);
-        FakeImage.load(SQUARE_BACK);
-        FakeImage.fail(SQUARE_FRONT);
-      });
-
-      expect(
-        within(preview()).getByText(
-          'Não foi possível carregar a imagem da moldura; a moldura não é exibida.',
-        ),
-      ).toBeVisible();
-      expect(painted(currentContext())).toEqual([SQUARE_PLATE]);
-    });
-
-    it('says the frame image is pending when none is registered for the plate', async () => {
-      const { user } = setup();
-      await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Moldura (opcional)', 'Test frame square');
-      settle();
-
-      expect(
-        within(preview()).getByText(
-          'A imagem desta moldura para este modelo ainda não está disponível; a moldura não é exibida.',
-        ),
-      ).toBeVisible();
-      expect(painted(currentContext())).toEqual([SQUARE_PLATE]);
-    });
-  });
-
   describe('text', () => {
     async function squarePlate() {
       const { user } = setup();
@@ -320,10 +224,7 @@ describe('Preview', () => {
   describe('text position (D-044)', () => {
     const positionGroup = () => screen.getByRole('group', { name: 'Posição do texto' });
     const button = (name: string) => within(positionGroup()).getByRole('button', { name });
-    const alignRadio = (name: string) =>
-      within(screen.getByRole('group', { name: 'Alinhamento das linhas' })).getByRole('radio', {
-        name,
-      });
+    const current = () => within(positionGroup()).getByText(/^Posição( personalizada\.|:)/);
     const status = () => within(positionGroup()).getByText(/^Horizontal /);
     /** The first painted line as [x, textAlign]. */
     const firstLine = () => {
@@ -358,7 +259,7 @@ describe('Preview', () => {
       await user.type(screen.getByLabelText('Texto'), 'Ana');
       expect(positionGroup()).toBeEnabled();
       expect(button('Centro')).toHaveAttribute('aria-pressed', 'true');
-      expect(alignRadio('Ao centro')).toBeChecked();
+      expect(current()).toHaveTextContent('Posição: Centro.');
       expect(status()).toHaveTextContent('Horizontal 50%, vertical 50%.');
       expect(button('Redefinir posição')).toBeDisabled();
     });
@@ -370,22 +271,43 @@ describe('Preview', () => {
 
       expect(button('Superior à esquerda')).toHaveAttribute('aria-pressed', 'true');
       expect(button('Centro')).toHaveAttribute('aria-pressed', 'false');
-      expect(alignRadio('À esquerda')).toBeChecked();
+      expect(current()).toHaveTextContent('Posição: Superior à esquerda.');
       expect(status()).toHaveTextContent('Horizontal 0%, vertical 0%.');
       // Area x 80–320: the left-aligned block starts at the area's left edge.
       expect(firstLine()).toEqual([80, 'left']);
     });
 
-    it('changes only the line alignment with "Alinhamento das linhas"', async () => {
+    it('has no separate line alignment control: the preset column aligns the lines (D-047)', async () => {
       const { user } = await withText();
-      await user.click(button('Inferior à esquerda'));
+      expect(screen.queryByRole('group', { name: 'Alinhamento das linhas' })).toBeNull();
+      expect(within(positionGroup()).queryAllByRole('radio')).toEqual([]);
 
-      await user.click(alignRadio('À direita'));
+      await user.click(button('Inferior à direita'));
 
-      expect(status()).toHaveTextContent('Horizontal 0%, vertical 100%.');
-      expect(button('Inferior à esquerda')).toHaveAttribute('aria-pressed', 'false');
-      // Same block (x 80–140 for "Ana"), lines now anchored to its right edge.
-      expect(firstLine()).toEqual([140, 'right']);
+      expect(status()).toHaveTextContent('Horizontal 100%, vertical 100%.');
+      // Area x 80–320: the right-aligned block ends at the area's right edge.
+      expect(firstLine()).toEqual([320, 'right']);
+      await user.click(button('Centro'));
+      expect(firstLine()).toEqual([200, 'center']);
+    });
+
+    it('marks exactly one preset as selected, with a visible text equivalent', async () => {
+      const { user } = await withText();
+      const presets = within(
+        screen.getByRole('group', { name: 'Posições predefinidas' }),
+      ).getAllByRole('button');
+      expect(presets).toHaveLength(9);
+
+      await user.click(button('Meio à direita'));
+
+      expect(presets.filter((preset) => preset.getAttribute('aria-pressed') === 'true')).toEqual([
+        button('Meio à direita'),
+      ]);
+      expect(current()).toHaveTextContent('Posição: Meio à direita.');
+
+      await user.click(button('Mover para cima'));
+      expect(presets.every((preset) => preset.getAttribute('aria-pressed') === 'false')).toBe(true);
+      expect(current()).toHaveTextContent('Posição personalizada.');
     });
 
     it('moves by 2% per button or arrow key, 10% with Shift', async () => {
@@ -403,7 +325,8 @@ describe('Preview', () => {
       button('Mover para a direita').focus();
       await user.keyboard('{ArrowRight}{ArrowRight}{Shift>}{ArrowDown}{/Shift}{ArrowUp}');
       expect(status()).toHaveTextContent('Horizontal 6%, vertical 18%.');
-      expect(alignRadio('À esquerda')).toBeChecked();
+      // Moving never changes the line alignment the preset set.
+      expect(firstLine()[1]).toBe('left');
     });
 
     it('resets alignment and position to the catalog default', async () => {
@@ -413,7 +336,7 @@ describe('Preview', () => {
       await user.click(button('Redefinir posição'));
 
       expect(button('Centro')).toHaveAttribute('aria-pressed', 'true');
-      expect(alignRadio('Ao centro')).toBeChecked();
+      expect(current()).toHaveTextContent('Posição: Centro.');
       expect(button('Redefinir posição')).toBeDisabled();
       expect(firstLine()).toEqual([200, 'center']);
     });
@@ -443,7 +366,6 @@ describe('Preview', () => {
       });
 
       expect(status()).toHaveTextContent('Horizontal 25%, vertical 25%.');
-      expect(alignRadio('À esquerda')).toBeChecked();
       expect(firstLine()).toEqual([125, 'left']);
     });
 
@@ -567,17 +489,6 @@ describe('Preview', () => {
       // Images still loading.
       expect(reasons()).toHaveTextContent('Resolva os avisos da pré-visualização acima.');
       expect(exportButton()).toHaveAccessibleDescription(/Carregando imagem…/);
-    });
-
-    it('blocks a selected frame without imagery, but not the absence of a frame', async () => {
-      const { user } = await ready();
-      expect(exportButton()).toHaveAttribute('aria-disabled', 'false');
-
-      await choose(user, 'Moldura (opcional)', 'Test frame square');
-      expect(exportButton()).toHaveAttribute('aria-disabled', 'true');
-
-      await choose(user, 'Moldura (opcional)', 'Sem moldura');
-      expect(exportButton()).toHaveAttribute('aria-disabled', 'false');
     });
 
     it('downloads taavi-{plateId}.png and confirms it', async () => {

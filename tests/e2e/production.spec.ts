@@ -8,10 +8,10 @@ async function expectNoHorizontalScroll(page: Page) {
 }
 
 const MODELS = [
-  'Placa cerâmica (10 cm x 10 cm)',
-  'Quadro (20 cm x 20 cm)',
-  'Bandeja ondulada M (~ 8 cm)',
-  'Bandeja ondulada M (~ 11 cm)',
+  'Placa cerâmica — 10 × 10 cm',
+  'Quadro — 20 × 20 cm',
+  'Bandeja ondulada M — Aprox. 8 cm',
+  'Bandeja ondulada G — Aprox. 11 cm',
 ];
 
 test.describe('Production build @smoke', () => {
@@ -28,7 +28,7 @@ test.describe('Production build @smoke', () => {
     await expect(page.getByRole('group', { name: /Cor da/ })).toHaveCount(0);
     await expect(page.getByRole('group', { name: /Moldura/ })).toHaveCount(0);
 
-    await group.getByRole('radio', { name: 'Placa cerâmica (10 cm x 10 cm)' }).check();
+    await group.getByRole('radio', { name: 'Placa cerâmica — 10 × 10 cm' }).check();
     await expect(group).toContainText('Cor da peça: Bege');
     const preview = page.getByRole('region', { name: 'Pré-visualização' });
     await expect(preview).toContainText('A foto deste modelo ainda não está disponível.');
@@ -47,6 +47,7 @@ test.describe('Production build @smoke', () => {
       0,
     );
     await expect(page.getByRole('group', { name: /Segunda cor/ })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: 'Usar segunda cor' })).toHaveCount(0);
     await expect(page.getByText(/sujeitas à análise da Taavi/)).toBeVisible();
   });
 
@@ -54,7 +55,7 @@ test.describe('Production build @smoke', () => {
     await page.goto('/');
     await page
       .getByRole('group', { name: 'Modelo' })
-      .getByRole('radio', { name: 'Placa cerâmica (10 cm x 10 cm)' })
+      .getByRole('radio', { name: 'Placa cerâmica — 10 × 10 cm' })
       .check();
     await page.getByLabel('Texto', { exact: true }).fill('Ana');
 
@@ -94,7 +95,7 @@ test.describe('Production build @smoke', () => {
     // The demo image paths do not exist in the production build.
     for (const path of [
       '/catalog/plates/demo-placa-ceramica/bege.png',
-      '/catalog/frames/demo-moldura-clara/back.png',
+      '/catalog/plates/demo-quadro/bege.png',
     ]) {
       const response = await request.get(path);
       expect(response.headers()['content-type'] ?? '').not.toContain('image/');

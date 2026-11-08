@@ -18,7 +18,6 @@ export const previewCatalog: Catalog = {
       sizeLabel: 'Test size',
       ceramicColor: 'Test beige',
       shape: 'square',
-      supportsFrame: true,
       dimensions: { status: 'pending' },
       image: {
         image: { src: '/catalog/plates/test-plate-square/beige.webp', alt: 'Square' },
@@ -34,7 +33,6 @@ export const previewCatalog: Catalog = {
       sizeLabel: 'Test size',
       ceramicColor: 'Test beige',
       shape: 'rectangle',
-      supportsFrame: true,
       dimensions: { status: 'pending' },
       image: {
         image: { src: '/catalog/plates/test-plate-rectangle/beige.webp', alt: 'Rectangle' },
@@ -47,7 +45,6 @@ export const previewCatalog: Catalog = {
       sizeLabel: 'Test size',
       ceramicColor: 'Test beige',
       shape: 'circle',
-      supportsFrame: false,
       dimensions: { status: 'pending' },
       image: {
         image: { src: '/catalog/plates/test-plate-circle/beige.webp' },
@@ -63,41 +60,12 @@ export const previewCatalog: Catalog = {
       sizeLabel: 'Test size',
       ceramicColor: 'Test beige',
       shape: 'square',
-      supportsFrame: false,
       dimensions: { status: 'pending' },
     },
   ],
   textColors: [
     { id: 'test-text-color-a', type: 'text-color', displayName: 'Test ink A', hex: '#112233' },
     { id: 'test-text-color-b', type: 'text-color', displayName: 'Test ink B', hex: '#aa2200' },
-  ],
-  frames: [
-    {
-      id: 'test-frame-any',
-      type: 'frame',
-      displayName: 'Test frame any',
-      compatibility: { shapes: ['square', 'rectangle'] },
-      images: [
-        {
-          plateId: 'test-plate-square',
-          back: { src: '/catalog/frames/test-frame-any/square-back.webp', alt: 'Frame, square' },
-          front: { src: '/catalog/frames/test-frame-any/square-front.webp' },
-          platePlacement: BOUNDS,
-        },
-        {
-          // Image registered but not calibrated for this plate.
-          plateId: 'test-plate-rectangle',
-          back: { src: '/catalog/frames/test-frame-any/rectangle-back.webp' },
-        },
-      ],
-    },
-    {
-      // Compatible with squares but no imagery registered.
-      id: 'test-frame-square',
-      type: 'frame',
-      displayName: 'Test frame square',
-      compatibility: { shapes: ['square'] },
-    },
   ],
 };
 
@@ -106,15 +74,11 @@ export const previewSizes: Record<string, Size> = {
   '/catalog/plates/test-plate-square/beige.webp': { width: 400, height: 400 },
   '/catalog/plates/test-plate-rectangle/beige.webp': { width: 600, height: 400 },
   '/catalog/plates/test-plate-circle/beige.webp': { width: 400, height: 400 },
-  '/catalog/frames/test-frame-any/square-back.webp': { width: 500, height: 500 },
-  '/catalog/frames/test-frame-any/square-front.webp': { width: 500, height: 500 },
-  '/catalog/frames/test-frame-any/rectangle-back.webp': { width: 600, height: 400 },
 };
 
 export function config(overrides: Partial<Configuration> = {}): Configuration {
   return {
     plateId: 'test-plate-square',
-    frameId: null,
     text: 'Ana',
     fontFamily: 'sans-serif',
     textColorId: 'test-text-color-a',

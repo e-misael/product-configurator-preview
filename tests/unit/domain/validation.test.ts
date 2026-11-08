@@ -1,7 +1,6 @@
 import {
   createEmptyConfiguration,
   getPlateShape,
-  isFrameCompatible,
   validateConfiguration,
   type Configuration,
   type ValidationResult,
@@ -15,24 +14,21 @@ function issuesOf(result: ValidationResult) {
 
 describe('validateConfiguration', () => {
   describe('valid configurations', () => {
-    it('accepts a complete configuration without a frame', () => {
+    it('accepts a complete configuration', () => {
       expect(validateConfiguration(validConfiguration(), testCatalog)).toEqual({ status: 'valid' });
     });
 
-    it('accepts a compatible frame', () => {
-      const config = validConfiguration({
-        plateId: 'test-plate-rectangle',
-        frameId: 'test-frame-any',
-      });
+    it('accepts a rectangular model', () => {
+      const config = validConfiguration({ plateId: 'test-plate-rectangle' });
       expect(validateConfiguration(config, testCatalog)).toEqual({ status: 'valid' });
     });
 
-    it('accepts a circular plate without a frame', () => {
+    it('accepts a circular model', () => {
       const config = validConfiguration({ plateId: 'test-plate-circle' });
       expect(validateConfiguration(config, testCatalog)).toEqual({ status: 'valid' });
     });
 
-    it('accepts a scalloped model without a frame', () => {
+    it('accepts a scalloped model', () => {
       const config = validConfiguration({ plateId: 'test-plate-scalloped' });
       expect(validateConfiguration(config, testCatalog)).toEqual({ status: 'valid' });
     });
@@ -48,14 +44,6 @@ describe('validateConfiguration', () => {
         { kind: 'missing', field: 'text' },
         { kind: 'missing', field: 'textColorId' },
       ]);
-    });
-
-    it('does not require a frame', () => {
-      const missingFields = issuesOf(
-        validateConfiguration(createEmptyConfiguration(), testCatalog),
-      ).map((issue) => issue.field);
-
-      expect(missingFields).not.toContain('frameId');
     });
 
     it('is incomplete when the model is not selected', () => {
@@ -79,32 +67,6 @@ describe('validateConfiguration', () => {
     it.each([
       ['unknown plate', { plateId: 'does-not-exist' }, 'plateId', 'unknown-reference'],
       ['unavailable plate', { plateId: 'test-plate-unavailable' }, 'plateId', 'unavailable'],
-      ['unknown frame', { frameId: 'does-not-exist' }, 'frameId', 'unknown-reference'],
-      ['unavailable frame', { frameId: 'test-frame-unavailable' }, 'frameId', 'unavailable'],
-      [
-        'frame on a circular plate',
-        { plateId: 'test-plate-circle', frameId: 'test-frame-any' },
-        'frameId',
-        'frame-not-supported',
-      ],
-      [
-        'frame on a square plate without frame support',
-        { plateId: 'test-plate-square-frameless', frameId: 'test-frame-square' },
-        'frameId',
-        'frame-not-supported',
-      ],
-      [
-        'frame incompatible with the plate shape',
-        { plateId: 'test-plate-rectangle', frameId: 'test-frame-square' },
-        'frameId',
-        'incompatible-shape',
-      ],
-      [
-        'frame restricted to another plate',
-        { plateId: 'test-plate-square-b', frameId: 'test-frame-square-plate-only' },
-        'frameId',
-        'incompatible-plate',
-      ],
     ] as const)('rejects %s', (_label, overrides, field, code) => {
       const result = validateConfiguration(validConfiguration(overrides), testCatalog);
 
@@ -125,42 +87,10 @@ describe('validateConfiguration', () => {
     });
   });
 
-  describe('frame precedence', () => {
-    function frameIssues(overrides: Partial<Configuration>) {
-      return issuesOf(validateConfiguration(validConfiguration(overrides), testCatalog)).filter(
-        (issue) => issue.field === 'frameId',
-      );
-    }
-
-    it('reports frame-not-supported before shape and plate restrictions', () => {
-      expect(
-        frameIssues({ plateId: 'test-plate-circle', frameId: 'test-frame-square-plate-only' }),
-      ).toEqual([{ kind: 'invalid', field: 'frameId', code: 'frame-not-supported' }]);
-    });
-
-    it('reports unavailable before frame-not-supported', () => {
-      expect(
-        frameIssues({ plateId: 'test-plate-circle', frameId: 'test-frame-unavailable' }),
-      ).toEqual([{ kind: 'invalid', field: 'frameId', code: 'unavailable' }]);
-    });
-
-    it('reports incompatible-shape before incompatible-plate when both apply', () => {
-      expect(
-        frameIssues({ plateId: 'test-plate-rectangle', frameId: 'test-frame-square-plate-only' }),
-      ).toEqual([{ kind: 'invalid', field: 'frameId', code: 'incompatible-shape' }]);
-    });
-
-    it('skips plate-dependent frame rules when the plate is missing or unknown', () => {
-      expect(frameIssues({ plateId: null, frameId: 'test-frame-square' })).toEqual([]);
-      expect(frameIssues({ plateId: 'does-not-exist', frameId: 'test-frame-square' })).toEqual([]);
-    });
-  });
-
   describe('derived shape', () => {
     it('does not store a shape in the configuration', () => {
       expect(Object.keys(createEmptyConfiguration())).toEqual([
         'plateId',
-        'frameId',
         'text',
         'fontFamily',
         'textColorId',
@@ -242,7 +172,7 @@ describe('validateConfiguration', () => {
     });
 
     it('produces a JSON-serializable configuration', () => {
-      const config = validConfiguration({ frameId: 'test-frame-any' });
+      const config = validConfiguration({ textLayout: { align: 'left', x: 0.25, y: 1 } });
       expect(JSON.parse(JSON.stringify(config))).toEqual(config);
     });
 
@@ -254,33 +184,6 @@ describe('validateConfiguration', () => {
         code: 'unknown-reference',
       });
     });
-  });
-});
-
-describe('isFrameCompatible', () => {
-  function byId<T extends { id: string }>(items: readonly T[], id: string): T {
-    const item = items.find((candidate) => candidate.id === id);
-    if (!item) throw new Error(`Fixture not found: ${id}`);
-    return item;
-  }
-
-  const plate = (id: string) => byId(testCatalog.plates, id);
-  const frame = (id: string) => byId(testCatalog.frames, id);
-
-  it('requires frame support, a declared shape, and, when restricted, a listed plate', () => {
-    expect(
-      isFrameCompatible(frame('test-frame-square-plate-only'), plate('test-plate-square')),
-    ).toBe(true);
-    expect(
-      isFrameCompatible(frame('test-frame-square-plate-only'), plate('test-plate-square-b')),
-    ).toBe(false);
-    expect(isFrameCompatible(frame('test-frame-square'), plate('test-plate-rectangle'))).toBe(
-      false,
-    );
-    expect(isFrameCompatible(frame('test-frame-any'), plate('test-plate-circle'))).toBe(false);
-    expect(isFrameCompatible(frame('test-frame-any'), plate('test-plate-square-frameless'))).toBe(
-      false,
-    );
   });
 });
 

@@ -24,7 +24,6 @@ interface Analysis {
 
 const WHITE: Rgba = [255, 255, 255, 255];
 const BEGE: Rgba = [226, 208, 186, 255];
-const RIM: Rgba = [60, 40, 24, 255];
 const WOOD: readonly Rgba[] = [
   [150, 118, 84, 255],
   [132, 102, 70, 255],
@@ -186,25 +185,27 @@ test('downloads the standalone plate as a native-size PNG matching the preview @
   }
 });
 
-test('exports the frame layers in order at the frame image’s native size', async ({ page }) => {
-  await model(page, /Placa cerâmica/).check();
-  await radio(page, 'Moldura (opcional)', /Moldura clara/).check();
+test('exports the assembled Quadro, frame included, at its photograph’s native size', async ({
+  page,
+}) => {
+  await model(page, /Quadro/).check();
   await ready(page);
 
   const file = await downloadPng(page);
 
-  expect([file.width, file.height]).toEqual([500, 500]);
+  expect(file.fileName).toBe('taavi-demo-quadro.png');
+  expect([file.width, file.height]).toEqual([480, 480]);
   const points = [
-    [0.02, 0.5], // frame back: wood outside the opening
-    [0.5, 0.8], // plate inside the opening
-    [0.11, 0.5], // frame front rim over the plate's edge
+    [0.14, 0.5], // wooden frame, part of the one photograph (D-046)
+    [0.5, 0.75], // ceramic inside the frame
+    [0.03, 0.03], // white background outside the product
   ] as const;
   const exported = await analyze(page, { png: file.png }, points);
   const shown = await analyze(page, 'preview', points);
   for (const analysis of [exported, shown]) {
     expect(nearAny(analysis.samples[0], WOOD)).toBe(true);
     expect(near(analysis.samples[1], BEGE)).toBe(true);
-    expect(near(analysis.samples[2], RIM)).toBe(true);
+    expect(near(analysis.samples[2], WHITE)).toBe(true);
   }
 });
 
@@ -215,7 +216,8 @@ test('exports font, both lettering colors, alignment, and manual position as pre
   const field = page.getByLabel('Texto', { exact: true });
   await ready(page, 'HHHH\nHH', /Letra azul/);
   await radio(page, 'Fonte', 'Com serifa').check();
-  await radio(page, 'Segunda cor (opcional)', /Letra vinho/).check();
+  await page.getByRole('button', { name: 'Usar segunda cor' }).click();
+  await radio(page, 'Segunda cor', /Letra vinho/).check();
   await field.focus();
   await field.evaluate((element) => (element as HTMLTextAreaElement).setSelectionRange(0, 0));
   for (let i = 0; i < 2; i += 1) await field.press('Shift+ArrowRight');
@@ -248,12 +250,12 @@ test('exports font, both lettering colors, alignment, and manual position as pre
 });
 
 test('exports a scalloped tray on white, at its native size', async ({ page }) => {
-  await model(page, /~ 11 cm/).check();
+  await model(page, /Bandeja ondulada G/).check();
   await ready(page);
 
   const file = await downloadPng(page);
 
-  expect(file.fileName).toBe('taavi-demo-bandeja-ondulada-m-11.png');
+  expect(file.fileName).toBe('taavi-demo-bandeja-ondulada-g-11.png');
   expect([file.width, file.height]).toEqual([440, 440]);
   const exported = await analyze(page, { png: file.png }, [
     [0.03, 0.03],
@@ -300,22 +302,16 @@ test.describe('blocked export', () => {
     await expectNoDownload(page);
   });
 
-  test('when a selected frame fails to load, instead of silently leaving it out', async ({
-    page,
-  }) => {
-    await page.route('**/catalog/frames/demo-moldura-clara/**', (route) => route.abort());
-    await model(page, /Placa cerâmica/).check();
-    await ready(page);
-    await radio(page, 'Moldura (opcional)', /Moldura clara/).check();
+  test('when the photograph fails to load, instead of exporting without it', async ({ page }) => {
+    await page.route('**/catalog/plates/demo-quadro/**', (route) => route.abort());
+    await model(page, /Quadro/).check();
+    await page.getByLabel('Texto', { exact: true }).fill('HHH');
+    await radio(page, 'Cor do texto', /Letra azul/).check();
 
     await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'true');
     await expect(exportButton(page)).toHaveAccessibleDescription(
-      /Não foi possível carregar a imagem da moldura/,
+      /Não foi possível carregar a imagem do modelo/,
     );
     await expectNoDownload(page);
-
-    // Without the frame, export is available again.
-    await radio(page, 'Moldura (opcional)', 'Sem moldura').check();
-    await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'false');
   });
 });

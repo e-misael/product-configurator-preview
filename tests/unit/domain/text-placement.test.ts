@@ -1,5 +1,4 @@
 import {
-  alignPlacement,
   catalogTextAlign,
   defaultPlacement,
   effectivePlacement,
@@ -80,9 +79,9 @@ describe('presets', () => {
     }
   });
 
-  it('no longer match once the alignment alone changes', () => {
-    const moved = alignPlacement(presetPlacement('top', 'left'), 'right');
-    expect(moved).toEqual({ align: 'right', x: 0, y: 0 });
+  it('require the alignment as well as the position', () => {
+    // A stored placement (e.g. from the catalog default) need not match any preset.
+    const moved = { align: 'right', x: 0, y: 0 } as const;
     expect(matchesPreset(moved, 'top', 'left')).toBe(false);
     expect(matchesPreset(moved, 'top', 'right')).toBe(false);
   });

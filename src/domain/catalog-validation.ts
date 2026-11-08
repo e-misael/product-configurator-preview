@@ -1,12 +1,12 @@
 /**
  * Pure integrity validation for catalog definitions.
  *
- * Reports every issue found, in a deterministic order (plates, frames,
- * text colors; fields in definition order). It never repairs or filters data.
+ * Reports every issue found, in a deterministic order (plates, then text
+ * colors; fields in definition order). It never repairs or filters data.
  * See docs/04-data-model.md and D-018.
  */
 
-import { FRAMELESS_SHAPES, TEXT_ALIGNMENTS } from './types';
+import { TEXT_ALIGNMENTS } from './types';
 import type {
   AssetRef,
   Catalog,
@@ -16,7 +16,6 @@ import type {
   Dimensions,
   NormalizedBox,
 } from './types';
-import { isFrameCompatible } from './validation';
 
 /** Lowercase kebab-case, e.g. `placa-ceramica-10` (D-019). */
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -26,21 +25,19 @@ export function isValidCatalogId(id: unknown): boolean {
   return typeof id === 'string' && ID_PATTERN.test(id);
 }
 
-export type AssetOwner = 'plates' | 'frames';
-
 /**
- * `/catalog/{owner}/{owner-id}/{name}.{webp|png|jpg}` with kebab-case
- * segments (D-031). Being an allowlist, it excludes external URLs, schemes
+ * `/catalog/plates/{owner-id}/{name}.{webp|png|jpg}` with kebab-case
+ * segments (D-031, D-046). Being an allowlist, it excludes external URLs, schemes
  * (`data:`, `javascript:`), traversal, query strings, and encoded characters.
  */
 const ASSET_PATH_PATTERN =
-  /^\/catalog\/(plates|frames)\/([a-z0-9]+(?:-[a-z0-9]+)*)\/[a-z0-9]+(?:-[a-z0-9]+)*\.(?:webp|png|jpg)$/;
+  /^\/catalog\/plates\/([a-z0-9]+(?:-[a-z0-9]+)*)\/[a-z0-9]+(?:-[a-z0-9]+)*\.(?:webp|png|jpg)$/;
 
-/** Whether `src` is a well-formed asset path inside the folder of the given owner. */
-export function isValidAssetPath(src: unknown, owner: AssetOwner, ownerId: string): boolean {
+/** Whether `src` is a well-formed asset path inside the folder of the given model. */
+export function isValidAssetPath(src: unknown, ownerId: string): boolean {
   if (typeof src !== 'string') return false;
   const match = ASSET_PATH_PATTERN.exec(src);
-  return match !== null && match[1] === owner && match[2] === ownerId;
+  return match !== null && match[1] === ownerId;
 }
 
 /** Lettering colors are `#rrggbb`. */
@@ -71,18 +68,6 @@ function isBoxInside(inner: NormalizedBox, outer: NormalizedBox): boolean {
   );
 }
 
-/** Maps each ID to its first occurrence; later duplicates never overwrite it. */
-function indexFirstById<T extends { readonly id: string }>(
-  items: readonly T[],
-  collection: string,
-): Map<string, { item: T; path: string }> {
-  const index = new Map<string, { item: T; path: string }>();
-  items.forEach((item, i) => {
-    if (!index.has(item.id)) index.set(item.id, { item, path: `${collection}[${i}]` });
-  });
-  return index;
-}
-
 export function validateCatalog(catalog: Catalog): CatalogValidationResult {
   const issues: CatalogIssue[] = [];
 
@@ -96,20 +81,8 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
     });
   }
 
-  function checkList(list: readonly string[], path: string, id: string, required: boolean) {
-    if (required && list.length === 0) {
-      report('empty-list', path, id);
-    }
-    list.forEach((value, index) => {
-      const first = list.indexOf(value);
-      if (first !== index) {
-        report('duplicate-entry', `${path}[${index}]`, id, `${path}[${first}]`);
-      }
-    });
-  }
-
-  function checkAsset(asset: AssetRef, path: string, owner: AssetOwner, id: string) {
-    if (!isValidAssetPath(asset.src, owner, id)) {
+  function checkAsset(asset: AssetRef, path: string, id: string) {
+    if (!isValidAssetPath(asset.src, id)) {
       report('invalid-asset', `${path}.src`, id);
     }
     // Intrinsic size is optional, but both sides are declared together.
@@ -128,16 +101,6 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
     if (isValidBox(box)) return true;
     report('invalid-placement', path, id);
     return false;
-  }
-
-  /** Reports entries whose key repeats an earlier entry's key. */
-  function checkVariationKeys(keys: readonly string[], path: string, id: string) {
-    keys.forEach((key, index) => {
-      const first = keys.indexOf(key);
-      if (first !== index) {
-        report('duplicate-variation', `${path}[${index}]`, id, `${path}[${first}]`);
-      }
-    });
   }
 
   function checkDimensions(dimensions: Dimensions, path: string, id: string) {
@@ -164,14 +127,9 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
     }
   }
 
-  const platesById = indexFirstById(catalog.plates, 'plates');
-
   catalog.plates.forEach((plate, i) => {
     const path = `plates[${i}]`;
     checkId(plate.id, path);
-    if (plate.supportsFrame && FRAMELESS_SHAPES.includes(plate.shape)) {
-      report('frame-capability-conflict', `${path}.supportsFrame`, plate.id);
-    }
     for (const label of ['sizeLabel', 'ceramicColor'] as const) {
       // Typed as strings but may be malformed at runtime; blank labels are never repaired.
       if (typeof plate[label] !== 'string' || plate[label].trim().length === 0) {
@@ -182,7 +140,7 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
 
     if (plate.image !== undefined) {
       const imagePath = `${path}.image`;
-      checkAsset(plate.image.image, `${imagePath}.image`, 'plates', plate.id);
+      checkAsset(plate.image.image, `${imagePath}.image`, plate.id);
       const bounds = plate.image.objectBounds;
       const hasBounds = checkBox(bounds, `${imagePath}.objectBounds`, plate.id);
       const { text } = plate.image;
@@ -197,58 +155,6 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
         }
       }
     }
-  });
-
-  catalog.frames.forEach((frame, i) => {
-    const path = `frames[${i}]`;
-    const { shapes, plateIds: restrictedTo } = frame.compatibility;
-    checkId(frame.id, path);
-    checkList(shapes, `${path}.compatibility.shapes`, frame.id, true);
-    shapes.forEach((shape, j) => {
-      if (FRAMELESS_SHAPES.includes(shape)) {
-        report('unsupported-frame-shape', `${path}.compatibility.shapes[${j}]`, frame.id);
-      }
-    });
-    if (restrictedTo !== undefined) {
-      // Omitted means "no plate restriction"; an empty list would fit no plate (D-018).
-      checkList(restrictedTo, `${path}.compatibility.plateIds`, frame.id, true);
-      // Each referenced plate is evaluated independently (D-022).
-      restrictedTo.forEach((plateId, j) => {
-        const refPath = `${path}.compatibility.plateIds[${j}]`;
-        const target = platesById.get(plateId);
-        if (target === undefined) {
-          report('unknown-reference', refPath, frame.id);
-        } else if (
-          !target.item.supportsFrame ||
-          // An empty shape list is already reported as `empty-list`.
-          (shapes.length > 0 && !shapes.includes(target.item.shape))
-        ) {
-          report('unreachable-compatibility', refPath, frame.id, target.path);
-        }
-      });
-    }
-
-    const images = frame.images ?? [];
-    images.forEach((entry, j) => {
-      const imagePath = `${path}.images[${j}]`;
-      const target = platesById.get(entry.plateId);
-      if (target === undefined) {
-        report('unknown-reference', `${imagePath}.plateId`, frame.id);
-      } else if (!isFrameCompatible(frame, target.item)) {
-        // Same rule as configuration validation: imagery only for offerable pairs.
-        report('unreachable-compatibility', `${imagePath}.plateId`, frame.id, target.path);
-      }
-      checkAsset(entry.back, `${imagePath}.back`, 'frames', frame.id);
-      if (entry.front !== undefined) {
-        checkAsset(entry.front, `${imagePath}.front`, 'frames', frame.id);
-      }
-      checkBox(entry.platePlacement, `${imagePath}.platePlacement`, frame.id);
-    });
-    checkVariationKeys(
-      images.map((entry) => entry.plateId),
-      `${path}.images`,
-      frame.id,
-    );
   });
 
   catalog.textColors.forEach((color, i) => {
