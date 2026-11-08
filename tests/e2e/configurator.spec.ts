@@ -8,8 +8,8 @@ const inks = (page: Page, name: string) => page.getByRole('group', { name });
 
 const CERAMIC_PLATE = /Placa cerâmica — 10 × 10 cm/;
 const QUADRO = /Quadro — 20 × 20 cm/;
-const TRAY_8 = /Bandeja ondulada M — Aprox\. 8 cm/;
-const TRAY_11 = /Bandeja ondulada G — Aprox\. 11 cm/;
+const TRAY_8 = /Bandeja ondulada M — 8 × 8 cm/;
+const TRAY_11 = /Bandeja ondulada G — 11 × 11 cm/;
 
 async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(

@@ -18,8 +18,8 @@ describe('App shell', () => {
     for (const name of [
       'Placa cerâmica — 10 × 10 cm',
       'Quadro — 20 × 20 cm',
-      'Bandeja ondulada M — Aprox. 8 cm',
-      'Bandeja ondulada G — Aprox. 11 cm',
+      'Bandeja ondulada M — 8 × 8 cm',
+      'Bandeja ondulada G — 11 × 11 cm',
     ]) {
       expect(models.getByRole('radio', { name })).toBeInTheDocument();
     }

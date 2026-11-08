@@ -86,9 +86,9 @@ Status: **Done** — implemented; pending owner review. No real products or imag
 
 ### M1.3b — Real asset registration
 
-Status: **Done** for the four current models: photographs, calibration, dimensions, and lettering sizes registered (M1.3b-1, M1.3b-2). Model IDs other than the Placa's are not yet confirmed (P-12).
+Status: **Done** for the four current models: photographs, calibration, dimensions, lettering sizes, and permanent IDs (M1.3b-1, M1.3b-2, P-12).
 
-- Confirm the four provisional model IDs (P-12). No model takes a separate frame (P-13 resolved by D-046); the Quadro is photographed assembled.
+- The four model IDs are permanent (P-12). No model takes a separate frame (P-13 resolved by D-046); the Quadro is photographed assembled.
 - Processed images under `public/catalog/` (background removal/masking, perspective correction as needed); originals archived outside the repository with provenance.
 - Declared intrinsic sizes plus a check that they match the files.
 - Calibrated `objectBounds` and text areas (for the Quadro, inside the ceramic); visual verification against the originals.
@@ -107,12 +107,14 @@ History: inputs confirmed so far (D-048): photo usage rights, the official name 
 
 ### M1.3b-2 — Quadro and Bandejas ondulada M and G
 
-Status: **Done** (implemented 2026-11-08, not committed). Crops, placement, sizes, and dimensions approved by the product owner (D-054, D-055, P-01).
+Status: **Done** (accepted by the product owner 2026-11-08; committed in c3c9d8b, closure follow-up separately). Crops, placement, sizes, dimensions, permanent IDs, and nominal labels approved (D-054, D-055, P-01, P-12).
 
 - [x] `public/catalog/plates/quadro-20/bege.jpg` (660 × 660) and the Bandeja photograph (1060 × 1060) in both `bandeja-ondulada-m-8/` and `bandeja-ondulada-g-11/` (identical files), JPEG quality about 90, cropped only: no tint, no background removal
 - [x] Quadro: the assembled product; text area on the ceramic only; lettering size from the 100 mm ceramic, not the frame
 - [x] Bandejas: one photograph and text area (the flat floor; the square kept after comparison with a wider rectangle and corrected clear of the walls), sizes M 0.1170 and G 0.0851
 - [x] `dimensions` for all four models (outer size; the Quadro's 100 mm ceramic documented)
+- [x] Nominal Bandeja labels "Bandeja ondulada M — 8 × 8 cm" and "Bandeja ondulada G — 11 × 11 cm" (production and demo); the handmade-variation disclaimer stays
+- [x] Permanent IDs confirmed: `quadro-20`, `bandeja-ondulada-m-8`, `bandeja-ondulada-g-11` (P-12)
 - [x] Image-size check reads JPEG as well as PNG
 - [x] Unit tests: exact entries, text area inside the Quadro ceramic, shared Bandeja placement with separate sizes, 7 mm capitals on every model; Playwright: every model shows its photograph, JPEGs served, lettering drawn, Bandeja M overflow warning, fixed size and 7 mm capitals per model with real font metrics, deboss inside the glyphs only on each new photograph
 - Remaining: production lettering colors (P-02); typography (P-04, P-14); deboss look (D-052).

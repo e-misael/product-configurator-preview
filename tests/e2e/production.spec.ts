@@ -10,8 +10,8 @@ async function expectNoHorizontalScroll(page: Page) {
 const MODELS = [
   'Placa cerâmica — 10 × 10 cm',
   'Quadro — 20 × 20 cm',
-  'Bandeja ondulada M — Aprox. 8 cm',
-  'Bandeja ondulada G — Aprox. 11 cm',
+  'Bandeja ondulada M — 8 × 8 cm',
+  'Bandeja ondulada G — 11 × 11 cm',
 ];
 
 test.describe('Production build @smoke', () => {
@@ -110,8 +110,8 @@ test.describe('Production build @smoke', () => {
 test.describe('Quadro and Bandeja photographs (M1.3b-2)', () => {
   for (const [name, path] of [
     ['Quadro — 20 × 20 cm', 'quadro-20'],
-    ['Bandeja ondulada M — Aprox. 8 cm', 'bandeja-ondulada-m-8'],
-    ['Bandeja ondulada G — Aprox. 11 cm', 'bandeja-ondulada-g-11'],
+    ['Bandeja ondulada M — 8 × 8 cm', 'bandeja-ondulada-m-8'],
+    ['Bandeja ondulada G — 11 × 11 cm', 'bandeja-ondulada-g-11'],
   ] as const) {
     test(`serves the ${path} JPEG and draws the lettering on it`, async ({ page }) => {
       const photo = page.waitForResponse(`**/catalog/plates/${path}/bege.jpg`);
@@ -148,7 +148,7 @@ test.describe('Quadro and Bandeja photographs (M1.3b-2)', () => {
     await page.goto('/');
     await page
       .getByRole('group', { name: 'Modelo' })
-      .getByRole('radio', { name: 'Bandeja ondulada M — Aprox. 8 cm' })
+      .getByRole('radio', { name: 'Bandeja ondulada M — 8 × 8 cm' })
       .check();
     const preview = page.getByRole('region', { name: 'Pré-visualização' });
     await expect(preview.getByRole('img')).toBeVisible();

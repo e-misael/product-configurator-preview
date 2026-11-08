@@ -19,8 +19,8 @@ describe('production catalog', () => {
     ).toEqual([
       ['placa-ceramica-10', 'Placa cerâmica', '10 × 10 cm', 'square'],
       ['quadro-20', 'Quadro', '20 × 20 cm', 'square'],
-      ['bandeja-ondulada-m-8', 'Bandeja ondulada M', 'Aprox. 8 cm', 'scalloped'],
-      ['bandeja-ondulada-g-11', 'Bandeja ondulada G', 'Aprox. 11 cm', 'scalloped'],
+      ['bandeja-ondulada-m-8', 'Bandeja ondulada M', '8 × 8 cm', 'scalloped'],
+      ['bandeja-ondulada-g-11', 'Bandeja ondulada G', '11 × 11 cm', 'scalloped'],
     ]);
     expect(Object.keys(getCatalog())).toEqual(['plates', 'textColors']);
   });

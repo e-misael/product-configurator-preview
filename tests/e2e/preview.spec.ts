@@ -160,10 +160,10 @@ test.describe('exact image selection', () => {
 
     await model(page, TRAY_8).check();
     await expectPixel(page, 0.5, 0.8, BEGE);
-    await expect(canvas(page)).toHaveAttribute('aria-label', /Bandeja ondulada M Aprox\. 8 cm/);
+    await expect(canvas(page)).toHaveAttribute('aria-label', /Bandeja ondulada M 8 × 8 cm/);
 
     await model(page, TRAY_11).check();
-    await expect(canvas(page)).toHaveAttribute('aria-label', /Bandeja ondulada G Aprox\. 11 cm/);
+    await expect(canvas(page)).toHaveAttribute('aria-label', /Bandeja ondulada G 11 × 11 cm/);
   });
 
   test('labels the demonstration images for assistive technology', async ({ page }) => {

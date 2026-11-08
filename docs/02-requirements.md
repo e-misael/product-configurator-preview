@@ -8,7 +8,7 @@ Status values: **Pending** (not implemented), **Foundation** (domain types/valid
 
 ### FR-01 — Model selection (Modelo)
 
-Required. The customer selects a model from the catalog: "Placa cerâmica — 10 × 10 cm", "Quadro — 20 × 20 cm", "Bandeja ondulada M — Aprox. 8 cm", or "Bandeja ondulada G — Aprox. 11 cm" (D-046). In code a model is a `Plate`. The Quadro is one complete product (ceramic plate in a wooden frame), not a plate plus a chosen frame.
+Required. The customer selects a model from the catalog: "Placa cerâmica — 10 × 10 cm", "Quadro — 20 × 20 cm", "Bandeja ondulada M — 8 × 8 cm", or "Bandeja ondulada G — 11 × 11 cm" (D-046). In code a model is a `Plate`. The Quadro is one complete product (ceramic plate in a wooden frame), not a plate plus a chosen frame.
 
 Acceptance criteria:
 
@@ -19,7 +19,7 @@ Acceptance criteria:
 5. An empty catalog is a supported state; no model data is invented.
 6. Each model has exactly one fixed shape classification (`square`, `rectangle`, `circle`, `scalloped`); the Quadro is a model that includes its frame (D-023, D-046).
 7. Only available models are offered. A selected model that is unknown or unavailable stays visible and marked invalid (D-030).
-8. Options show the supplied name and size label as given, as `displayName — sizeLabel`, approximations included ("Bandeja ondulada M — Aprox. 8 cm"); physical dimensions are recorded only as confirmed by Taavi (P-01) and are not shown.
+8. Options show the supplied name and size label as given, as `displayName — sizeLabel` ("Bandeja ondulada M — 8 × 8 cm"). Size labels are nominal product dimensions; handmade pieces vary, as the disclaimer says. Physical dimensions are recorded only as confirmed by Taavi (P-01).
 
 Status: UI (M2, revised by M4.1a and M4.2).
 

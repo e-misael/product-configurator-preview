@@ -70,6 +70,7 @@ None of the shared files can be calibrated without approval: the text area must 
 - **Bandeja:** one photograph for both sizes (same design). Dish x 84–1083, y 212–1190 in the source (999 × 978 px; the width is used for scale). Crop 1060 × 1060 at x 54, y 171. `text.area` `{ x: 0.28, y: 0.265, width: 0.43, height: 0.43 }`: a square on the flat floor, about 0.01 clear of the wall foot at every corner, the tightest being the lower-right valley. About 36 × 36 mm on the M and 50 × 50 mm on the G.
 - **Floor-area comparison:** the widest rectangle clear of the walls, `{ x: 0.205, y: 0.34, width: 0.585, height: 0.31 }`, fits 2 lines × 7 capitals (9 lowercase) on the M and 3 × 10 (13) on the G, against 3 × 5 (7) and 4 × 7 (10) for the square. A line fewer for a few more characters per line is not a meaningful improvement, and two-line texts such as "Ana e Pedro / 2024" stop fitting on the M, so the square stays (D-054).
 - **Lettering sizes (D-055):** 7 mm capitals from the real dimensions (P-01): Quadro 0.0424 (from the 100 mm ceramic, never the 200 mm frame), M 0.1170, G 0.0851.
+- **Review:** a private review page drawn by the app's renderer (shared with the product owner) shows both crops with their outlines and text areas, the four pieces at the same physical scale, the capacity per model, and the six proposed colors; its final version shows the corrected Bandeja square and the comparison with the wider rectangle.
 - **Files:** cropped only (no tint, no background removal, D-053 presentation), JPEG quality about 90: `quadro-20/bege.jpg` 660 × 660 (126 KB), Bandeja 1060 × 1060 (367 KB) in each Bandeja folder. Opaque JPEG with the photograph's own background, like the Placa.
 
 ## Text-safe area rules confirmed by Taavi (D-048)
@@ -79,7 +80,7 @@ None of the shared files can be calibrated without approval: the text area must 
 
 ## Expected source photographs (M1.3b inputs)
 
-1. One photograph per model without lettering: Placa cerâmica — 10 × 10 cm, Quadro — 20 × 20 cm, Bandeja ondulada M — Aprox. 8 cm, and Bandeja ondulada G — Aprox. 11 cm. Each model has a single fixed color (Bege), so there are no color variations.
+1. One photograph per model without lettering: Placa cerâmica — 10 × 10 cm, Quadro — 20 × 20 cm, Bandeja ondulada M — 8 × 8 cm, and Bandeja ondulada G — 11 × 11 cm. Each model has a single fixed color (Bege), so there are no color variations.
 2. The Quadro is photographed **assembled**, ceramic plate in its wooden frame, as one product (D-046). No separate frame photographs or layers are needed.
 
 Recommended capture: consistent lighting, camera height, and angle across the models; the object fully visible and as frontal as possible; high resolution relative to the intended display size; no lettering, props, or busy backgrounds. These are recommendations, not invented requirements: exact resolutions are decided with the real files (P-08).

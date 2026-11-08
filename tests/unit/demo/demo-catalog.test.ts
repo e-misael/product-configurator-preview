@@ -34,8 +34,8 @@ describe('demo catalog (D-028)', () => {
     expect(demoCatalog.plates.map(({ sizeLabel, shape }) => [sizeLabel, shape])).toEqual([
       ['10 × 10 cm', 'square'],
       ['20 × 20 cm', 'square'],
-      ['Aprox. 8 cm', 'scalloped'],
-      ['Aprox. 11 cm', 'scalloped'],
+      ['8 × 8 cm', 'scalloped'],
+      ['11 × 11 cm', 'scalloped'],
     ]);
   });
 

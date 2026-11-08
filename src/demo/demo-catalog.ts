@@ -82,7 +82,7 @@ export const demoCatalog: Catalog = deepFreeze({
     model({
       id: 'demo-bandeja-ondulada-m-8',
       displayName: '(demonstração) Bandeja ondulada M',
-      sizeLabel: 'Aprox. 8 cm',
+      sizeLabel: '8 × 8 cm',
       shape: 'scalloped',
       size: 320,
       text: SCALLOPED_TEXT,
@@ -90,7 +90,7 @@ export const demoCatalog: Catalog = deepFreeze({
     model({
       id: 'demo-bandeja-ondulada-g-11',
       displayName: '(demonstração) Bandeja ondulada G',
-      sizeLabel: 'Aprox. 11 cm',
+      sizeLabel: '11 × 11 cm',
       shape: 'scalloped',
       size: 440,
       text: SCALLOPED_TEXT,

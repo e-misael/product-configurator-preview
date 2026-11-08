@@ -19,7 +19,7 @@ Vocabulary: the customer-facing word for a product is **Modelo**; the code keeps
 type Dimensions = { status: 'pending' } | { status: 'defined'; widthMm: number; heightMm: number };
 ```
 
-Unknown dimensions must be `pending`. Never invent numbers to satisfy types. The four current models have confirmed outer dimensions (P-01); the Quadro's is its frame, with a 100 × 100 mm ceramic inside. A model's `sizeLabel` ("10 × 10 cm", "Aprox. 8 cm") is display text as supplied, not a measurement.
+Unknown dimensions must be `pending`. Never invent numbers to satisfy types. The four current models have confirmed outer dimensions (P-01); the Quadro's is its frame, with a 100 × 100 mm ceramic inside. A model's `sizeLabel` ("10 × 10 cm", "8 × 8 cm") is display text as supplied, not a measurement.
 
 ### `AssetRef`
 
@@ -57,15 +57,15 @@ Each model has at most one photograph: its ceramic color is fixed, so there are 
 
 A product model. Placa cerâmica, Quadro, Bandeja ondulada M, and Bandeja ondulada G are separate models with their own IDs (D-023, D-040, D-046).
 
-| Field          | Required | Notes                                                                                                            |
-| -------------- | -------- | ---------------------------------------------------------------------------------------------------------------- |
-| `shape`        | yes      | The model's single, fixed `PlateShape` classification.                                                           |
-| `sizeLabel`    | yes      | Customer-facing size exactly as supplied, e.g. `10 × 10 cm` or `Aprox. 8 cm` (approximation kept). Display only. |
-| `ceramicColor` | yes      | Fixed color of the piece, e.g. `Bege`. Shown read-only as "Cor da peça"; the customer never chooses it (D-041).  |
-| `dimensions`   | yes      | `Dimensions` (may be `pending`).                                                                                 |
-| `image`        | no       | `PlateImage`; omitted while the photograph is pending.                                                           |
+| Field          | Required | Notes                                                                                                                    |
+| -------------- | -------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `shape`        | yes      | The model's single, fixed `PlateShape` classification.                                                                   |
+| `sizeLabel`    | yes      | Customer-facing size exactly as supplied, e.g. `10 × 10 cm` or `8 × 8 cm` (nominal; handmade pieces vary). Display only. |
+| `ceramicColor` | yes      | Fixed color of the piece, e.g. `Bege`. Shown read-only as "Cor da peça"; the customer never chooses it (D-041).          |
+| `dimensions`   | yes      | `Dimensions` (may be `pending`).                                                                                         |
+| `image`        | no       | `PlateImage`; omitted while the photograph is pending.                                                                   |
 
-The option label shown to customers is `displayName — sizeLabel`, e.g. "Bandeja ondulada M — Aprox. 8 cm" (D-046).
+The option label shown to customers is `displayName — sizeLabel`, e.g. "Bandeja ondulada M — 8 × 8 cm" (D-046).
 
 The current production IDs are **provisional** until Taavi confirms them: `placa-ceramica-10`, `quadro-20`, `bandeja-ondulada-m-8`, `bandeja-ondulada-g-11`. An ID must not be renamed without a migration note in [06-decisions.md](06-decisions.md); `bandeja-ondulada-m-11` → `bandeja-ondulada-g-11` is recorded in D-046 (nothing persisted the old ID).
 

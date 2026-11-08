@@ -87,7 +87,7 @@ interface CatalogComponentBase {
 export interface Plate extends CatalogComponentBase {
   readonly type: 'plate';
   readonly shape: PlateShape;
-  /** Customer-facing size as supplied, e.g. "10 × 10 cm" or "Aprox. 8 cm". Display only. */
+  /** Customer-facing size as supplied, e.g. "10 × 10 cm" or "8 × 8 cm". Display only. */
   readonly sizeLabel: string;
   /** Fixed ceramic color shown read-only, e.g. "Bege". Owned by the catalog, never chosen (D-041). */
   readonly ceramicColor: string;
