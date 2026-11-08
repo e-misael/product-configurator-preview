@@ -34,6 +34,17 @@ export const testCatalog: Catalog = {
     plate('test-plate-square-frameless', 'square', false),
     plate('test-plate-unavailable', 'square', true, { available: false }),
   ],
+  textColors: [
+    { id: 'test-text-color-a', type: 'text-color', displayName: 'Test ink A', hex: '#112233' },
+    { id: 'test-text-color-b', type: 'text-color', displayName: 'Test ink B', hex: '#aa2200' },
+    {
+      id: 'test-text-color-retired',
+      type: 'text-color',
+      displayName: 'Test ink retired',
+      hex: '#888888',
+      available: false,
+    },
+  ],
   frames: [
     {
       id: 'test-frame-any',
@@ -68,6 +79,10 @@ export function validConfiguration(overrides: Partial<Configuration> = {}): Conf
     plateId: 'test-plate-square',
     frameId: null,
     text: 'Casa da Ana',
+    fontFamily: 'sans-serif',
+    textColorId: 'test-text-color-a',
+    secondaryColorId: null,
+    secondaryRanges: [],
     ...overrides,
   };
 }

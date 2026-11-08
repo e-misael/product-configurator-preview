@@ -309,7 +309,15 @@ Status values:
 
 - **Context:** The product needs font family, up to two lettering colors, and text positioning.
 - **Decision (design only, not implemented):** (1) `fontFamily` is `serif` or `sans-serif` ("Com serifa" / "Sem serifa", default sans-serif), mapped to provisional system font stacks; real typography stays pending (P-04). (2) `textColorId` is required (no default) and `secondaryColorId` is optional with `secondaryRanges` as UTF-16 offsets snapped to grapheme boundaries; the lettering palette is catalog data (P-02). (3) One source of truth for position: nine presets (left/center/right × top/middle/bottom) plus a normalized manual position inside the calibrated text area; dragging keeps the line alignment; "Redefinir posição" restores the catalog default; the position survives model changes constrained to the new safe area. (4) Touch movement requires an explicit "Mover texto" mode so scrolling is not hijacked; keyboard positioning is supported. (5) Editing text keeps secondary ranges when they map unambiguously and removes or invalidates them otherwise; grapheme clusters are never split. (6) The handmade disclaimer is shown near the controls: "Todas as solicitações de personalização estão sujeitas à análise da Taavi. Como nossas peças são produzidas artesanalmente, podem apresentar pequenas variações de formato, cor, acabamento e posicionamento em relação à pré-visualização." (7) A per-line text-length limit is a future rule, recorded in the backlog and not implemented.
-- **Status:** Approved as a plan; implementation requires approval of M4.1b.
+- **Status:** Approved as a plan. Points 1, 2, 5, 6, 7 implemented in M4.1b-1 (D-043); points 3 and 4 planned for M4.1b-2.
+- **Date:** 2026-11-08.
+
+### D-043 — M4.1b split and lettering implementation (M4.1b-1)
+
+- **Context:** M4.1b combined lettering styles with an interactive positioning model; they are separable and independently testable.
+- **Decision:** M4.1b-1 implements typography, lettering colors, styled ranges, and the disclaimer; M4.1b-2 implements positioning with a normalized `textLayout` `{ align, x, y } | null`. Lettering colors are catalog data (`Catalog.textColors`, `TextColor.hex` as `#rrggbb`); the production palette stays empty until supplied (P-02), so production cannot reach "Configuração completa" yet. Ranges are half-open UTF-16 offsets on grapheme boundaries, never spanning `\r`/`\n`, normalized (sorted, merged). Edit remap uses a single-splice model: the textarea caret after the edit locates the splice when it is consistent with the texts; otherwise a prefix/suffix diff is used and, when that is ambiguous (repeated characters), ranges touching the uncertain region are removed and a notice is shown. Text typed inside a colored range is not colored (the range splits). Removing the last range keeps the second color; only "Sem segunda cor" clears both. A second color equal to the primary is `same-as-primary` and its option is disabled. The preview paints text with no chosen color in a neutral fallback (`#2b2b2b`); it is a renderer constant, never stored and not a product color. Lines keep their source offsets through wrapping so colors follow the characters; mixed-color lines are drawn as consecutive runs measured with the same font.
+- **Alternatives:** Rich-text editor (rejected, D-042); coloring text typed inside a range (rejected: surprising and ambiguous); a production default color (rejected: invented data).
+- **Status:** Approved (decisions confirmed 2026-11-08); implementation awaiting acceptance.
 - **Date:** 2026-11-08.
 
 ## Proposed
@@ -334,7 +342,7 @@ Status values:
 ## Pending
 
 - **P-01:** Real plate dimensions and aspect ratios per shape.
-- **P-02:** The production lettering-color palette (names and values) for M4.1b; until supplied, a configuration cannot be completed in production once the text color is required. The ceramic color is resolved by D-041.
+- **P-02:** The production lettering-color palette (names and `#rrggbb` values) for `Catalog.textColors`; until supplied, a configuration cannot be completed in production once the text color is required. The ceramic color is resolved by D-041.
 - **P-03:** Frame dimensions and mounting constraints.
 - **P-04:** Production typography rules and text limits (max length, lines).
 - **P-05:** Export resolution, transparency, background, file naming.

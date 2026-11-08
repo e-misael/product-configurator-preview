@@ -27,8 +27,16 @@ describe('App shell', () => {
     expect(screen.queryByText(/demonstração/i)).not.toBeInTheDocument();
   });
 
+  it('states that the lettering palette is not defined, and offers no colors or second color', () => {
+    render(<App />);
+
+    expect(screen.getByText('As cores do texto ainda não foram definidas.')).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: /Segunda cor/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/sujeitas à análise da Taavi/)).toBeInTheDocument();
+  });
+
   it('handles an empty catalog', () => {
-    render(<App catalog={{ plates: [], frames: [] }} />);
+    render(<App catalog={{ plates: [], frames: [], textColors: [] }} />);
 
     expect(screen.getByText('Nenhum modelo disponível no momento.')).toBeInTheDocument();
     expect(screen.queryByRole('form')).not.toBeInTheDocument();

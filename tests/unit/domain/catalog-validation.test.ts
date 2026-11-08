@@ -42,7 +42,9 @@ describe('validateCatalog', () => {
     });
 
     it('accepts an empty catalog', () => {
-      expect(validateCatalog({ plates: [], frames: [] })).toEqual({ status: 'valid' });
+      expect(validateCatalog({ plates: [], frames: [], textColors: [] })).toEqual({
+        status: 'valid',
+      });
     });
 
     it('accepts the configuration-validation fixture catalog', () => {
@@ -273,6 +275,7 @@ describe('validateCatalog', () => {
     it('reports every issue in deterministic order', () => {
       const base = buildValidCatalog();
       const catalog: Catalog = {
+        textColors: [],
         plates: [
           {
             ...at(base.plates, 0),
@@ -507,6 +510,7 @@ describe('validateCatalog', () => {
     it('reports every issue across collections in deterministic order', () => {
       const base = buildValidCatalog();
       const catalog: Catalog = {
+        textColors: base.textColors,
         plates: [
           { ...at(base.plates, 0), ceramicColor: '' },
           { ...at(base.plates, 1), image: { image: { src: '' } } },
@@ -548,6 +552,60 @@ describe('validateCatalog', () => {
       validateCatalog(catalog);
 
       expect(catalog).toEqual(snapshot);
+    });
+  });
+});
+
+describe('validateCatalog: text colors (D-042)', () => {
+  const withColors = (textColors: Catalog['textColors']): Catalog => ({
+    ...buildValidCatalog(),
+    textColors,
+  });
+  const color = (patch: object = {}) => ({
+    id: 'test-text-color-x',
+    type: 'text-color' as const,
+    displayName: 'Test ink X',
+    hex: '#abcdef',
+    ...patch,
+  });
+
+  it('accepts a palette, and an empty one', () => {
+    expect(validateCatalog(withColors([color(), color({ id: 'test-text-color-y' })]))).toEqual({
+      status: 'valid',
+    });
+    expect(validateCatalog(withColors([]))).toEqual({ status: 'valid' });
+  });
+
+  it.each(['red', '#fff', '#12345g', '123456', '#1234567', ''])('rejects hex %j', (hex) => {
+    expectOnly(withColors([color({ hex })]), {
+      code: 'invalid-color',
+      path: 'textColors[0].hex',
+      id: 'test-text-color-x',
+    });
+  });
+
+  it('rejects a blank name', () => {
+    expectOnly(withColors([color({ displayName: '  ' })]), {
+      code: 'empty-label',
+      path: 'textColors[0].displayName',
+      id: 'test-text-color-x',
+    });
+  });
+
+  it('keeps IDs unique across plates, frames, and colors', () => {
+    expectOnly(withColors([color({ id: 'test-plate-a' })]), {
+      code: 'duplicate-id',
+      path: 'textColors[0].id',
+      id: 'test-plate-a',
+      relatedPath: 'plates[0].id',
+    });
+  });
+
+  it('rejects a malformed id', () => {
+    expectOnly(withColors([color({ id: 'Ink X' })]), {
+      code: 'invalid-id',
+      path: 'textColors[0].id',
+      id: 'Ink X',
     });
   });
 });

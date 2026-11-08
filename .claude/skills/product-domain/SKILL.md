@@ -16,6 +16,7 @@ Code of record: `src/domain/types.ts`, `src/domain/validation.ts`, `src/domain/c
 - A frame's `plateIds` may list only plates that support frames and whose shape is in the frame's shapes (`unreachable-compatibility`, D-022).
 - Each model has one fixed `shape` classification (D-023); `scalloped` is classification only (D-040). The model's `sizeLabel` is display text as supplied and `ceramicColor` is fixed and read-only (D-041). Frame support is the explicit `supportsFrame` capability (D-024): never test `shape === 'circle'` outside catalog integrity.
 - Configuration (`Configuration`) stores **IDs and raw user input only** — never copies of catalog objects.
+- Lettering colors are catalog data (`Catalog.textColors`); the production palette stays empty until Taavi supplies it (P-02). `textColorId` has no default; `secondaryRanges` are grapheme-safe UTF-16 offsets and formatting never changes the text (D-043).
 
 ## Never invent product information
 

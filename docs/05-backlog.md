@@ -135,7 +135,7 @@ Status: Planned (not started).
 
 ## M4.1 — Product models and advanced text
 
-Split into two independently testable slices (D-039). M4.1b is not started automatically.
+Split into independently testable slices (D-039); M4.1b is further split into M4.1b-1 and M4.1b-2 (D-043). No slice is started automatically.
 
 ### M4.1a — Product models and fixed properties
 
@@ -150,16 +150,31 @@ Status: **Done** (accepted 2026-11-08). Evidence: typecheck, lint, format check,
 - [x] Demo catalog mirrors the four models with synthetic images; `demo-quadro` is frame-capable only in the demo
 - [x] Unit, component, and Playwright tests updated; production smoke lists the four models with the photo pending
 
-### M4.1b — Advanced text customization
+### M4.1b-1 — Typography, lettering colors, styled ranges, disclaimer
+
+Status: **Implemented**, awaiting acceptance (D-043).
+
+- [x] Font family "Sem serifa" (default) / "Com serifa", provisional system font stacks (P-14)
+- [x] `Catalog.textColors` (`TextColor`: `id`, `displayName`, `hex`); integrity checks `empty-label`, `invalid-color`; IDs unique across all collections. Production palette empty (P-02); three labeled synthetic demo colors (`demo-letra-*`, isolation marker added)
+- [x] Required `textColorId` (no default); optional `secondaryColorId` (not equal to the primary) with `secondaryRanges`
+- [x] Selection + "Aplicar segunda cor à seleção" / "Remover segunda cor da seleção"; grapheme-safe ranges; deterministic caret-aware remap on edit, ambiguous edits remove the affected formatting with a notice
+- [x] Last range removed → second color kept; "Sem segunda cor" clears color and ranges
+- [x] Scene text block carries per-line colored segments from source offsets (soft wraps included); canvas draws mixed-color lines as consecutive runs; overflow warnings unchanged
+- [x] Handmade-product disclaimer (copy in D-042)
+- [x] Unit, component, and Playwright tests (lettering color and font pixels, second color on a keyboard selection, production palette message)
+
+### M4.1b-2 — Text positioning
 
 Status: **Planned** (design approved, D-042). Not started.
 
-- Font family: "Com serifa" / "Sem serifa" (default), provisional system font stacks; real typography pending (P-14).
-- Lettering color (required) and an optional second color applied to selected character ranges; ranges are grapheme-safe and follow the simplified edit policy (D-042). Needs the production lettering palette (P-02).
-- One position model: nine presets plus a normalized manual position inside the calibrated text area; drag with the pointer; touch drag only in an explicit "Mover texto" mode; keyboard arrows; "Redefinir posição"; position preserved across model changes within the new safe area.
-- Handmade-product disclaimer near the controls (copy in D-042).
-- Scene text block extended with colored segments; tests for ranges, positions, and rendering.
-- Future, not scheduled: per-line text-length limit (P-14). Recorded only; nothing enforces it.
+- Normalized `textLayout` model `{ align, x, y } | null` keeping line alignment separate from block position.
+- Nine presets (left/center/right × top/middle/bottom) plus a normalized manual position inside the calibrated text area.
+- Drag with the pointer without changing the line alignment; touch drag only in an explicit "Mover texto" mode; keyboard arrows (2%, 10% with Shift); "Redefinir posição".
+- Position preserved across model changes, constrained to the new model's safe area; overflow handling unchanged.
+
+### Future (not scheduled)
+
+- Per-line text-length limit (P-14). Recorded only; nothing enforces it and no limit is invented.
 
 ## M4 — Image export
 
@@ -168,7 +183,7 @@ Status: Planned (not implemented; plan not yet approved).
 - Confirm format, resolution, transparency, background, file naming (the filename no longer has color parts).
 - Export from the shared composition.
 - Preview/export consistency tests.
-- **Acceptance criterion (D-039):** once M4.1b exists, the preview and the exported image render the same font family, lettering colors (including secondary ranges), and text position from the same scene.
+- **Acceptance criterion (D-039):** the preview and the exported image render the same font family and lettering colors (including secondary ranges, implemented in M4.1b-1) and, once M4.1b-2 exists, the same text position, from the same scene (`buildScene` + `drawScene`).
 
 ## M5 — Quality and usability
 

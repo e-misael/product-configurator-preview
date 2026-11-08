@@ -11,6 +11,7 @@ Vocabulary: the customer-facing word for a product is **Modelo**; the code keeps
 | Type         | Values                                       | Notes                                                                                                                                                                                                       |
 | ------------ | -------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `PlateShape` | `square`, `rectangle`, `circle`, `scalloped` | Classification of the model, fixed per model (D-023, D-040). Implies no geometry or aspect ratio; `scalloped` (the wavy trays) is classification only. `circle` never supports frames (`FRAMELESS_SHAPES`). |
+| `FontFamily` | `serif`, `sans-serif`                        | "Com serifa" / "Sem serifa" (`FONT_FAMILIES`). Mapped to provisional system font stacks by the renderer; real typefaces pending (P-14, D-043).                                                              |
 
 ### `Dimensions`
 
@@ -94,27 +95,48 @@ The current production IDs are **provisional** until Taavi confirms them: `placa
 
 > Declared compatibility is a **necessary condition only**. Matching shapes is not proof of physical fit. Real dimensions and mounting constraints are required before production use. No current production model is declared to take a frame.
 
+### `TextColor` (`type: 'text-color'`)
+
+A lettering color offered for the text. Common component fields plus:
+
+| Field | Required | Notes                                                    |
+| ----- | -------- | -------------------------------------------------------- |
+| `hex` | yes      | `#rrggbb`, as supplied by Taavi. Never derived or tuned. |
+
+The production palette is empty until Taavi supplies it (P-02); the demo catalog has three clearly labeled synthetic colors (`demo-letra-*`).
+
+### `TextRange`
+
+`{ start, end }` — a half-open range of UTF-16 offsets into `Configuration.text`. Valid ranges (`areValidRanges`) are non-empty, inside the text, on grapheme boundaries (`Intl.Segmenter`), contain no `\r`/`\n`, and are sorted, non-overlapping, and non-adjacent (normalized). Helpers in [`src/domain/text-ranges.ts`](../src/domain/text-ranges.ts): `snapSelection`, `addRange`, `removeRange`, `normalizeRanges`, `remapRanges` (D-043).
+
 ### `Catalog`
 
-`{ plates, frames }` — readonly arrays, deep-frozen at runtime, obtained via `getCatalog()`. The only source of available components. Must pass `validateCatalog` (see [Catalog integrity rules](#catalog-integrity-rules)). The production catalog registers the four supplied models and no frames.
+`{ plates, frames, textColors }` — readonly arrays, deep-frozen at runtime, obtained via `getCatalog()`. The only source of available components. Must pass `validateCatalog` (see [Catalog integrity rules](#catalog-integrity-rules)). The production catalog registers the four supplied models, no frames, and no lettering colors.
 
 ### `Configuration`
 
-| Field     | Type             | Required | Notes                             |
-| --------- | ---------------- | -------- | --------------------------------- |
-| `plateId` | `string \| null` | yes      | References `Plate.id`.            |
-| `frameId` | `string \| null` | no       | `null` = explicit "no frame".     |
-| `text`    | `string`         | yes      | Raw, never trimmed or normalized. |
+| Field              | Type                   | Required | Notes                                          |
+| ------------------ | ---------------------- | -------- | ---------------------------------------------- |
+| `plateId`          | `string \| null`       | yes      | References `Plate.id`.                         |
+| `frameId`          | `string \| null`       | no       | `null` = explicit "no frame".                  |
+| `text`             | `string`               | yes      | Raw, never trimmed or normalized.              |
+| `fontFamily`       | `FontFamily`           | yes      | Default `sans-serif` ("Sem serifa").           |
+| `textColorId`      | `string \| null`       | yes      | References `TextColor.id`. No default (D-042). |
+| `secondaryColorId` | `string \| null`       | no       | Optional second lettering color.               |
+| `secondaryRanges`  | `readonly TextRange[]` | no       | Characters drawn in the second color.          |
 
 Serializable as plain JSON. Contains only IDs and user input — never copies of catalog objects. There is no `shape` and no color field: the shape is derived from the selected model (`getPlateShape`) and the ceramic color is a catalog property of the model. No customer configuration is persisted anywhere, so removing the former color fields needs no data migration.
 
-Planned (M4.1b, not implemented): font family, a lettering color and an optional second color with character ranges, and text position. See [05-backlog.md](05-backlog.md).
+Planned (M4.1b-2, not implemented): text position. See [05-backlog.md](05-backlog.md).
 
 ## Relationships
 
 ```text
 Configuration.plateId ──► Plate.id            (shape derived from Plate.shape)
 Configuration.frameId ──► Frame.id            (optional)
+Configuration.textColorId ──► TextColor.id
+Configuration.secondaryColorId ──► TextColor.id (optional)
+Configuration.secondaryRanges ──► offsets into Configuration.text
 Frame.compatibility.plateIds ──► Plate.id     (optional restriction)
 Frame.images[].plateId ──► Plate.id           (compatible models only)
 ```
@@ -131,16 +153,21 @@ Implemented in [`src/domain/validation.ts`](../src/domain/validation.ts) (D-005,
 
 Every field is evaluated. Each field reports **at most one issue**: the first failing rule in the order below. Later rules for the same field are not reported until the earlier issue is resolved.
 
-| Field     | Precedence (first failure wins)                                                                                                                                                                                                                                                                |
-| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `plateId` | 1. `null` → missing · 2. not in catalog → `unknown-reference` · 3. `available: false` → `unavailable`                                                                                                                                                                                          |
-| `frameId` | Optional (`null` = no frame). 1. not in catalog → `unknown-reference` · 2. unavailable → `unavailable` · 3. model has `supportsFrame: false` → `frame-not-supported` · 4. model's `shape` not in the frame's shapes → `incompatible-shape` · 5. model not in `plateIds` → `incompatible-plate` |
-| `text`    | 1. `''` → missing · 2. only whitespace/invisible characters → `blank`                                                                                                                                                                                                                          |
+| Field              | Precedence (first failure wins)                                                                                                                                                                                                                                                                |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plateId`          | 1. `null` → missing · 2. not in catalog → `unknown-reference` · 3. `available: false` → `unavailable`                                                                                                                                                                                          |
+| `frameId`          | Optional (`null` = no frame). 1. not in catalog → `unknown-reference` · 2. unavailable → `unavailable` · 3. model has `supportsFrame: false` → `frame-not-supported` · 4. model's `shape` not in the frame's shapes → `incompatible-shape` · 5. model not in `plateIds` → `incompatible-plate` |
+| `text`             | 1. `''` → missing · 2. only whitespace/invisible characters → `blank`                                                                                                                                                                                                                          |
+| `fontFamily`       | not `serif`/`sans-serif` → `unsupported-font`                                                                                                                                                                                                                                                  |
+| `textColorId`      | 1. `null` → missing · 2. not in catalog → `unknown-reference` · 3. unavailable → `unavailable`                                                                                                                                                                                                 |
+| `secondaryColorId` | Optional. 1. not in catalog → `unknown-reference` · 2. unavailable → `unavailable` · 3. same ID as `textColorId` → `same-as-primary`                                                                                                                                                           |
+| `secondaryRanges`  | Only when non-empty. 1. `secondaryColorId` is `null` → `ranges-without-color` · 2. not valid ranges for the text → `invalid-ranges`                                                                                                                                                            |
 
 Conditional rules:
 
 - Model-dependent rules (frame steps 3–5) run only when the model exists in the catalog. An unavailable model still runs them. When the model is missing or unknown, only that `plateId` issue is reported.
-- There is no color rule: the ceramic color is a fixed catalog property (D-041).
+- There is no ceramic color rule: the ceramic color is a fixed catalog property (D-041). The lettering color rules above concern the text only.
+- An empty `secondaryRanges` with a chosen `secondaryColorId` is valid: the color is kept when its last range is removed (D-043).
 
 ### Blank text
 
@@ -155,7 +182,7 @@ Implemented in [`src/domain/selection.ts`](../src/domain/selection.ts) (D-026).
 
 ### Result status
 
-Any invalid issue → `invalid`; otherwise any missing issue → `incomplete`; otherwise `valid`. Issues are listed in field order: `plateId`, `frameId`, `text`.
+Any invalid issue → `invalid`; otherwise any missing issue → `incomplete`; otherwise `valid`. Issues are listed in field order: `plateId`, `frameId`, `text`, `fontFamily`, `textColorId`, `secondaryColorId`, `secondaryRanges`.
 
 ## Catalog integrity rules
 
@@ -173,17 +200,18 @@ interface CatalogIssue {
 }
 ```
 
-Unlike configuration validation, **every** issue is reported. Order is deterministic: `plates`, then `frames`; within a component, fields in definition order. Array indices in paths are diagnostic only. Data is never repaired or filtered.
+Unlike configuration validation, **every** issue is reported. Order is deterministic: `plates`, then `frames`, then `textColors`; within a component, fields in definition order. Array indices in paths are diagnostic only. Data is never repaired or filtered.
 
 | Code                        | Rule violated                                                                                                                                                                                | Paths                                                                                                                             |
 | --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `invalid-id`                | ID must match `^[a-z0-9]+(?:-[a-z0-9]+)*$` (non-empty, lowercase kebab-case)                                                                                                                 | `<collection>[i].id`                                                                                                              |
-| `duplicate-id`              | IDs unique across plates and frames; reported at each repeat, `relatedPath` = first occurrence                                                                                               | `<collection>[i].id`                                                                                                              |
+| `duplicate-id`              | IDs unique across plates, frames, and text colors; reported at each repeat, `relatedPath` = first occurrence                                                                                 | `<collection>[i].id`                                                                                                              |
 | `duplicate-entry`           | No repeated value in a list; `relatedPath` = first occurrence                                                                                                                                | `compatibility.shapes`, `compatibility.plateIds`                                                                                  |
 | `unknown-reference`         | Referenced ID exists in the right collection                                                                                                                                                 | `frames[i].compatibility.plateIds[j]` → plates; `frames[i].images[j].plateId` → plates                                            |
 | `unreachable-compatibility` | Each model in a frame's `plateIds` (and each model with frame imagery) has `supportsFrame: true` and its `shape` is in the frame's `compatibility.shapes`; `relatedPath` = the model (D-022) | `frames[i].compatibility.plateIds[j]`, `frames[i].images[j].plateId`                                                              |
 | `empty-list`                | Required list is non-empty; `plateIds`, when present, is non-empty (omit it for "no restriction")                                                                                            | `compatibility.shapes`, `compatibility.plateIds`                                                                                  |
-| `empty-label`               | A model's `sizeLabel` and `ceramicColor` are non-blank strings (D-040, D-041)                                                                                                                | `plates[i].sizeLabel`, `plates[i].ceramicColor`                                                                                   |
+| `empty-label`               | A model's `sizeLabel` and `ceramicColor` are non-blank strings (D-040, D-041); a text color's `displayName` is non-blank                                                                     | `plates[i].sizeLabel`, `plates[i].ceramicColor`, `textColors[i].displayName`                                                      |
+| `invalid-color`             | A text color's `hex` is `#rrggbb` (D-043)                                                                                                                                                    | `textColors[i].hex`                                                                                                               |
 | `frame-capability-conflict` | A model whose shape is in `FRAMELESS_SHAPES` (`circle`) has `supportsFrame: false` (D-024)                                                                                                   | `plates[i].supportsFrame`                                                                                                         |
 | `unsupported-frame-shape`   | A frame's `compatibility.shapes` contains no shape in `FRAMELESS_SHAPES` (`circle`) (D-024)                                                                                                  | `frames[i].compatibility.shapes[j]`                                                                                               |
 | `invalid-dimension`         | Defined `widthMm` and `heightMm` are finite and > 0 (each reported separately)                                                                                                               | `plates[i].dimensions.widthMm` / `.heightMm`                                                                                      |

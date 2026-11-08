@@ -117,6 +117,42 @@ describe('drawScene', () => {
     }
   });
 
+  it('uses the chosen font family and primary color', () => {
+    const serif = paint({ fontFamily: 'serif', textColorId: 'test-text-color-a' }, 400);
+    const sans = paint({ fontFamily: 'sans-serif', textColorId: 'test-text-color-a' }, 400);
+    const fontOf = (ctx: FakeContext) => ctx.calls.find((call) => call.op === 'fillText');
+
+    expect(fontOf(serif.ctx)).toMatchObject({ fillStyle: '#112233' });
+    expect(fontOf(serif.ctx)?.font).toContain('Georgia');
+    expect(fontOf(sans.ctx)?.font).not.toContain('Georgia');
+  });
+
+  it('paints a mixed-color line as consecutive runs that add up to the same text', () => {
+    const { ctx } = paint(
+      {
+        text: 'abcd',
+        textColorId: 'test-text-color-a',
+        secondaryColorId: 'test-text-color-b',
+        secondaryRanges: [{ start: 1, end: 3 }],
+      },
+      400,
+    );
+    const runs = ctx.calls.filter((call) => call.op === 'fillText');
+
+    expect(runs.map((run) => [run.text, run.fillStyle])).toEqual([
+      ['a', '#112233'],
+      ['bc', '#aa2200'],
+      ['d', '#112233'],
+    ]);
+    expect(runs.every((run) => run.textAlign === 'left')).toBe(true);
+    // Runs are laid out left to right on one baseline with no gaps.
+    expect(runs[0]?.y).toBe(runs[1]?.y);
+    expect(runs[1]?.y).toBe(runs[2]?.y);
+    const [first, second, third] = runs.map((run) => run.x);
+    expect(first).toBeLessThan(second ?? 0);
+    expect(second).toBeLessThan(third ?? 0);
+  });
+
   it('draws the text unaltered, in the provisional color, without clipping', () => {
     const { ctx } = paint({ text: 'Ação 👩‍👩‍👧' }, 400);
 

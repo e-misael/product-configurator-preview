@@ -25,7 +25,7 @@ test.describe('Production build @smoke', () => {
     const group = page.getByRole('group', { name: 'Modelo' });
     await expect(group.getByRole('radio')).toHaveCount(MODELS.length);
     for (const name of MODELS) await expect(group.getByRole('radio', { name })).toBeVisible();
-    await expect(page.getByRole('group', { name: /Cor/ })).toHaveCount(0);
+    await expect(page.getByRole('group', { name: /Cor da/ })).toHaveCount(0);
     await expect(page.getByRole('group', { name: /Moldura/ })).toHaveCount(0);
 
     await group.getByRole('radio', { name: 'Placa cerâmica (10 cm x 10 cm)' }).check();
@@ -36,6 +36,18 @@ test.describe('Production build @smoke', () => {
 
     await expect(page.getByText(/demonstração/i)).toHaveCount(0);
     await expectNoHorizontalScroll(page);
+  });
+
+  test('defines no lettering colors yet and shows the disclaimer', async ({ page }) => {
+    await page.goto('/');
+
+    await expect(page.getByRole('group', { name: 'Fonte' })).toBeVisible();
+    await expect(page.getByText('As cores do texto ainda não foram definidas.')).toBeVisible();
+    await expect(page.getByRole('group', { name: 'Cor do texto' }).getByRole('radio')).toHaveCount(
+      0,
+    );
+    await expect(page.getByRole('group', { name: /Segunda cor/ })).toHaveCount(0);
+    await expect(page.getByText(/sujeitas à análise da Taavi/)).toBeVisible();
   });
 
   test('does not request demonstration chunks', async ({ page }) => {

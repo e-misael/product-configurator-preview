@@ -67,6 +67,10 @@ export const previewCatalog: Catalog = {
       dimensions: { status: 'pending' },
     },
   ],
+  textColors: [
+    { id: 'test-text-color-a', type: 'text-color', displayName: 'Test ink A', hex: '#112233' },
+    { id: 'test-text-color-b', type: 'text-color', displayName: 'Test ink B', hex: '#aa2200' },
+  ],
   frames: [
     {
       id: 'test-frame-any',
@@ -112,6 +116,10 @@ export function config(overrides: Partial<Configuration> = {}): Configuration {
     plateId: 'test-plate-square',
     frameId: null,
     text: 'Ana',
+    fontFamily: 'sans-serif',
+    textColorId: null,
+    secondaryColorId: null,
+    secondaryRanges: [],
     ...overrides,
   };
 }

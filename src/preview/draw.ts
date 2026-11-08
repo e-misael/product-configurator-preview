@@ -5,12 +5,15 @@
  * blending: each layer is the real image of its variation.
  */
 
+import type { FontFamily } from '../domain';
 import type { ImageSize, Scene } from './scene';
 import type { MeasureText } from './text-fit';
+import { FALLBACK_TEXT_COLOR, FONT_STACKS } from './text-style';
 
-/** Provisional typography (P-04, D-038): replace when the store defines it. */
-export const TEXT_FONT_FAMILY = 'system-ui, -apple-system, "Segoe UI", sans-serif';
-export const TEXT_COLOR = '#2b2b2b';
+/** Provisional typography (P-04, P-14, D-038, D-042): replace when the store defines it. */
+export const TEXT_FONT_FAMILY = FONT_STACKS['sans-serif'];
+/** Preview color while no lettering color is chosen; never a product color. */
+export const TEXT_COLOR = FALLBACK_TEXT_COLOR;
 
 /** Highest device pixel ratio the backing store is sized for. */
 export const MAX_PIXEL_RATIO = 3;
@@ -30,16 +33,16 @@ export function chooseBackingWidth(
   return Math.max(1, Math.min(Math.round(cssWidth * ratio), naturalWidth));
 }
 
-export function fontFor(fontSize: number): string {
-  return `${fontSize}px ${TEXT_FONT_FAMILY}`;
+export function fontFor(fontSize: number, family: FontFamily = 'sans-serif'): string {
+  return `${fontSize}px ${FONT_STACKS[family]}`;
 }
 
 /** Text measurer backed by an offscreen canvas; falls back to a rough estimate without one. */
-export function createTextMeasurer(): MeasureText {
+export function createTextMeasurer(family: FontFamily = 'sans-serif'): MeasureText {
   const ctx = document.createElement('canvas').getContext('2d');
   return (text, fontSize) => {
     if (ctx === null) return text.length * fontSize * 0.55;
-    ctx.font = fontFor(fontSize);
+    ctx.font = fontFor(fontSize, family);
     return ctx.measureText(text).width;
   };
 }
@@ -64,15 +67,32 @@ export function drawScene(
       ctx.drawImage(layer.image, x, y, width, height);
       continue;
     }
-    const { lines, fontSize, lineHeight, align, area } = layer.block;
-    ctx.font = fontFor(fontSize);
-    ctx.fillStyle = TEXT_COLOR;
-    ctx.textAlign = align;
+    const { lines, segments, fontFamily, fontSize, lineHeight, align, area } = layer.block;
+    ctx.font = fontFor(fontSize, fontFamily);
     ctx.textBaseline = 'middle';
     const x = area.x + area.width * TEXT_ANCHOR[align];
     const top = area.y + (area.height - lines.length * lineHeight) / 2;
     lines.forEach((line, index) => {
-      ctx.fillText(line, x, top + (index + 0.5) * lineHeight);
+      const y = top + (index + 0.5) * lineHeight;
+      const runs = segments[index] ?? [{ text: line, color: FALLBACK_TEXT_COLOR }];
+      const [only] = runs;
+      if (runs.length === 1 && only !== undefined) {
+        // One color: let the canvas align the whole line.
+        ctx.fillStyle = only.color;
+        ctx.textAlign = align;
+        ctx.fillText(line, x, y);
+        return;
+      }
+      // Mixed colors: lay the runs out left to right from the aligned start of the line.
+      const widths = runs.map((run) => ctx.measureText(run.text).width);
+      const total = widths.reduce((sum, width) => sum + width, 0);
+      let cursor = x - total * TEXT_ANCHOR[align];
+      ctx.textAlign = 'left';
+      runs.forEach((run, runIndex) => {
+        ctx.fillStyle = run.color;
+        ctx.fillText(run.text, cursor, y);
+        cursor += widths[runIndex] ?? 0;
+      });
     });
   }
 }

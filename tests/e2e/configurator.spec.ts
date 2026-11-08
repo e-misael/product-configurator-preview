@@ -4,6 +4,7 @@ import { expect, test, type Page } from '@playwright/test';
 
 const model = (page: Page, name: RegExp) =>
   page.getByRole('group', { name: 'Modelo' }).getByRole('radio', { name });
+const inks = (page: Page, name: string) => page.getByRole('group', { name });
 const frames = (page: Page) => page.getByRole('group', { name: 'Moldura (opcional)' });
 
 const CERAMIC_PLATE = /Placa cerâmica \(10 cm x 10 cm\)/;
@@ -23,13 +24,13 @@ test.beforeEach(async ({ page }) => {
   await expect(page.getByText(/Modo demonstração/)).toBeVisible();
 });
 
-test('lists the four models and no color choice', async ({ page }) => {
+test('lists the four models and no ceramic color choice', async ({ page }) => {
   const group = page.getByRole('group', { name: 'Modelo' });
   await expect(group.getByRole('radio')).toHaveCount(4);
   for (const name of [CERAMIC_PLATE, QUADRO, TRAY_8, TRAY_11]) {
     await expect(model(page, name)).toBeVisible();
   }
-  await expect(page.getByRole('group', { name: /Cor/ })).toHaveCount(0);
+  await expect(page.getByRole('group', { name: /Cor da/ })).toHaveCount(0);
   await expect(frames(page)).toHaveCount(0);
 });
 
@@ -41,6 +42,10 @@ test('completes a configuration @smoke', async ({ page }) => {
     .getByRole('radio', { name: /Moldura clara/ })
     .check();
   await page.getByLabel('Texto').fill('Casa da Ana\nDesde 2024');
+  await expect(page.getByText('Falta escolher: Cor do texto.')).toBeVisible();
+  await inks(page, 'Cor do texto')
+    .getByRole('radio', { name: /Letra grafite/ })
+    .check();
 
   await expect(page.getByText('Configuração completa.')).toBeVisible();
   const preview = page.getByRole('region', { name: 'Pré-visualização' });
@@ -48,6 +53,41 @@ test('completes a configuration @smoke', async ({ page }) => {
   await expect(preview).toContainText('Bege');
   await expect(preview.getByRole('img')).toBeVisible();
   await expectNoHorizontalScroll(page);
+});
+
+test('applies the second color to a keyboard selection without changing the text', async ({
+  page,
+}) => {
+  await model(page, CERAMIC_PLATE).check();
+  const field = page.getByLabel('Texto');
+  await field.fill('Casa da Ana');
+  await inks(page, 'Cor do texto')
+    .getByRole('radio', { name: /Letra grafite/ })
+    .check();
+  const secondary = inks(page, 'Segunda cor (opcional)');
+  await expect(secondary.getByRole('radio', { name: /Letra grafite/ })).toBeDisabled();
+  await secondary.getByRole('radio', { name: /Letra vinho/ }).check();
+
+  const apply = page.getByRole('button', { name: 'Aplicar segunda cor à seleção' });
+  await expect(apply).toBeDisabled();
+  await field.focus();
+  // Caret at the start (Home is not portable across platforms), then select by keyboard.
+  await field.evaluate((element) => (element as HTMLTextAreaElement).setSelectionRange(0, 0));
+  for (let i = 0; i < 4; i += 1) await field.press('Shift+ArrowRight');
+  await expect(apply).toBeEnabled();
+  await apply.click();
+
+  await expect(field).toHaveValue('Casa da Ana');
+  await expect(page.getByText('1 trecho com a segunda cor.')).toBeVisible();
+  await expect(page.getByText('Configuração completa.')).toBeVisible();
+
+  await secondary.getByRole('radio', { name: 'Sem segunda cor' }).check();
+  await expect(apply).toHaveCount(0);
+  await expectNoHorizontalScroll(page);
+});
+
+test('shows the handmade-product disclaimer', async ({ page }) => {
+  await expect(page.getByText(/sujeitas à análise da Taavi/)).toBeVisible();
 });
 
 test('switching to a frameless tray clears the frame and says so', async ({ page }) => {

@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import {
   findFrame,
+  findTextColor,
   type Catalog,
   type Configuration,
   type Plate,
@@ -21,6 +22,10 @@ interface PreviewPanelProps {
   readonly validation: ValidationResult;
 }
 
+function colorName(catalog: Catalog, id: string | null): string {
+  return id === null ? '—' : (findTextColor(catalog, id)?.displayName ?? id);
+}
+
 /**
  * Preview (FR-06, FR-08): composes the selection from the catalog's real
  * images on a canvas and says, in text, why anything is not shown. Missing,
@@ -28,11 +33,11 @@ interface PreviewPanelProps {
  * A text summary of the selection stays beside the canvas as its alternative.
  */
 export function PreviewPanel({ catalog, config, plate, validation }: PreviewPanelProps) {
-  const [measure] = useState(createTextMeasurer);
   const composition = useMemo(
     () => composePreview(catalog, config, validation),
     [catalog, config, validation],
   );
+  const measure = useMemo(() => createTextMeasurer(config.fontFamily), [config.fontFamily]);
   const images = useImages(compositionSources(composition));
   const scene = useMemo(
     () => buildScene(composition, images, measure),
@@ -75,6 +80,18 @@ export function PreviewPanel({ catalog, config, plate, validation }: PreviewPane
         <dd>{frameName}</dd>
         <dt>Cor da peça</dt>
         <dd>{plate?.ceramicColor ?? '—'}</dd>
+        <dt>Fonte</dt>
+        <dd>{config.fontFamily === 'serif' ? 'Com serifa' : 'Sem serifa'}</dd>
+        <dt>Cor do texto</dt>
+        <dd>{colorName(catalog, config.textColorId)}</dd>
+        <dt>Segunda cor</dt>
+        <dd>
+          {config.secondaryColorId === null
+            ? '—'
+            : `${colorName(catalog, config.secondaryColorId)} (${config.secondaryRanges.length} ${
+                config.secondaryRanges.length === 1 ? 'trecho' : 'trechos'
+              })`}
+        </dd>
         <dt>Texto</dt>
         <dd className="preview__text">{config.text === '' ? '—' : config.text}</dd>
       </dl>

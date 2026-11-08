@@ -78,9 +78,17 @@ Acceptance criteria:
 4. Line breaks are preserved.
 5. (Preview, M3) Multi-line, wrapping, alignment, long text, and overflow are handled without silent clipping.
 
-Typography, lettering color, and positioning controls are planned as M4.1b (D-042) and are not implemented.
+Typography and lettering colors (M4.1b-1, D-042, D-043):
 
-Status: UI (M2) for criteria 1–4; criterion 5 pending (M3).
+6. The font is "Sem serifa" (default) or "Com serifa"; the preview uses provisional system font stacks (P-14).
+7. A lettering color ("Cor do texto") must be chosen explicitly from the catalog palette; without one the configuration is _incomplete_. No production palette exists yet (P-02), and the UI says so.
+8. An optional second color ("Segunda cor (opcional)") is applied to the selected characters with "Aplicar segunda cor à seleção" and removed with "Remover segunda cor da seleção". Ranges never split a grapheme or include a line break; the text itself is never changed by formatting. A second color equal to the first is _invalid_ (`same-as-primary`) and is not offered.
+9. Editing the text moves the colored ranges with the edit, using the textarea caret when available; when the edit cannot be located the affected formatting is removed and a notice says so. Removing the last range keeps the chosen second color; only "Sem segunda cor" clears the color and its ranges.
+10. The handmade-product disclaimer is shown below the controls (copy in D-042).
+
+Text positioning (presets, dragging, keyboard, reset) is planned as M4.1b-2 and is not implemented.
+
+Status: UI (M2) for criteria 1–4; criterion 5 (M3.1); criteria 6–10 (M4.1b-1).
 
 ### FR-06 — Real-time preview
 
@@ -139,6 +147,7 @@ Status: Pending. M2: preview slot. M1.3a: catalog contract (image variations, fr
 
 ## Future ideas (not MVP)
 
-- Advanced text customization (font family, up to two lettering colors, positioning): planned as M4.1b, not implemented (D-042).
+- Text positioning (nine presets, dragging, keyboard, reset): planned as M4.1b-2, not implemented (D-042). Font family and lettering colors are implemented (M4.1b-1).
+- Per-line text-length limit: future rule, no limit defined (P-14).
 - Handmade-product disclaimer near the controls (copy in D-042) and a per-line text-length limit: planned, not implemented.
 - Nuvemshop integration, pricing, and order workflows.

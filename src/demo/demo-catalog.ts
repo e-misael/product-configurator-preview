@@ -107,6 +107,27 @@ export const demoCatalog: Catalog = deepFreeze({
       text: SCALLOPED_TEXT,
     }),
   ],
+  // Synthetic lettering palette for development only: not Taavi's colors (P-02).
+  textColors: [
+    {
+      id: 'demo-letra-grafite',
+      type: 'text-color',
+      displayName: '(demonstração) Letra grafite',
+      hex: '#2b2b2b',
+    },
+    {
+      id: 'demo-letra-azul',
+      type: 'text-color',
+      displayName: '(demonstração) Letra azul',
+      hex: '#1f4e8c',
+    },
+    {
+      id: 'demo-letra-vinho',
+      type: 'text-color',
+      displayName: '(demonstração) Letra vinho',
+      hex: '#8c1f3d',
+    },
+  ],
   frames: [
     {
       id: 'demo-moldura-clara',

@@ -1,10 +1,16 @@
-import type { Catalog, Frame, Plate } from '../../../src/domain';
+import type { Catalog, Frame, Plate, TextColor } from '../../../src/domain';
 
 /**
  * Test-only synthetic catalog for integrity tests. Values (including the
  * 100 mm dimensions) are deliberately fake and must never be used as real
  * product data. Returns a fresh mutable copy on every call.
  */
+/** Fake lettering palette for tests; never product data. */
+export const TEST_TEXT_COLORS: readonly TextColor[] = [
+  { id: 'test-text-color-a', type: 'text-color', displayName: 'Test ink A', hex: '#112233' },
+  { id: 'test-text-color-b', type: 'text-color', displayName: 'Test ink B', hex: '#aa2200' },
+];
+
 export function buildValidCatalog(): Catalog {
   const plates: Plate[] = [
     {
@@ -52,7 +58,7 @@ export function buildValidCatalog(): Catalog {
       compatibility: { shapes: ['square'], plateIds: ['test-plate-a'] },
     },
   ];
-  return { plates, frames };
+  return { plates, frames, textColors: TEST_TEXT_COLORS.map((color) => ({ ...color })) };
 }
 
 /**
@@ -66,6 +72,7 @@ export function buildImageCatalog(): Catalog {
   const [frameAny, ...frames] = catalog.frames;
   if (!plateA || !frameAny) throw new Error('Unexpected fixture shape');
   return {
+    textColors: catalog.textColors,
     plates: [
       {
         ...plateA,

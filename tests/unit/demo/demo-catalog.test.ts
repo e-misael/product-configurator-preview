@@ -1,7 +1,7 @@
 import { validateCatalog, type AssetRef, type Catalog } from '../../../src/domain';
 import { demoCatalog } from '../../../src/demo/demo-catalog';
 
-const entries = [...demoCatalog.plates, ...demoCatalog.frames];
+const entries = [...demoCatalog.plates, ...demoCatalog.frames, ...demoCatalog.textColors];
 
 describe('demo catalog (D-028)', () => {
   it('passes catalog validation', () => {
@@ -37,6 +37,14 @@ describe('demo catalog (D-028)', () => {
       ['~ 8 cm', 'scalloped'],
       ['~ 11 cm', 'scalloped'],
     ]);
+  });
+
+  it('offers at least two labeled lettering colors, so a secondary color can differ', () => {
+    expect(demoCatalog.textColors.length).toBeGreaterThanOrEqual(2);
+    for (const color of demoCatalog.textColors) {
+      expect(color.id.startsWith('demo-letra')).toBe(true);
+      expect(color.hex).toMatch(/^#[0-9a-f]{6}$/i);
+    }
   });
 
   it('covers frameless scalloped trays and a frame restricted to one model', () => {

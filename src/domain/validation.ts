@@ -8,12 +8,15 @@
  * selection; any such behavior must be explicit and live elsewhere.
  */
 
+import { FONT_FAMILIES } from './types';
+import { areValidRanges } from './text-ranges';
 import type {
   Catalog,
   Configuration,
   Frame,
   Plate,
   PlateShape,
+  TextColor,
   ValidationIssue,
   ValidationResult,
 } from './types';
@@ -23,6 +26,10 @@ export function createEmptyConfiguration(): Configuration {
     plateId: null,
     frameId: null,
     text: '',
+    fontFamily: 'sans-serif',
+    textColorId: null,
+    secondaryColorId: null,
+    secondaryRanges: [],
   };
 }
 
@@ -32,6 +39,10 @@ export function findPlate(catalog: Catalog, id: string): Plate | undefined {
 
 export function findFrame(catalog: Catalog, id: string): Frame | undefined {
   return catalog.frames.find((frame) => frame.id === id);
+}
+
+export function findTextColor(catalog: Catalog, id: string): TextColor | undefined {
+  return catalog.textColors.find((color) => color.id === id);
 }
 
 export function isAvailable(component: { readonly available?: boolean }): boolean {
@@ -107,6 +118,42 @@ export function validateConfiguration(config: Configuration, catalog: Catalog): 
     issues.push({ kind: 'missing', field: 'text' });
   } else if (isBlankText(config.text)) {
     issues.push({ kind: 'invalid', field: 'text', code: 'blank' });
+  }
+
+  // Font family: typed, but runtime data may carry anything.
+  if (!FONT_FAMILIES.includes(config.fontFamily)) {
+    issues.push({ kind: 'invalid', field: 'fontFamily', code: 'unsupported-font' });
+  }
+
+  // Lettering colors come from the catalog palette (D-042); there is no default.
+  if (config.textColorId === null) {
+    issues.push({ kind: 'missing', field: 'textColorId' });
+  } else {
+    const color = findTextColor(catalog, config.textColorId);
+    if (color === undefined) {
+      issues.push({ kind: 'invalid', field: 'textColorId', code: 'unknown-reference' });
+    } else if (!isAvailable(color)) {
+      issues.push({ kind: 'invalid', field: 'textColorId', code: 'unavailable' });
+    }
+  }
+
+  if (config.secondaryColorId !== null) {
+    const color = findTextColor(catalog, config.secondaryColorId);
+    if (color === undefined) {
+      issues.push({ kind: 'invalid', field: 'secondaryColorId', code: 'unknown-reference' });
+    } else if (!isAvailable(color)) {
+      issues.push({ kind: 'invalid', field: 'secondaryColorId', code: 'unavailable' });
+    } else if (config.secondaryColorId === config.textColorId) {
+      issues.push({ kind: 'invalid', field: 'secondaryColorId', code: 'same-as-primary' });
+    }
+  }
+
+  if (config.secondaryRanges.length > 0) {
+    if (config.secondaryColorId === null) {
+      issues.push({ kind: 'invalid', field: 'secondaryRanges', code: 'ranges-without-color' });
+    } else if (!areValidRanges(config.text, config.secondaryRanges)) {
+      issues.push({ kind: 'invalid', field: 'secondaryRanges', code: 'invalid-ranges' });
+    }
   }
 
   if (issues.some((issue) => issue.kind === 'invalid')) {

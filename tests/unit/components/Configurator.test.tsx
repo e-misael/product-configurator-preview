@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/App';
 import { testCatalog } from '../domain/fixtures';
@@ -44,7 +44,7 @@ describe('Configurator', () => {
       expect(within(group('Modelo')).getByText(/Cor da peça:/)).toHaveTextContent(
         'Cor da peça: Test beige',
       );
-      expect(screen.queryByRole('group', { name: /Cor/ })).not.toBeInTheDocument();
+      expect(screen.queryByRole('group', { name: /Cor da/ })).not.toBeInTheDocument();
       expect(screen.queryByText(/Formato/)).not.toBeInTheDocument();
     });
   });
@@ -188,16 +188,137 @@ describe('Configurator', () => {
     });
   });
 
+  describe('Fonte e cores do texto', () => {
+    const ink = (name: string) =>
+      within(group('Cor do texto')).getByRole('radio', { name: `Test ${name}` });
+    const secondary = (name: string) =>
+      within(group('Segunda cor (opcional)')).getByRole('radio', { name });
+    const select = (start: number, end: number) => {
+      const field = screen.getByLabelText<HTMLTextAreaElement>('Texto');
+      field.setSelectionRange(start, end);
+      fireEvent.select(field);
+    };
+    const apply = () => screen.getByRole('button', { name: 'Aplicar segunda cor à seleção' });
+    const remove = () => screen.getByRole('button', { name: 'Remover segunda cor da seleção' });
+
+    it('offers a font choice that defaults to sans-serif', async () => {
+      const { user } = setup();
+      const font = within(group('Fonte'));
+
+      expect(font.getByRole('radio', { name: 'Sem serifa' })).toBeChecked();
+      await user.click(font.getByRole('radio', { name: 'Com serifa' }));
+
+      expect(font.getByRole('radio', { name: 'Com serifa' })).toBeChecked();
+      expect(within(preview()).getByText('Com serifa')).toBeInTheDocument();
+    });
+
+    it('requires an explicit primary color: none is preselected', () => {
+      setup();
+
+      const radios = within(group('Cor do texto')).getAllByRole('radio');
+      expect(radios.length).toBeGreaterThan(0);
+      for (const radio of radios) expect(radio).not.toBeChecked();
+    });
+
+    it('applies the second color only to the selection, keeping the text unchanged', async () => {
+      const { user } = setup();
+      await user.type(screen.getByLabelText('Texto'), 'Casa da Ana');
+      await user.click(ink('ink A'));
+      expect(screen.queryByRole('button', { name: /segunda cor à seleção/ })).toBeNull();
+
+      await user.click(secondary('Test ink B'));
+      expect(apply()).toBeDisabled();
+      expect(screen.getByText('Nenhum trecho com a segunda cor.')).toBeInTheDocument();
+
+      select(0, 4);
+      expect(apply()).toBeEnabled();
+      await user.click(apply());
+
+      expect(screen.getByLabelText('Texto')).toHaveValue('Casa da Ana');
+      expect(screen.getByText('1 trecho com a segunda cor.')).toBeInTheDocument();
+      expect(within(preview()).getByText(/1 trecho/)).toBeInTheDocument();
+    });
+
+    it('removes the second color from a selection but keeps the chosen color', async () => {
+      const { user } = setup();
+      await user.type(screen.getByLabelText('Texto'), 'Casa');
+      await user.click(ink('ink A'));
+      await user.click(secondary('Test ink B'));
+      select(0, 4);
+      await user.click(apply());
+      expect(remove()).toBeEnabled();
+
+      select(0, 4);
+      await user.click(remove());
+
+      expect(screen.getByText('Nenhum trecho com a segunda cor.')).toBeInTheDocument();
+      expect(secondary('Test ink B')).toBeChecked();
+    });
+
+    it('disables the secondary option equal to the primary color', async () => {
+      const { user } = setup();
+      await user.click(ink('ink A'));
+
+      expect(secondary('Test ink A')).toBeDisabled();
+      expect(secondary('Test ink B')).toBeEnabled();
+    });
+
+    it('clears the color and its trechos with "Sem segunda cor"', async () => {
+      const { user } = setup();
+      await user.type(screen.getByLabelText('Texto'), 'Casa');
+      await user.click(ink('ink A'));
+      await user.click(secondary('Test ink B'));
+      select(1, 3);
+      await user.click(apply());
+
+      await user.click(secondary('Sem segunda cor'));
+
+      expect(secondary('Sem segunda cor')).toBeChecked();
+      expect(screen.queryByRole('button', { name: /segunda cor à seleção/ })).toBeNull();
+    });
+
+    it('keeps the trecho on the same characters when the text is edited', async () => {
+      const { user } = setup();
+      const field = screen.getByLabelText<HTMLTextAreaElement>('Texto');
+      await user.type(field, 'aaaa');
+      await user.click(ink('ink A'));
+      await user.click(secondary('Test ink B'));
+      select(0, 4);
+      await user.click(apply());
+
+      // The caret after the edit locates it: the last character was deleted.
+      // (Ambiguous edits without usable caret data are covered in the hook tests.)
+      fireEvent.change(field, { target: { value: 'aaa' } });
+
+      expect(field).toHaveValue('aaa');
+      expect(screen.getByText('1 trecho com a segunda cor.')).toBeInTheDocument();
+      expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    });
+
+    it('shows the handmade-product disclaimer', () => {
+      setup();
+
+      expect(
+        screen.getByText(
+          'Todas as solicitações de personalização estão sujeitas à análise da Taavi. Como nossas peças são produzidas artesanalmente, podem apresentar pequenas variações de formato, cor, acabamento e posicionamento em relação à pré-visualização.',
+        ),
+      ).toBeInTheDocument();
+    });
+  });
+
   describe('status and preview', () => {
     it('lists missing fields, then reports completion', async () => {
       const { user } = setup();
 
-      expect(status()).toHaveTextContent('Falta escolher: Modelo, Texto.');
+      expect(status()).toHaveTextContent('Falta escolher: Modelo, Texto, Cor do texto.');
 
       await user.click(plateRadio('test-plate-square'));
-      expect(status()).toHaveTextContent('Falta escolher: Texto.');
+      expect(status()).toHaveTextContent('Falta escolher: Texto, Cor do texto.');
 
       await user.type(screen.getByLabelText('Texto'), 'Ana');
+      expect(status()).toHaveTextContent('Falta escolher: Cor do texto.');
+
+      await user.click(within(group('Cor do texto')).getByRole('radio', { name: 'Test ink A' }));
       expect(status()).toHaveTextContent('Configuração completa.');
     });
 

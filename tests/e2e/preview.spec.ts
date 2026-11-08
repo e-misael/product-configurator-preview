@@ -98,6 +98,42 @@ async function textRuns(page: Page): Promise<{ runs: number; left: number; right
   });
 }
 
+/** Text-area pixels within `tolerance` of `rgb`, or the dark-pixel signature when `rgb` is omitted. */
+async function textPixels(page: Page, rgb?: readonly [number, number, number], tolerance = 12) {
+  return canvas(page).evaluate(
+    (element, [target, tol]) => {
+      if (!(element instanceof HTMLCanvasElement)) throw new Error('Not a canvas');
+      const ctx = element.getContext('2d');
+      if (!ctx) throw new Error('No 2D context');
+      const x0 = Math.ceil(0.2 * element.width);
+      const y0 = Math.ceil(0.3 * element.height);
+      const w = Math.floor(0.6 * element.width);
+      const h = Math.floor(0.4 * element.height);
+      const { data } = ctx.getImageData(x0, y0, w, h);
+      let count = 0;
+      let signature = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        const [r, g, b] = [data[i] ?? 0, data[i + 1] ?? 0, data[i + 2] ?? 0];
+        if (target) {
+          const t = target as readonly number[];
+          if (
+            Math.abs(r - (t[0] ?? 0)) <= (tol as number) &&
+            Math.abs(g - (t[1] ?? 0)) <= (tol as number) &&
+            Math.abs(b - (t[2] ?? 0)) <= (tol as number)
+          ) {
+            count += 1;
+          }
+        } else if (r < 110) {
+          count += 1;
+          signature = (signature * 31 + i) % 1_000_000_007;
+        }
+      }
+      return target ? count : signature;
+    },
+    [rgb ?? null, tolerance] as const,
+  );
+}
+
 async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(
     () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
@@ -232,6 +268,51 @@ test.describe('personalized text', () => {
     expect(left).toBeGreaterThanOrEqual(0.2);
     expect(right).toBeLessThanOrEqual(0.8);
     expect((left + right) / 2).toBeCloseTo(0.5, 1);
+  });
+
+  test('paints the chosen lettering color and font', async ({ page }) => {
+    await model(page, CERAMIC_PLATE).check();
+    await page.getByLabel('Texto').fill('HHH');
+    const BLUE = [0x1f, 0x4e, 0x8c] as const;
+    await expect.poll(() => textPixels(page, BLUE)).toBe(0);
+
+    await page
+      .getByRole('group', { name: 'Cor do texto' })
+      .getByRole('radio', { name: /Letra azul/ })
+      .check();
+    await expect.poll(() => textPixels(page, BLUE)).toBeGreaterThan(20);
+
+    const sans = await textPixels(page);
+    await page
+      .getByRole('group', { name: 'Fonte' })
+      .getByRole('radio', { name: 'Com serifa' })
+      .check();
+    await expect.poll(() => textPixels(page)).not.toBe(sans);
+  });
+
+  test('paints the selected characters in the second color', async ({ page }) => {
+    await model(page, CERAMIC_PLATE).check();
+    const field = page.getByLabel('Texto');
+    await field.fill('HHHH');
+    await page
+      .getByRole('group', { name: 'Cor do texto' })
+      .getByRole('radio', { name: /Letra azul/ })
+      .check();
+    await page
+      .getByRole('group', { name: 'Segunda cor (opcional)' })
+      .getByRole('radio', { name: /Letra vinho/ })
+      .check();
+    const WINE = [0x8c, 0x1f, 0x3d] as const;
+    const BLUE = [0x1f, 0x4e, 0x8c] as const;
+    await expect.poll(() => textPixels(page, WINE)).toBe(0);
+
+    await field.focus();
+    await field.press('End');
+    for (let i = 0; i < 2; i += 1) await field.press('Shift+ArrowLeft');
+    await page.getByRole('button', { name: 'Aplicar segunda cor à seleção' }).click();
+
+    await expect.poll(() => textPixels(page, WINE)).toBeGreaterThan(20);
+    expect(await textPixels(page, BLUE)).toBeGreaterThan(20);
   });
 
   test('moves with the plate when a frame is added', async ({ page }) => {

@@ -1,4 +1,5 @@
 import { composePreview } from '../../../src/preview/composition';
+import { FALLBACK_TEXT_COLOR } from '../../../src/preview/text-style';
 import {
   ASPECT_TOLERANCE,
   buildScene,
@@ -271,6 +272,41 @@ describe('buildScene: text', () => {
 
   it('carries the catalog alignment', () => {
     expect(textBlock(sceneFor()).align).toBe('center');
+  });
+
+  it('carries the font family and falls back to a neutral color when none is chosen', () => {
+    const block = textBlock(sceneFor({ fontFamily: 'serif' }));
+
+    expect(block.fontFamily).toBe('serif');
+    expect(block.segments).toEqual([[{ text: 'Ana', color: FALLBACK_TEXT_COLOR }]]);
+  });
+
+  it('colors the segments of each line from the source offsets, across line breaks', () => {
+    const block = textBlock(
+      sceneFor({
+        text: 'Casa\nda Ana',
+        textColorId: 'test-text-color-a',
+        secondaryColorId: 'test-text-color-b',
+        // "sa" on the first line and "An" on the second.
+        secondaryRanges: [
+          { start: 2, end: 4 },
+          { start: 8, end: 10 },
+        ],
+      }),
+    );
+
+    expect(block.segments).toEqual([
+      [
+        { text: 'Ca', color: '#112233' },
+        { text: 'sa', color: '#aa2200' },
+      ],
+      [
+        { text: 'da ', color: '#112233' },
+        { text: 'An', color: '#aa2200' },
+        { text: 'a', color: '#112233' },
+      ],
+    ]);
+    expect(block.segments.map((line) => line.map((s) => s.text).join(''))).toEqual(block.lines);
   });
 
   it('warns, without truncating, when the text cannot fit', () => {

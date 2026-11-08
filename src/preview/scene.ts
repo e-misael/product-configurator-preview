@@ -11,6 +11,8 @@
 import type { NormalizedBox } from '../domain';
 import type { Composition, FrameLayer, PlateLayer, PreviewNoticeCode } from './composition';
 import { fitText, type MeasureText } from './text-fit';
+import { FALLBACK_TEXT_COLOR, segmentLine, type TextSegment, type TextStyle } from './text-style';
+import type { FontFamily } from '../domain';
 
 export interface Rect {
   readonly x: number;
@@ -34,6 +36,9 @@ export type ImageRole = 'frame-back' | 'plate' | 'frame-front';
 
 export interface TextBlock {
   readonly lines: readonly string[];
+  /** Per line, the single-color runs to draw (parallel to `lines`); colors follow source offsets. */
+  readonly segments: readonly (readonly TextSegment[])[];
+  readonly fontFamily: FontFamily;
   readonly fontSize: number;
   readonly lineHeight: number;
   readonly align: 'left' | 'center' | 'right';
@@ -205,10 +210,17 @@ function assemble<I extends ImageSize>(
     const area = scaleBox(text.area, plateRect.width, plateRect.height, plateRect);
     const fit = fitText(text.text, area, measure);
     if (fit.overflow) notices.push('text-overflow');
+    const style: TextStyle = {
+      fontFamily: text.fontFamily,
+      primaryColor: text.primaryColor ?? FALLBACK_TEXT_COLOR,
+      secondary: text.secondary,
+    };
     layers.push({
       kind: 'text',
       block: {
         lines: fit.lines,
+        segments: fit.lines.map((line, index) => segmentLine(line, fit.starts[index] ?? 0, style)),
+        fontFamily: text.fontFamily,
         fontSize: fit.fontSize,
         lineHeight: fit.lineHeight,
         align: text.align,

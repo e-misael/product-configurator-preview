@@ -92,7 +92,7 @@ Directories are created only when their increment needs them.
 
 ## User interface (M2)
 
-- `src/components/configurator/`: one fieldset per field (Modelo, Moldura (opcional), Texto) built from native radios and a textarea, plus a status summary. The Moldura fieldset is hidden when the model takes no frame, and the fixed "Cor da peça" is shown as read-only text inside Modelo. Controls are generated from catalog data and domain helpers; pt-BR labels and messages live in `messages.ts`.
+- `src/components/configurator/`: one fieldset per field (Modelo, Moldura (opcional), Texto, Fonte, Cor do texto, Segunda cor (opcional)) built from native radios and a textarea, plus a status summary. The Moldura fieldset is hidden when the model takes no frame, and the fixed "Cor da peça" is shown as read-only text inside Modelo. Controls are generated from catalog data and domain helpers; pt-BR labels and messages live in `messages.ts`.
 - Message placement (D-029): invalid issues next to their field; missing fields in the summary.
 - Kept-but-invalid selections stay visible with remove/replace actions (D-030).
 - `src/components/preview/PreviewPanel.tsx`: the preview slot. In M2 it shows a labeled placeholder and a text summary; M3 replaces its content with the composed real-image renderer.
@@ -163,7 +163,7 @@ Configuration + validation + catalog
 - **When positioning data is pending:** a frame without `platePlacement` is not drawn (the plate is shown alone, with a message); a plate without `text.area` gets no text on the image (a message says so; the entered text stays in the configuration and the summary); a plate without `objectBounds` is fitted by its whole photograph, which is only correct for tightly cropped images. No values are ever guessed.
 - **Missing and broken images (D-037):** `composePreview` reports catalog-pending states; `useImages` and `buildScene` report loading and load failures. They are shown as distinct messages (`components/preview/messages.ts`, `aria-live="polite"`). Nothing is drawn until every needed file has settled, and nothing is substituted.
 - **Resolution:** the canvas CSS width follows its container; the backing store is `displayed width × devicePixelRatio` (clamped to 1–3), capped at the base image's width. Aspect ratio comes from the images, never stretched.
-- **Text (D-038):** provisional fitting in `src/preview/text-fit.ts`; no stamped or raised effect. Typography is pending (P-04).
+- **Text (D-038):** provisional fitting in `src/preview/text-fit.ts`; no stamped or raised effect. Wrapped lines keep their source offsets, so `src/preview/text-style.ts` splits each line into colored segments from the secondary ranges (D-043); single-color lines are drawn aligned as before, mixed-color lines as consecutive runs. The font family maps to provisional system stacks (P-14); a neutral fallback color is used until a lettering color is chosen.
 - **Accessibility:** the canvas has `role="img"`, a name from the images' `alt`, and is described by the text summary of the selection beside it.
 - **Masking:** circular and irregular outlines come from the image's own transparency; a bounding box cannot describe them. Whether a separate mask is needed is an M3.2 decision with real photographs.
 - **Demo images:** served only in demo mode from `src/demo/public/` (D-036).

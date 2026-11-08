@@ -2,7 +2,7 @@
 
 Visual configurator for Taavi's handmade ceramics. Customers choose a model (Placa cerâmica, Quadro, or Bandeja ondulada M in two sizes), an optional frame (Moldura) where a model takes one, and custom text, see a live preview, and export an image. The ceramic color is fixed per model (Bege) and shown read-only.
 
-> **Status:** M4.1a — Product models. The four supplied models are registered in the production catalog (IDs provisional, no photographs or measurements yet, so the preview says the photo is pending). The configuration form, validation feedback, and a Canvas preview that composes catalog images work, verified with synthetic demo images only; use demo mode to try the full workflow. Advanced text options (M4.1b) and PNG export (M4) are not implemented. See [docs/05-backlog.md](docs/05-backlog.md).
+> **Status:** M4.1b-1 — Typography and lettering colors. The four supplied models are registered in the production catalog (IDs provisional, no photographs or measurements yet, so the preview says the photo is pending). The text has a font choice, a required lettering color, and an optional second color for selected characters; the production lettering palette is not supplied yet, so a production configuration cannot be completed. The configuration form, validation feedback, and a Canvas preview that composes catalog images work, verified with synthetic demo images only; use demo mode to try the full workflow. Text positioning (M4.1b-2) and PNG export (M4) are not implemented. See [docs/05-backlog.md](docs/05-backlog.md).
 
 ## Requirements
 

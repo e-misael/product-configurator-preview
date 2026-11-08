@@ -1,6 +1,6 @@
 import type { ValidationResult } from '../../domain';
 import type { Notice } from '../../hooks/useConfiguration';
-import { FIELD_LABELS, FRAME_CLEARED_NOTICE } from './messages';
+import { FIELD_LABELS, FORMATTING_REMOVED_NOTICE, FRAME_CLEARED_NOTICE } from './messages';
 
 interface ConfigurationStatusProps {
   readonly validation: ValidationResult;
@@ -25,7 +25,8 @@ export function ConfigurationStatus({ validation, notice }: ConfigurationStatusP
     <section className="status" aria-label="Situação da configuração">
       {/* Always rendered so assistive technology announces changes. */}
       <p className="status__notice" role="status">
-        {notice === 'frame-cleared' ? FRAME_CLEARED_NOTICE : ''}
+        {notice === 'frame-cleared' && FRAME_CLEARED_NOTICE}
+        {notice === 'formatting-removed' && FORMATTING_REMOVED_NOTICE}
       </p>
       <p className={`status__summary status__summary--${validation.status}`}>{summary}</p>
     </section>

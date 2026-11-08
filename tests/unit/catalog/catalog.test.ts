@@ -25,6 +25,10 @@ describe('production catalog', () => {
     expect(frames).toEqual([]);
   });
 
+  it('invents no lettering colors: the palette stays empty until Taavi supplies it', () => {
+    expect(getCatalog().textColors).toEqual([]);
+  });
+
   it('invents no dimensions, images, or frame support; every model is Bege', () => {
     for (const plate of getCatalog().plates) {
       expect(plate.dimensions).toEqual({ status: 'pending' });

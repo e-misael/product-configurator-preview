@@ -57,4 +57,6 @@ export const catalogData: Catalog = {
     },
   ],
   frames: [],
+  // The approved lettering palette has not been supplied (P-02); nothing is invented.
+  textColors: [],
 };

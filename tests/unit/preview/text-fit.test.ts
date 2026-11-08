@@ -1,4 +1,10 @@
-import { fitText, MIN_FONT_RATIO, START_FONT_RATIO, wrapText } from '../../../src/preview/text-fit';
+import {
+  fitText,
+  MIN_FONT_RATIO,
+  START_FONT_RATIO,
+  wrapText,
+  wrapTextWithOffsets,
+} from '../../../src/preview/text-fit';
 
 /** Each code point is half a font size wide. */
 const measure = (text: string, size: number) => [...text].length * size * 0.5;
@@ -87,5 +93,50 @@ describe('fitText', () => {
     const text = '  a\nb ';
     fitText(text, area(100, 100), measure);
     expect(text).toBe('  a\nb ');
+  });
+});
+
+describe('wrapTextWithOffsets', () => {
+  /** Every line must be the exact substring of the source found at its offset. */
+  const expectOffsets = (text: string, maxWidth: number) => {
+    const lines = wrapTextWithOffsets(text, maxWidth, widthAt10);
+    for (const line of lines) {
+      expect(text.slice(line.start, line.start + line.text.length)).toBe(line.text);
+    }
+    return lines;
+  };
+
+  it('reports where each line starts in the source text', () => {
+    expect(expectOffsets('casa da Ana Maria', 40).map((line) => line.start)).toEqual([0, 8, 12]);
+  });
+
+  it('handles explicit breaks, including empty lines and CRLF', () => {
+    const lines = expectOffsets('a\n\nb\r\nc\rd', 1000);
+    expect(lines.map((line) => [line.text, line.start])).toEqual([
+      ['a', 0],
+      ['', 2],
+      ['b', 3],
+      ['c', 6],
+      ['d', 8],
+    ]);
+  });
+
+  it('keeps offsets for words split between characters and for leading spaces', () => {
+    expect(expectOffsets('abcdefghij', 20).map((line) => line.start)).toEqual([0, 4, 8]);
+    expectOffsets('  ab  cd', 1000);
+    expectOffsets('é 👩‍👩‍👧 ação', 30);
+  });
+
+  it('wraps exactly like wrapText', () => {
+    const text = 'um dois três\nquatro cinco seis sete';
+    expect(wrapTextWithOffsets(text, 50, widthAt10).map((line) => line.text)).toEqual(
+      wrapText(text, 50, widthAt10),
+    );
+  });
+
+  it('exposes the offsets through fitText', () => {
+    const fit = fitText('Casa\nda Ana', area(1000, 400), measure);
+    expect(fit.lines).toEqual(['Casa', 'da Ana']);
+    expect(fit.starts).toEqual([0, 5]);
   });
 });

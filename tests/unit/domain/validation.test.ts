@@ -46,6 +46,7 @@ describe('validateConfiguration', () => {
       expect(issuesOf(result)).toEqual([
         { kind: 'missing', field: 'plateId' },
         { kind: 'missing', field: 'text' },
+        { kind: 'missing', field: 'textColorId' },
       ]);
     });
 
@@ -157,7 +158,15 @@ describe('validateConfiguration', () => {
 
   describe('derived shape', () => {
     it('does not store a shape in the configuration', () => {
-      expect(Object.keys(createEmptyConfiguration())).toEqual(['plateId', 'frameId', 'text']);
+      expect(Object.keys(createEmptyConfiguration())).toEqual([
+        'plateId',
+        'frameId',
+        'text',
+        'fontFamily',
+        'textColorId',
+        'secondaryColorId',
+        'secondaryRanges',
+      ]);
     });
 
     it.each([
@@ -271,5 +280,111 @@ describe('isFrameCompatible', () => {
     expect(isFrameCompatible(frame('test-frame-any'), plate('test-plate-square-frameless'))).toBe(
       false,
     );
+  });
+});
+
+describe('validateConfiguration: lettering (D-042)', () => {
+  const issueOf = (overrides: Partial<Configuration>, field: string) =>
+    issuesOf(validateConfiguration(validConfiguration(overrides), testCatalog)).find(
+      (issue) => issue.field === field,
+    );
+
+  it('requires an explicit primary color: none is incomplete, never defaulted', () => {
+    const result = validateConfiguration(validConfiguration({ textColorId: null }), testCatalog);
+    expect(result).toEqual({
+      status: 'incomplete',
+      issues: [{ kind: 'missing', field: 'textColorId' }],
+    });
+  });
+
+  it.each([
+    ['unknown', 'does-not-exist', 'unknown-reference'],
+    ['unavailable', 'test-text-color-retired', 'unavailable'],
+  ] as const)('rejects an %s primary color', (_label, textColorId, code) => {
+    expect(issueOf({ textColorId }, 'textColorId')).toEqual({
+      kind: 'invalid',
+      field: 'textColorId',
+      code,
+    });
+  });
+
+  it('accepts an optional secondary color and its ranges', () => {
+    const config = validConfiguration({
+      text: 'Casa da Ana',
+      secondaryColorId: 'test-text-color-b',
+      secondaryRanges: [{ start: 0, end: 4 }],
+    });
+    expect(validateConfiguration(config, testCatalog)).toEqual({ status: 'valid' });
+  });
+
+  it('keeps a secondary color that has no ranges (valid)', () => {
+    const config = validConfiguration({ secondaryColorId: 'test-text-color-b' });
+    expect(validateConfiguration(config, testCatalog)).toEqual({ status: 'valid' });
+  });
+
+  it.each([
+    ['unknown', 'does-not-exist', 'unknown-reference'],
+    ['unavailable', 'test-text-color-retired', 'unavailable'],
+    ['identical to the primary', 'test-text-color-a', 'same-as-primary'],
+  ] as const)('rejects a secondary color that is %s', (_label, secondaryColorId, code) => {
+    expect(issueOf({ secondaryColorId }, 'secondaryColorId')).toEqual({
+      kind: 'invalid',
+      field: 'secondaryColorId',
+      code,
+    });
+  });
+
+  it('rejects ranges without a secondary color', () => {
+    expect(issueOf({ secondaryRanges: [{ start: 0, end: 2 }] }, 'secondaryRanges')).toEqual({
+      kind: 'invalid',
+      field: 'secondaryRanges',
+      code: 'ranges-without-color',
+    });
+  });
+
+  it.each([
+    ['out of bounds', [{ start: 0, end: 99 }]],
+    [
+      'overlapping',
+      [
+        { start: 0, end: 3 },
+        { start: 2, end: 4 },
+      ],
+    ],
+    ['empty', [{ start: 2, end: 2 }]],
+  ])('rejects %s ranges', (_label, secondaryRanges) => {
+    const issue = issueOf(
+      { secondaryColorId: 'test-text-color-b', secondaryRanges },
+      'secondaryRanges',
+    );
+    expect(issue).toEqual({ kind: 'invalid', field: 'secondaryRanges', code: 'invalid-ranges' });
+  });
+
+  it('rejects ranges that cut a grapheme cluster', () => {
+    const issue = issueOf(
+      {
+        text: 'e\u0301x',
+        secondaryColorId: 'test-text-color-b',
+        secondaryRanges: [{ start: 0, end: 1 }],
+      },
+      'secondaryRanges',
+    );
+    expect(issue).toMatchObject({ code: 'invalid-ranges' });
+  });
+
+  it('rejects an unknown font family from malformed runtime data', () => {
+    const config = { ...validConfiguration(), fontFamily: 'comic' } as unknown as Configuration;
+    expect(issuesOf(validateConfiguration(config, testCatalog))).toContainEqual({
+      kind: 'invalid',
+      field: 'fontFamily',
+      code: 'unsupported-font',
+    });
+  });
+
+  it('never changes the configuration it validates', () => {
+    const config = validConfiguration({ secondaryRanges: [{ start: 0, end: 99 }] });
+    const snapshot = structuredClone(config);
+    validateConfiguration(config, testCatalog);
+    expect(config).toEqual(snapshot);
   });
 });

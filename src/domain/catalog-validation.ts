@@ -1,8 +1,8 @@
 /**
  * Pure integrity validation for catalog definitions.
  *
- * Reports every issue found, in a deterministic order (colors, plates,
- * frames; fields in definition order). It never repairs or filters data.
+ * Reports every issue found, in a deterministic order (plates, frames,
+ * text colors; fields in definition order). It never repairs or filters data.
  * See docs/04-data-model.md and D-018.
  */
 
@@ -42,6 +42,9 @@ export function isValidAssetPath(src: unknown, owner: AssetOwner, ownerId: strin
   const match = ASSET_PATH_PATTERN.exec(src);
   return match !== null && match[1] === owner && match[2] === ownerId;
 }
+
+/** Lettering colors are `#rrggbb`. */
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
 /** Tolerance for floating-point sums such as `x + width`. */
 const EPSILON = 1e-9;
@@ -246,6 +249,17 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
       `${path}.images`,
       frame.id,
     );
+  });
+
+  catalog.textColors.forEach((color, i) => {
+    const path = `textColors[${i}]`;
+    checkId(color.id, path);
+    if (typeof color.displayName !== 'string' || color.displayName.trim().length === 0) {
+      report('empty-label', `${path}.displayName`, color.id);
+    }
+    if (typeof color.hex !== 'string' || !HEX_COLOR.test(color.hex)) {
+      report('invalid-color', `${path}.hex`, color.id);
+    }
   });
 
   return issues.length === 0 ? { status: 'valid' } : { status: 'invalid', issues };

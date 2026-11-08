@@ -22,6 +22,7 @@ export type PaintCall =
       readonly y: number;
       readonly font: string;
       readonly textAlign: string;
+      readonly fillStyle: string;
     };
 
 export class FakeContext {
@@ -50,7 +51,15 @@ export class FakeContext {
   }
 
   fillText(text: string, x: number, y: number) {
-    this.calls.push({ op: 'fillText', text, x, y, font: this.font, textAlign: this.textAlign });
+    this.calls.push({
+      op: 'fillText',
+      text,
+      x,
+      y,
+      font: this.font,
+      textAlign: this.textAlign,
+      fillStyle: this.fillStyle,
+    });
   }
 
   measureText(text: string) {

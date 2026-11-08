@@ -10,11 +10,15 @@ import {
   findFrameImage,
   findPlate,
   findPlateImage,
+  findTextColor,
+  isAvailable,
   type Catalog,
   type Configuration,
   type ConfigurationField,
+  type FontFamily,
   type NormalizedBox,
   type TextAlignment,
+  type TextRange,
   type ValidationResult,
 } from '../domain';
 
@@ -55,6 +59,11 @@ export interface TextLayer {
   /** Text area in the plate image's own coordinates. */
   readonly area: NormalizedBox;
   readonly align: TextAlignment;
+  readonly fontFamily: FontFamily;
+  /** Chosen lettering color; undefined until one is picked (the renderer then uses a neutral preview color). */
+  readonly primaryColor: string | undefined;
+  /** Second color and the characters it applies to; undefined when unusable or unused. */
+  readonly secondary: { readonly color: string; readonly ranges: readonly TextRange[] } | undefined;
 }
 
 export interface Composition {
@@ -142,11 +151,41 @@ export function composePreview(
         text: config.text,
         area: textLayout.area,
         align: textLayout.align ?? DEFAULT_TEXT_ALIGN,
+        fontFamily: hasIssue(validation, 'fontFamily', 'invalid')
+          ? 'sans-serif'
+          : config.fontFamily,
+        primaryColor: usableColor(catalog, config.textColorId, validation, 'textColorId'),
+        secondary: secondaryStyle(catalog, config, validation),
       };
     }
   }
 
   return { plate: plateLayer, frame: frameLayer, text: textLayer, notices };
+}
+
+/** The hex of a chosen lettering color, or undefined when none is chosen or it is invalid. */
+function usableColor(
+  catalog: Catalog,
+  id: string | null,
+  validation: ValidationResult,
+  field: ConfigurationField,
+): string | undefined {
+  if (id === null || hasIssue(validation, field, 'invalid')) return undefined;
+  const color = findTextColor(catalog, id);
+  return color !== undefined && isAvailable(color) ? color.hex : undefined;
+}
+
+/** The secondary color is drawn only when it and its ranges are valid; nothing is guessed. */
+function secondaryStyle(
+  catalog: Catalog,
+  config: Configuration,
+  validation: ValidationResult,
+): TextLayer['secondary'] {
+  if (config.secondaryRanges.length === 0 || hasIssue(validation, 'secondaryRanges', 'invalid')) {
+    return undefined;
+  }
+  const color = usableColor(catalog, config.secondaryColorId, validation, 'secondaryColorId');
+  return color === undefined ? undefined : { color, ranges: config.secondaryRanges };
 }
 
 /** Every image file the composition needs, in painting order, without duplicates. */

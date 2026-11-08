@@ -128,11 +128,35 @@ export interface Frame extends CatalogComponentBase {
   readonly images?: readonly FrameImage[];
 }
 
-export type CatalogComponent = Plate | Frame;
+/**
+ * A lettering color the customer can pick for the text (D-042). Catalog data
+ * only: production stays empty until Taavi supplies the approved palette (P-02).
+ */
+export interface TextColor extends CatalogComponentBase {
+  readonly type: 'text-color';
+  /** `#rrggbb`. */
+  readonly hex: string;
+}
+
+export type CatalogComponent = Plate | Frame | TextColor;
 
 export interface Catalog {
   readonly plates: readonly Plate[];
   readonly frames: readonly Frame[];
+  readonly textColors: readonly TextColor[];
+}
+
+/** Provisional system font stacks are mapped in the renderer; real typography is pending (P-14). */
+export const FONT_FAMILIES = ['serif', 'sans-serif'] as const;
+export type FontFamily = (typeof FONT_FAMILIES)[number];
+
+/**
+ * A half-open range `[start, end)` of UTF-16 offsets into `Configuration.text`,
+ * always on grapheme-cluster boundaries (D-042).
+ */
+export interface TextRange {
+  readonly start: number;
+  readonly end: number;
 }
 
 /**
@@ -145,6 +169,13 @@ export interface Configuration {
   readonly frameId: string | null;
   /** Raw user text, preserved exactly as entered. */
   readonly text: string;
+  readonly fontFamily: FontFamily;
+  /** Required lettering color; references `TextColor.id`. No default (D-042). */
+  readonly textColorId: string | null;
+  /** Optional second lettering color. Kept when its last range is removed. */
+  readonly secondaryColorId: string | null;
+  /** Characters drawn in the secondary color. Sorted, non-overlapping, grapheme-aligned. */
+  readonly secondaryRanges: readonly TextRange[];
 }
 
 export type ConfigurationField = keyof Configuration;
@@ -155,7 +186,11 @@ export type InvalidCode =
   | 'frame-not-supported'
   | 'incompatible-shape'
   | 'incompatible-plate'
-  | 'blank';
+  | 'blank'
+  | 'unsupported-font'
+  | 'same-as-primary'
+  | 'ranges-without-color'
+  | 'invalid-ranges';
 
 export type ValidationIssue =
   | { readonly kind: 'missing'; readonly field: ConfigurationField }
@@ -180,7 +215,8 @@ export type CatalogIssueCode =
   | 'invalid-asset'
   | 'empty-label'
   | 'duplicate-variation'
-  | 'invalid-placement';
+  | 'invalid-placement'
+  | 'invalid-color';
 
 /**
  * A catalog integrity problem. `path` locates the offending value

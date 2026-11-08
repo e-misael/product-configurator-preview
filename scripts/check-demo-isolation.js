@@ -15,6 +15,7 @@ const MARKERS = [
   'demo-quadro',
   'demo-bandeja',
   'demo-moldura',
+  'demo-letra',
   'demo-catalog',
   'Modo demonstração',
   // Minifiers may escape non-ASCII characters.

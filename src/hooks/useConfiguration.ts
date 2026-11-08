@@ -1,17 +1,21 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
+  addRange,
   createEmptyConfiguration,
+  remapRanges,
+  removeRange,
   selectPlate,
   validateConfiguration,
   type Catalog,
   type Configuration,
   type ConfigurationField,
+  type FontFamily,
   type ValidationIssue,
   type ValidationResult,
 } from '../domain';
 
 /** A one-off message about a change the app made on the user's behalf. */
-export type Notice = 'frame-cleared';
+export type Notice = 'frame-cleared' | 'formatting-removed';
 
 interface State {
   readonly config: Configuration;
@@ -47,7 +51,61 @@ export function useConfiguration(catalog: Catalog) {
   );
 
   const chooseFrame = useCallback((frameId: string | null) => update({ frameId }), [update]);
-  const setText = useCallback((text: string) => update({ text }), [update]);
+  /**
+   * The secondary-color ranges follow the edit (D-042). `caret` is the textarea
+   * selection after the edit; when the edit cannot be located the affected
+   * formatting is removed and a notice says so.
+   */
+  const setText = useCallback((text: string, caret?: number) => {
+    setState(({ config }) => {
+      const { ranges, ambiguous } = remapRanges(config.text, text, config.secondaryRanges, caret);
+      return {
+        config: { ...config, text, secondaryRanges: ranges },
+        notice: ambiguous ? 'formatting-removed' : null,
+      };
+    });
+  }, []);
+
+  const setFontFamily = useCallback((fontFamily: FontFamily) => update({ fontFamily }), [update]);
+  const chooseTextColor = useCallback(
+    (textColorId: string | null) => update({ textColorId }),
+    [update],
+  );
+  /** `null` ("Sem segunda cor") is the only action that also clears the ranges. */
+  const chooseSecondaryColor = useCallback(
+    (secondaryColorId: string | null) =>
+      setState(({ config }) => ({
+        config: {
+          ...config,
+          secondaryColorId,
+          secondaryRanges: secondaryColorId === null ? [] : config.secondaryRanges,
+        },
+        notice: null,
+      })),
+    [],
+  );
+  const applySecondaryColor = useCallback(
+    (start: number, end: number) =>
+      setState(({ config }) => ({
+        config: {
+          ...config,
+          secondaryRanges: addRange(config.text, config.secondaryRanges, start, end),
+        },
+        notice: null,
+      })),
+    [],
+  );
+  const removeSecondaryColor = useCallback(
+    (start: number, end: number) =>
+      setState(({ config }) => ({
+        config: {
+          ...config,
+          secondaryRanges: removeRange(config.text, config.secondaryRanges, start, end),
+        },
+        notice: null,
+      })),
+    [],
+  );
 
   const validation = useMemo(
     () => validateConfiguration(state.config, catalog),
@@ -61,6 +119,11 @@ export function useConfiguration(catalog: Catalog) {
     choosePlate,
     chooseFrame,
     setText,
+    setFontFamily,
+    chooseTextColor,
+    chooseSecondaryColor,
+    applySecondaryColor,
+    removeSecondaryColor,
   };
 }
 

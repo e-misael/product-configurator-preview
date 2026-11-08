@@ -51,21 +51,30 @@ describe('findFrameImage', () => {
 });
 
 describe('configuration validation is independent of imagery', () => {
+  const style = {
+    fontFamily: 'sans-serif',
+    textColorId: 'test-text-color-a',
+    secondaryColorId: null,
+    secondaryRanges: [],
+  } as const;
   const configs: Configuration[] = [
     {
       plateId: 'test-plate-a',
       frameId: null,
       text: 'Ana',
+      ...style,
     },
     {
       plateId: 'test-plate-a',
       frameId: 'test-frame-any',
       text: '',
+      ...style,
     },
     {
       plateId: 'test-plate-b',
       frameId: 'test-frame-plate-a',
       text: 'Ana',
+      ...style,
     },
   ];
   const withoutImages: Catalog = buildValidCatalog();

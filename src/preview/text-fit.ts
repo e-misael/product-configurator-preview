@@ -24,6 +24,8 @@ export const LINE_HEIGHT = 1.2;
 export interface TextFit {
   /** Lines to draw, in order. Their concatenation preserves the user's characters. */
   readonly lines: readonly string[];
+  /** Offset of each line's first character in the source text (parallel to `lines`). */
+  readonly starts: readonly number[];
   readonly fontSize: number;
   readonly lineHeight: number;
   /** True when the text does not fit even at the minimum font size. */
@@ -47,37 +49,70 @@ function breakWord(word: string, fits: (candidate: string) => boolean): string[]
   return pieces;
 }
 
+export interface WrappedLine {
+  readonly text: string;
+  /** Offset of the line's first character in the source text. */
+  readonly start: number;
+}
+
 /**
  * Wraps `text` into lines no wider than `maxWidth` where possible. Explicit
  * line breaks (`\n`, `\r\n`, `\r`) always start a new line, including empty ones.
+ * Every line is a substring of `text` found at its `start`.
  */
-export function wrapText(
+export function wrapTextWithOffsets(
   text: string,
   maxWidth: number,
   widthOf: (text: string) => number,
-): string[] {
+): WrappedLine[] {
   const fits = (candidate: string) => widthOf(candidate) <= maxWidth;
-  const lines: string[] = [];
+  const lines: WrappedLine[] = [];
 
-  for (const paragraph of text.split(/\r\n|\r|\n/)) {
+  const paragraphs: { text: string; start: number }[] = [];
+  let paragraphStart = 0;
+  for (const match of text.matchAll(/\r\n|\r|\n/g)) {
+    paragraphs.push({ text: text.slice(paragraphStart, match.index), start: paragraphStart });
+    paragraphStart = match.index + match[0].length;
+  }
+  paragraphs.push({ text: text.slice(paragraphStart), start: paragraphStart });
+
+  for (const paragraph of paragraphs) {
     let line = '';
-    for (const token of paragraph.match(/\s+|\S+/g) ?? []) {
+    let lineStart = paragraph.start;
+    for (const match of paragraph.text.matchAll(/\s+|\S+/g)) {
+      const token = match[0];
+      const tokenStart = paragraph.start + match.index;
       if (fits(line + token)) {
+        if (line === '') lineStart = tokenStart;
         line += token;
         continue;
       }
       // Soft wrap: trailing spaces at a break are not drawn.
-      if (line.trim() !== '') lines.push(line.trimEnd());
+      if (line.trim() !== '') lines.push({ text: line.trimEnd(), start: lineStart });
       line = '';
       if (token.trim() === '') continue;
       // A word wider than the area is split between characters; its last piece continues the line.
       const pieces = fits(token) ? [token] : breakWord(token, fits);
       line = pieces.pop() ?? '';
-      lines.push(...pieces);
+      let offset = tokenStart;
+      for (const piece of pieces) {
+        lines.push({ text: piece, start: offset });
+        offset += piece.length;
+      }
+      lineStart = offset;
     }
-    lines.push(line);
+    lines.push({ text: line, start: lineStart });
   }
   return lines;
+}
+
+/** Same wrapping as `wrapTextWithOffsets`, text only. */
+export function wrapText(
+  text: string,
+  maxWidth: number,
+  widthOf: (text: string) => number,
+): string[] {
+  return wrapTextWithOffsets(text, maxWidth, widthOf).map((line) => line.text);
 }
 
 export function fitText(text: string, area: Rect, measure: MeasureText): TextFit {
@@ -86,13 +121,17 @@ export function fitText(text: string, area: Rect, measure: MeasureText): TextFit
   let fontSize = start;
 
   for (;;) {
-    const lines = wrapText(text, area.width, (candidate) => measure(candidate, fontSize));
+    const wrapped = wrapTextWithOffsets(text, area.width, (candidate) =>
+      measure(candidate, fontSize),
+    );
+    const lines = wrapped.map((line) => line.text);
+    const starts = wrapped.map((line) => line.start);
     const lineHeight = fontSize * LINE_HEIGHT;
     const fits =
       lines.length * lineHeight <= area.height &&
       lines.every((line) => measure(line, fontSize) <= area.width);
-    if (fits) return { lines, fontSize, lineHeight, overflow: false };
-    if (fontSize <= min) return { lines, fontSize, lineHeight, overflow: true };
+    if (fits) return { lines, starts, fontSize, lineHeight, overflow: false };
+    if (fontSize <= min) return { lines, starts, fontSize, lineHeight, overflow: true };
     fontSize = Math.max(min, fontSize * SHRINK_FACTOR);
   }
 }
