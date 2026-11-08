@@ -8,9 +8,7 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
 
 type Rgba = readonly [number, number, number, number];
 
-const NUDE: Rgba = [226, 208, 186, 255];
-const COLORED: Rgba = [112, 152, 196, 255];
-const GREEN: Rgba = [132, 176, 120, 255];
+const BEGE: Rgba = [226, 208, 186, 255];
 const RIM: Rgba = [60, 40, 24, 255];
 const WOOD: readonly Rgba[] = [
   [150, 118, 84, 255],
@@ -23,12 +21,15 @@ const WOOD_DARK: readonly Rgba[] = [
 
 const canvas = (page: Page) => page.locator('.preview__canvas');
 const preview = (page: Page) => page.getByRole('region', { name: 'Pré-visualização' });
-const plate = (page: Page, name: RegExp) =>
-  page.getByRole('group', { name: 'Placa' }).getByRole('radio', { name });
-const color = (page: Page, name: string) =>
-  page.getByRole('group', { name: 'Cor da placa' }).getByRole('radio', { name, exact: true });
+const model = (page: Page, name: RegExp) =>
+  page.getByRole('group', { name: 'Modelo' }).getByRole('radio', { name });
 const frame = (page: Page, name: RegExp) =>
-  page.getByRole('group', { name: 'Quadro' }).getByRole('radio', { name });
+  page.getByRole('group', { name: 'Moldura (opcional)' }).getByRole('radio', { name });
+
+const CERAMIC_PLATE = /Placa cerâmica/;
+const QUADRO = /Quadro \(20 cm/;
+const TRAY_8 = /~ 8 cm/;
+const TRAY_11 = /~ 11 cm/;
 
 async function sample(page: Page, x: number, y: number): Promise<Rgba> {
   return canvas(page).evaluate(
@@ -116,124 +117,98 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe('exact image selection', () => {
-  test('paints the photograph of the chosen color @smoke', async ({ page }) => {
-    await plate(page, /Placa quadrada/).check();
-    await expect(preview(page)).toContainText('Escolha a cor da placa');
+  test('paints the image of the chosen model @smoke', async ({ page }) => {
     await expect(canvas(page)).toHaveCount(0);
 
-    await color(page, 'Nude').check();
-    await expectPixel(page, 0.5, 0.8, NUDE);
+    await model(page, CERAMIC_PLATE).check();
+    await expectPixel(page, 0.5, 0.8, BEGE);
+    await expect(canvas(page)).toHaveAttribute('aria-label', /Placa cerâmica 10 cm x 10 cm/);
 
-    await color(page, 'Colorida').check();
-    await expectPixel(page, 0.5, 0.8, COLORED);
+    await model(page, QUADRO).check();
+    await expectPixel(page, 0.5, 0.8, BEGE);
+    await expect(canvas(page)).toHaveAttribute('aria-label', /Quadro 20 cm x 20 cm/);
 
-    await page
-      .getByRole('group', { name: 'Tom específico (opcional)' })
-      .getByRole('radio', { name: /Tom colorido/ })
-      .check();
-    await expectPixel(page, 0.5, 0.8, GREEN);
-  });
+    await model(page, TRAY_8).check();
+    await expectPixel(page, 0.5, 0.8, BEGE);
+    await expect(canvas(page)).toHaveAttribute('aria-label', /~ 8 cm/);
 
-  test('shows a pending state, not another finish, when a shade has no photograph', async ({
-    page,
-  }) => {
-    await plate(page, /Placa quadrada/).check();
-    await color(page, 'Nude').check();
-    await expectPixel(page, 0.5, 0.8, NUDE);
-
-    await page
-      .getByRole('group', { name: 'Tom específico (opcional)' })
-      .getByRole('radio', { name: /Tom nude/ })
-      .check();
-
-    await expect(preview(page)).toContainText(
-      'A foto desta placa nesta cor ainda não está disponível.',
-    );
-    await expect(canvas(page)).toHaveCount(0);
+    await model(page, TRAY_11).check();
+    await expect(canvas(page)).toHaveAttribute('aria-label', /~ 11 cm/);
   });
 
   test('labels the demonstration images for assistive technology', async ({ page }) => {
-    await plate(page, /Placa quadrada/).check();
-    await color(page, 'Nude').check();
+    await model(page, CERAMIC_PLATE).check();
 
     await expect(canvas(page)).toHaveAttribute('aria-label', /imagem sintética de demonstração/);
   });
 });
 
-test.describe('plate shapes', () => {
-  test('keeps the aspect ratio of a rectangular plate', async ({ page }) => {
-    await plate(page, /Placa retangular/).check();
-    await color(page, 'Nude').check();
-    await expectPixel(page, 0.5, 0.8, NUDE);
+test.describe('model shapes', () => {
+  test('keeps the Quadro (20 cm x 20 cm) square', async ({ page }) => {
+    await model(page, QUADRO).check();
+    await expectPixel(page, 0.5, 0.8, BEGE);
 
-    const size = await canvas(page).evaluate((element) =>
-      element instanceof HTMLCanvasElement ? [element.width, element.height] : [0, 0],
-    );
     const box = await boxOf(canvas(page));
-    expect((size[0] ?? 0) / (size[1] ?? 1)).toBeCloseTo(1.5, 1);
-    expect(box.width / box.height).toBeCloseTo(1.5, 1);
+    expect(box.width / box.height).toBeCloseTo(1, 1);
   });
 
-  test('keeps a circular plate round, transparent outside the circle', async ({ page }) => {
-    await plate(page, /Placa redonda/).check();
-    await color(page, 'Nude').check();
+  test('keeps a scalloped tray free of any frame, transparent outside its outline', async ({
+    page,
+  }) => {
+    await model(page, TRAY_11).check();
 
-    await expectPixel(page, 0.5, 0.8, NUDE);
-    // The corner of the photograph is outside the circle: nothing painted there.
+    await expectPixel(page, 0.5, 0.8, BEGE);
+    // The corner of the image is outside the tray: nothing painted there.
     await expect.poll(async () => (await sample(page, 0.03, 0.03))[3]).toBe(0);
+    await expect(page.getByRole('group', { name: 'Moldura (opcional)' })).toHaveCount(0);
   });
 });
 
 test.describe('frame layering', () => {
-  async function framedSquare(page: Page) {
-    await plate(page, /Placa quadrada/).check();
-    await color(page, 'Nude').check();
-    await frame(page, /Quadro quadrado e retangular/).check();
+  async function framedPlate(page: Page) {
+    await model(page, CERAMIC_PLATE).check();
+    await frame(page, /Moldura clara/).check();
   }
 
   test('draws frame back, then plate, then the frame front over the plate', async ({ page }) => {
-    await framedSquare(page);
+    await framedPlate(page);
 
     // Frame back's wooden band, outside the opening.
     await expectPixel(page, 0.02, 0.5, WOOD);
     // The plate fills the opening.
-    await expectPixel(page, 0.5, 0.8, NUDE);
+    await expectPixel(page, 0.5, 0.8, BEGE);
     // The front rim lies over the plate's edge (the plate alone would show its border hatch here).
     await expectPixel(page, 0.11, 0.5, RIM);
   });
 
   test('uses the frame image calibrated for the chosen frame', async ({ page }) => {
-    await plate(page, /Placa quadrada/).check();
-    await color(page, 'Nude').check();
-    await frame(page, /Quadro só para placas quadradas/).check();
+    await model(page, CERAMIC_PLATE).check();
+    await frame(page, /Moldura escura/).check();
 
     await expectPixel(page, 0.02, 0.5, WOOD_DARK);
   });
 
-  test('puts the frame composition on a rectangular plate with its own proportions', async ({
+  test('puts the same frame on the Quadro model, using that model’s own image', async ({
     page,
   }) => {
-    await plate(page, /Placa retangular/).check();
-    await color(page, 'Nude').check();
-    await frame(page, /Quadro quadrado e retangular/).check();
+    await model(page, QUADRO).check();
+    await frame(page, /Moldura clara/).check();
 
     await expectPixel(page, 0.02, 0.5, WOOD);
-    await expectPixel(page, 0.5, 0.8, NUDE);
-    const box = await boxOf(canvas(page));
-    expect(box.width / box.height).toBeCloseTo(1.5, 1);
+    await expectPixel(page, 0.5, 0.8, BEGE);
   });
 
   test('does not paint an incompatible frame', async ({ page }) => {
-    await framedSquare(page);
-    await expectPixel(page, 0.02, 0.5, WOOD);
+    await model(page, CERAMIC_PLATE).check();
+    await frame(page, /Moldura escura/).check();
+    await expectPixel(page, 0.02, 0.5, WOOD_DARK);
 
-    await frame(page, /Quadro só para placas quadradas/).check();
-    await plate(page, /Placa retangular/).check();
+    await model(page, QUADRO).check();
 
     await expect(preview(page)).toContainText(
-      'O quadro selecionado é incompatível e não é exibido.',
+      'A moldura selecionada é incompatível e não é exibida.',
     );
-    // The standalone rectangular plate is shown instead, with no wood anywhere on its edge.
+    // The standalone Quadro is shown instead, with no wood anywhere on its edge.
     await expectPixel(page, 0.02, 0.5, [0, 0, 0, 0]);
   });
 });
@@ -242,9 +217,8 @@ test.describe('personalized text', () => {
   test('draws the typed text inside the plate text area, one line per line break', async ({
     page,
   }) => {
-    await plate(page, /Placa quadrada/).check();
-    await color(page, 'Nude').check();
-    await expectPixel(page, 0.5, 0.8, NUDE);
+    await model(page, CERAMIC_PLATE).check();
+    await expectPixel(page, 0.5, 0.8, BEGE);
     await expect.poll(async () => (await textRuns(page)).runs).toBe(0);
 
     await page.getByLabel('Texto').fill('HHH');
@@ -261,26 +235,24 @@ test.describe('personalized text', () => {
   });
 
   test('moves with the plate when a frame is added', async ({ page }) => {
-    await plate(page, /Placa quadrada/).check();
-    await color(page, 'Nude').check();
+    await model(page, CERAMIC_PLATE).check();
     await page.getByLabel('Texto').fill('HHH');
     await expect.poll(async () => (await textRuns(page)).runs).toBe(1);
-    await frame(page, /Quadro quadrado e retangular/).check();
+    await frame(page, /Moldura clara/).check();
 
     // The framed canvas is larger, but the text keeps its place on the plate.
-    await expectPixel(page, 0.5, 0.8, NUDE);
+    await expectPixel(page, 0.5, 0.8, BEGE);
     await expect.poll(async () => (await textRuns(page)).runs).toBe(1);
   });
 
   test('warns about text that does not fit instead of clipping it', async ({ page }) => {
-    await plate(page, /Placa quadrada/).check();
-    await color(page, 'Nude').check();
+    await model(page, CERAMIC_PLATE).check();
 
     await page
       .getByLabel('Texto')
       .fill(Array.from({ length: 40 }, (_, i) => `linha ${i}`).join('\n'));
 
-    await expect(preview(page)).toContainText('O texto não cabe na área da placa');
+    await expect(preview(page)).toContainText('O texto não cabe na área do modelo');
     // The full text is still kept and summarized.
     await expect(preview(page).locator('.preview__text')).toContainText('linha 39');
   });
@@ -290,32 +262,28 @@ test.describe('missing and broken images', () => {
   test('reports a plate file that fails to load, without substituting another image', async ({
     page,
   }) => {
-    await page.route('**/catalog/plates/demo-placa-quadrada/nude.png', (route) => route.abort());
+    await page.route('**/catalog/plates/demo-placa-ceramica/bege.png', (route) => route.abort());
 
-    await plate(page, /Placa quadrada/).check();
-    await color(page, 'Nude').check();
+    await model(page, CERAMIC_PLATE).check();
 
-    await expect(preview(page)).toContainText('Não foi possível carregar a imagem da placa.');
+    await expect(preview(page)).toContainText('Não foi possível carregar a imagem do modelo.');
     await expect(canvas(page)).toHaveCount(0);
 
-    // Another variation still loads normally.
-    await color(page, 'Colorida').check();
-    await expectPixel(page, 0.5, 0.8, COLORED);
+    // Another model still loads normally.
+    await model(page, QUADRO).check();
+    await expectPixel(page, 0.5, 0.8, BEGE);
   });
 
   test('shows the plate alone when a frame file fails to load', async ({ page }) => {
-    await page.route('**/catalog/frames/demo-quadro-universal/quadrada-front.png', (route) =>
-      route.abort(),
-    );
+    await page.route('**/catalog/frames/demo-moldura-clara/front.png', (route) => route.abort());
 
-    await plate(page, /Placa quadrada/).check();
-    await color(page, 'Nude').check();
-    await frame(page, /Quadro quadrado e retangular/).check();
+    await model(page, CERAMIC_PLATE).check();
+    await frame(page, /Moldura clara/).check();
 
     await expect(preview(page)).toContainText(
-      'Não foi possível carregar a imagem do quadro; o quadro não é exibido.',
+      'Não foi possível carregar a imagem da moldura; a moldura não é exibida.',
     );
-    await expectPixel(page, 0.5, 0.8, NUDE);
+    await expectPixel(page, 0.5, 0.8, BEGE);
     // No frame at all: the corner of the plate photograph is transparent.
     await expectPixel(page, 0.02, 0.02, [0, 0, 0, 0]);
   });
@@ -323,25 +291,23 @@ test.describe('missing and broken images', () => {
 
 test.describe('responsive layout', () => {
   test('fits the viewport and keeps the image aspect ratio', async ({ page }) => {
-    await plate(page, /Placa retangular/).check();
-    await color(page, 'Nude').check();
-    await frame(page, /Quadro quadrado e retangular/).check();
+    await model(page, CERAMIC_PLATE).check();
+    await frame(page, /Moldura clara/).check();
     await expectPixel(page, 0.02, 0.5, WOOD);
 
     const viewport = page.viewportSize();
     const box = await boxOf(canvas(page));
     expect(box.x).toBeGreaterThanOrEqual(0);
     expect(box.x + box.width).toBeLessThanOrEqual((viewport?.width ?? Infinity) + 1);
-    expect(box.width / box.height).toBeCloseTo(1.5, 1);
+    expect(box.width / box.height).toBeCloseTo(1, 1);
     await expectNoHorizontalScroll(page);
   });
 
   test('keeps the canvas sharp on high-density screens without exceeding the source size', async ({
     page,
   }) => {
-    await plate(page, /Placa quadrada/).check();
-    await color(page, 'Nude').check();
-    await expectPixel(page, 0.5, 0.8, NUDE);
+    await model(page, CERAMIC_PLATE).check();
+    await expectPixel(page, 0.5, 0.8, BEGE);
 
     const width = await canvas(page).evaluate((element) =>
       element instanceof HTMLCanvasElement ? element.width : 0,

@@ -13,7 +13,8 @@ import { join, relative } from 'node:path';
 const MARKERS = [
   'demo-placa',
   'demo-quadro',
-  'demo-cor',
+  'demo-bandeja',
+  'demo-moldura',
   'demo-catalog',
   'Modo demonstração',
   // Minifiers may escape non-ASCII characters.

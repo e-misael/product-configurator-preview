@@ -67,7 +67,7 @@ describe('drawScene', () => {
       call.op === 'fillText' ? 'text' : srcOf(call).split('/').at(-1),
     );
 
-    expect(order).toEqual(['square-back.webp', 'nude.webp', 'text', 'square-front.webp']);
+    expect(order).toEqual(['square-back.webp', 'beige.webp', 'text', 'square-front.webp']);
   });
 
   it('scales logical units to the canvas width and clears first', () => {

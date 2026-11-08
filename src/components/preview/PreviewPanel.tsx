@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import {
-  findColor,
   findFrame,
   type Catalog,
   type Configuration,
@@ -11,7 +10,7 @@ import { useImages } from '../../hooks/useImages';
 import { composePreview, compositionSources } from '../../preview/composition';
 import { createTextMeasurer } from '../../preview/draw';
 import { buildScene } from '../../preview/scene';
-import { CATEGORY_LABELS, SHAPE_LABELS } from '../configurator/messages';
+import { modelLabel } from '../configurator/messages';
 import { NOTICE_MESSAGES } from './messages';
 import { PreviewCanvas } from './PreviewCanvas';
 
@@ -43,17 +42,8 @@ export function PreviewPanel({ catalog, config, plate, validation }: PreviewPane
 
   const frameName =
     config.frameId === null
-      ? 'Sem quadro'
+      ? 'Sem moldura'
       : (findFrame(catalog, config.frameId)?.displayName ?? config.frameId);
-  const colorName =
-    config.colorCategory === null
-      ? '—'
-      : [
-          CATEGORY_LABELS[config.colorCategory],
-          config.colorId === null ? undefined : findColor(catalog, config.colorId)?.displayName,
-        ]
-          .filter(Boolean)
-          .join(' · ');
 
   return (
     <section className="preview" aria-labelledby="preview-title">
@@ -79,12 +69,12 @@ export function PreviewPanel({ catalog, config, plate, validation }: PreviewPane
         )}
       </div>
       <dl className="preview__summary" id="preview-summary">
-        <dt>Placa</dt>
-        <dd>{plate ? `${plate.displayName} · ${SHAPE_LABELS[plate.shape]}` : '—'}</dd>
-        <dt>Quadro</dt>
+        <dt>Modelo</dt>
+        <dd>{plate ? modelLabel(plate) : '—'}</dd>
+        <dt>Moldura</dt>
         <dd>{frameName}</dd>
-        <dt>Cor da placa</dt>
-        <dd>{colorName}</dd>
+        <dt>Cor da peça</dt>
+        <dd>{plate?.ceramicColor ?? '—'}</dd>
         <dt>Texto</dt>
         <dd className="preview__text">{config.text === '' ? '—' : config.text}</dd>
       </dl>

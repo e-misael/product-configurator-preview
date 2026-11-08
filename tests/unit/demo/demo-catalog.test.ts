@@ -1,7 +1,7 @@
 import { validateCatalog, type AssetRef, type Catalog } from '../../../src/domain';
 import { demoCatalog } from '../../../src/demo/demo-catalog';
 
-const entries = [...demoCatalog.plates, ...demoCatalog.frames, ...demoCatalog.colors];
+const entries = [...demoCatalog.plates, ...demoCatalog.frames];
 
 describe('demo catalog (D-028)', () => {
   it('passes catalog validation', () => {
@@ -22,19 +22,26 @@ describe('demo catalog (D-028)', () => {
     },
   );
 
-  it('invents no dimensions, swatches, or colors', () => {
+  it('invents no dimensions or color values', () => {
     for (const plate of demoCatalog.plates) {
       expect(plate.dimensions).toEqual({ status: 'pending' });
-    }
-    for (const color of demoCatalog.colors) {
-      expect(color.swatch).toBeUndefined();
-      expect(color).not.toHaveProperty('hex');
+      expect(plate.ceramicColor).toBe('Bege');
+      expect(plate).not.toHaveProperty('hex');
     }
   });
 
-  it('covers a frameless circular plate and a frame restricted by shape', () => {
-    expect(demoCatalog.plates.some((p) => p.shape === 'circle' && !p.supportsFrame)).toBe(true);
-    expect(demoCatalog.frames.some((f) => f.compatibility.shapes.length === 1)).toBe(true);
+  it('mirrors the four production models by size label and shape', () => {
+    expect(demoCatalog.plates.map(({ sizeLabel, shape }) => [sizeLabel, shape])).toEqual([
+      ['10 cm x 10 cm', 'square'],
+      ['20 cm x 20 cm', 'square'],
+      ['~ 8 cm', 'scalloped'],
+      ['~ 11 cm', 'scalloped'],
+    ]);
+  });
+
+  it('covers frameless scalloped trays and a frame restricted to one model', () => {
+    expect(demoCatalog.plates.some((p) => p.shape === 'scalloped' && !p.supportsFrame)).toBe(true);
+    expect(demoCatalog.frames.some((f) => f.compatibility.plateIds !== undefined)).toBe(true);
   });
 
   describe('synthetic imagery (D-036)', () => {
@@ -52,10 +59,7 @@ describe('demo catalog (D-028)', () => {
     function assets(catalog: Catalog): { path: string; asset: AssetRef }[] {
       return [
         ...catalog.plates.flatMap((plate, i) =>
-          (plate.images ?? []).map((entry, j) => ({
-            path: `plates[${i}].images[${j}].image`,
-            asset: entry.image,
-          })),
+          plate.image ? [{ path: `plates[${i}].image.image`, asset: plate.image.image }] : [],
         ),
         ...catalog.frames.flatMap((frame, i) =>
           (frame.images ?? []).flatMap((entry, j) => [
@@ -109,12 +113,8 @@ describe('demo catalog (D-028)', () => {
       }
     });
 
-    it('covers square, rectangular, and circular plates and a frame composition', () => {
-      const shapesWithImages = demoCatalog.plates
-        .filter((plate) => (plate.images?.length ?? 0) > 0)
-        .map((plate) => plate.shape);
-
-      expect(shapesWithImages.sort()).toEqual(['circle', 'rectangle', 'square']);
+    it('gives every model an image and covers a frame composition', () => {
+      expect(demoCatalog.plates.every((plate) => plate.image !== undefined)).toBe(true);
       expect(demoCatalog.frames.some((frame) => (frame.images?.length ?? 0) > 0)).toBe(true);
       for (const frame of demoCatalog.frames) {
         for (const entry of frame.images ?? []) {
@@ -122,14 +122,6 @@ describe('demo catalog (D-028)', () => {
           expect(entry.front).toBeDefined();
         }
       }
-    });
-
-    it('leaves one shade without a photograph to exercise the pending state', () => {
-      const square = demoCatalog.plates.find((plate) => plate.id === 'demo-placa-quadrada');
-      const shades = (square?.images ?? []).map((entry) => entry.colorId);
-
-      expect(shades).toContain('demo-cor-colorida');
-      expect(shades).not.toContain('demo-cor-nude');
     });
   });
 });

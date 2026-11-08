@@ -2,18 +2,18 @@
 
 ## Purpose
 
-Taavi Configurator is a visual product customization tool for Taavi, an existing handmade ceramics store that operates on Nuvemshop. It lets a customer compose a personalized ceramic plate, see an accurate real-time preview, and export an image of the result.
+Taavi Configurator is a visual product customization tool for Taavi, an existing handmade ceramics store that operates on Nuvemshop. It lets a customer compose a personalized ceramic piece, see an accurate real-time preview, and export an image of the result.
 
 It is an internal business tool with a customer-facing interface. It is **not** a commercial SaaS product.
 
 ## Target users
 
-- **Customers** of the store who want a personalized ceramic plate (primarily on mobile devices).
+- **Customers** of the store who want a personalized ceramic piece (primarily on mobile devices).
 - **Store staff**, who use the exported image as an unambiguous record of what the customer chose.
 
 ## Main user problem
 
-Customers cannot currently see what their personalized plate will look like before ordering. Choices about plate, color, shape, frame, and text are communicated informally, which causes uncertainty for the customer and rework for the store.
+Customers cannot currently see what their personalized piece will look like before ordering. Choices about the model, optional frame, and text are communicated informally, which causes uncertainty for the customer and rework for the store.
 
 ## Expected benefits
 
@@ -23,15 +23,16 @@ Customers cannot currently see what their personalized plate will look like befo
 
 ## MVP scope
 
-| Option                         | Required                                             |
-| ------------------------------ | ---------------------------------------------------- |
-| Plate (Placa)                  | Yes                                                  |
-| Frame (Quadro)                 | Optional                                             |
-| Plate color (Cor da placa)     | Yes                                                  |
-| Plate shape (Formato da placa) | Derived from the plate model (not a separate choice) |
-| Custom text (Texto)            | Yes                                                  |
-| Real-time preview              | —                                                    |
-| Image export                   | —                                                    |
+| Option                    | Required                                                     |
+| ------------------------- | ------------------------------------------------------------ |
+| Model (Modelo)            | Yes — Placa cerâmica, Quadro, Bandeja ondulada M (two sizes) |
+| Frame (Moldura)           | Optional, only on models that take one (none confirmed yet)  |
+| Piece color (Cor da peça) | Not a choice: fixed per model (Bege), shown read-only        |
+| Custom text (Texto)       | Yes                                                          |
+| Real-time preview         | —                                                            |
+| Image export              | —                                                            |
+
+Planned next: font family, up to two lettering colors, and text positioning (M4.1b).
 
 Details and acceptance criteria: [02-requirements.md](02-requirements.md).
 

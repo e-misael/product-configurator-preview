@@ -86,9 +86,9 @@ Status: **Done** — implemented; pending owner review. No real products or imag
 
 ### M1.3b — Real asset registration
 
-Status: Planned. **Blocked on clean photographs and measurements from the store.**
+Status: **Partly done**: the four supplied models are registered without images or measurements (M4.1a, D-040). The rest is **blocked on clean photographs and measurements from the store.**
 
-- Real plate, frame, and color definitions (names, shapes, frame support, colors, compatibility).
+- Confirm the four provisional model IDs (P-12), which models take an optional frame (P-13), and any frames with compatibility.
 - Processed images under `public/catalog/` (background removal/masking, perspective correction as needed); originals archived outside the repository with provenance.
 - Declared intrinsic sizes plus a check that they match the files.
 - Calibrated `objectBounds`, text areas, and frame placement; visual verification against the originals.
@@ -96,7 +96,7 @@ Status: Planned. **Blocked on clean photographs and measurements from the store.
 
 ## M2 — Configuration interface
 
-Status: Done (validated against the demo catalog; production catalog still empty).
+Status: Done (validated against the demo catalog; production catalog still empty). The color controls and the "Placa"/"Quadro" wording below were superseded by M4.1a (D-040, D-041).
 
 - [x] `useConfiguration` hook (React state) over the pure domain functions.
 - [x] Plate, frame (incl. "Sem quadro"), color category, optional shade, and text controls; plate shape displayed, not selected.
@@ -112,7 +112,7 @@ Status: Done (validated against the demo catalog; production catalog still empty
 
 ### M3.1 — Interactive photographic preview
 
-Status: **Done** for the demo catalog — verified with synthetic images only. Real product photographs and calibration are M1.3b.
+Status: **Done** (accepted 2026-11-07) for the demo catalog — verified with synthetic images only. Real product photographs and calibration are M1.3b.
 
 - [x] Canvas 2D as the single renderer (D-035)
 - [x] Pure `composePreview` (exact image lookup, notices) and `buildScene` (placement from normalized metadata, layer order) (D-037)
@@ -133,13 +133,42 @@ Status: Planned (not started).
 - Typography and material effect of the lettering (stamped/pressed/raised; P-04).
 - Preview regression tests with real assets.
 
+## M4.1 — Product models and advanced text
+
+Split into two independently testable slices (D-039). M4.1b is not started automatically.
+
+### M4.1a — Product models and fixed properties
+
+Status: **Done** (accepted 2026-11-08). Evidence: typecheck, lint, format check, 340 unit tests, build, demo isolation check, demo build with markers present, and 50 Playwright tests passed.
+
+- [x] UI vocabulary: "Modelo" for the product (`Plate`), "Moldura" for the optional frame; "Quadro (20 cm x 20 cm)" is a separate model (D-040)
+- [x] Four production models registered with the supplied names and size labels (approximations kept); provisional IDs; physical dimensions `pending`; no images, no frames (D-040)
+- [x] `scalloped` shape as classification only (D-040)
+- [x] Customer-selectable ceramic color removed; fixed `ceramicColor` ("Bege") owned by the catalog and shown read-only as "Cor da peça" (D-041)
+- [x] One image per model (`Plate.image`); `colors` collection, color rules, and `/catalog/colors/` removed; `empty-label` integrity check (D-041)
+- [x] The frame field is hidden when the model takes no frame; frame clearing and kept-invalid behavior unchanged (D-026, D-030)
+- [x] Demo catalog mirrors the four models with synthetic images; `demo-quadro` is frame-capable only in the demo
+- [x] Unit, component, and Playwright tests updated; production smoke lists the four models with the photo pending
+
+### M4.1b — Advanced text customization
+
+Status: **Planned** (design approved, D-042). Not started.
+
+- Font family: "Com serifa" / "Sem serifa" (default), provisional system font stacks; real typography pending (P-14).
+- Lettering color (required) and an optional second color applied to selected character ranges; ranges are grapheme-safe and follow the simplified edit policy (D-042). Needs the production lettering palette (P-02).
+- One position model: nine presets plus a normalized manual position inside the calibrated text area; drag with the pointer; touch drag only in an explicit "Mover texto" mode; keyboard arrows; "Redefinir posição"; position preserved across model changes within the new safe area.
+- Handmade-product disclaimer near the controls (copy in D-042).
+- Scene text block extended with colored segments; tests for ranges, positions, and rendering.
+- Future, not scheduled: per-line text-length limit (P-14). Recorded only; nothing enforces it.
+
 ## M4 — Image export
 
-Status: Planned.
+Status: Planned (not implemented; plan not yet approved).
 
-- Confirm format, resolution, transparency, background, file naming.
+- Confirm format, resolution, transparency, background, file naming (the filename no longer has color parts).
 - Export from the shared composition.
 - Preview/export consistency tests.
+- **Acceptance criterion (D-039):** once M4.1b exists, the preview and the exported image render the same font family, lettering colors (including secondary ranges), and text position from the same scene.
 
 ## M5 — Quality and usability
 

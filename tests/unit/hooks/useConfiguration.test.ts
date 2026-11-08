@@ -13,8 +13,6 @@ describe('useConfiguration', () => {
     expect(result.current.config).toEqual({
       plateId: null,
       frameId: null,
-      colorCategory: null,
-      colorId: null,
       text: '',
     });
     expect(result.current.validation.status).toBe('incomplete');
@@ -26,15 +24,11 @@ describe('useConfiguration', () => {
 
     act(() => result.current.choosePlate('test-plate-square'));
     act(() => result.current.chooseFrame('test-frame-any'));
-    act(() => result.current.chooseColorCategory('colored'));
-    act(() => result.current.chooseColor('test-color-colored'));
     act(() => result.current.setText('  Linha 1\nLinha 2 '));
 
     expect(result.current.config).toEqual({
       plateId: 'test-plate-square',
       frameId: 'test-frame-any',
-      colorCategory: 'colored',
-      colorId: 'test-color-colored',
       text: '  Linha 1\nLinha 2 ',
     });
     expect(result.current.validation).toEqual({ status: 'valid' });
@@ -68,17 +62,6 @@ describe('useConfiguration', () => {
       field: 'frameId',
       code: 'incompatible-shape',
     });
-  });
-
-  it('keeps a color category the new plate does not support', () => {
-    const { result } = setup();
-
-    act(() => result.current.choosePlate('test-plate-square'));
-    act(() => result.current.chooseColorCategory('colored'));
-    act(() => result.current.choosePlate('test-plate-rectangle'));
-
-    expect(result.current.config.colorCategory).toBe('colored');
-    expect(issueFor(result.current.validation, 'colorCategory')?.kind).toBe('invalid');
   });
 });
 

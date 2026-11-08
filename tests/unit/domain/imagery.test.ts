@@ -15,37 +15,16 @@ const imageSrc = (lookup: ReturnType<typeof findPlateImage>) =>
   lookup.status === 'available' ? lookup.image.image.src : undefined;
 
 describe('findPlateImage', () => {
-  it('returns the category photograph when no shade is selected', () => {
-    expect(imageSrc(findPlateImage(plateA, 'nude', null))).toBe(
-      '/catalog/plates/test-plate-a/nude.webp',
-    );
+  it("returns the model's own photograph", () => {
+    expect(imageSrc(findPlateImage(plateA))).toBe('/catalog/plates/test-plate-a/beige.webp');
   });
 
-  it('returns the photograph of the exact shade', () => {
-    expect(imageSrc(findPlateImage(plateA, 'colored', 'test-color-colored'))).toBe(
-      '/catalog/plates/test-plate-a/test-color-colored.png',
-    );
-  });
-
-  it('is pending when no color category is selected (no default photograph)', () => {
-    expect(findPlateImage(plateA, null, null)).toEqual({ status: 'pending' });
-  });
-
-  it('does not fall back to the category photograph for a specific shade', () => {
-    expect(findPlateImage(plateA, 'nude', 'test-color-nude')).toEqual({ status: 'pending' });
-  });
-
-  it('does not fall back to a shade photograph for the category alone', () => {
-    expect(findPlateImage(plateA, 'colored', null)).toEqual({ status: 'pending' });
-  });
-
-  it('does not use another plate model or category', () => {
-    expect(findPlateImage(plateB, 'nude', null)).toEqual({ status: 'pending' });
-    expect(findPlateImage(plateA, 'nude', 'test-color-colored')).toEqual({ status: 'pending' });
+  it('is pending for a model without a photograph (no fallback to another model)', () => {
+    expect(findPlateImage(plateB)).toEqual({ status: 'pending' });
   });
 
   it('returns the placement metadata with the photograph', () => {
-    const lookup = findPlateImage(plateA, 'nude', null);
+    const lookup = findPlateImage(plateA);
     expect(lookup.status === 'available' && lookup.image.text).toEqual({
       area: { x: 0.2, y: 0.3, width: 0.6, height: 0.4 },
       align: 'center',
@@ -76,22 +55,16 @@ describe('configuration validation is independent of imagery', () => {
     {
       plateId: 'test-plate-a',
       frameId: null,
-      colorCategory: 'nude',
-      colorId: null,
       text: 'Ana',
     },
     {
       plateId: 'test-plate-a',
       frameId: 'test-frame-any',
-      colorCategory: 'colored',
-      colorId: 'test-color-nude',
       text: '',
     },
     {
       plateId: 'test-plate-b',
       frameId: 'test-frame-plate-a',
-      colorCategory: null,
-      colorId: null,
       text: 'Ana',
     },
   ];
@@ -110,7 +83,7 @@ describe('configuration validation is independent of imagery', () => {
     const config = configs[0];
     if (!config) throw new Error('fixture');
     const pending = { ...config, plateId: 'test-plate-b' };
-    expect(findPlateImage(plateB, 'nude', null)).toEqual({ status: 'pending' });
+    expect(findPlateImage(plateB)).toEqual({ status: 'pending' });
     expect(validateConfiguration(pending, catalog)).toEqual({ status: 'valid' });
   });
 });

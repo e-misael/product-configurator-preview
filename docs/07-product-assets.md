@@ -20,30 +20,26 @@ The lifestyle photographs shared so far are **visual references only**. They con
 
 - the wooden shadowbox-style frame holding a smaller square ceramic plaque shows a frame–plate combination, not separate clean layers;
 - the standalone square plaque with lettering is not a blank plate image;
-- the scalloped ceramic dish is **not** classified as the circular plaque model. Which product is the circular plate must be confirmed by the store.
+- the scalloped dishes are the Bandeja ondulada M models (`scalloped` classification only, D-040); no circular model is registered.
 
 ## Expected source photographs (M1.3b inputs)
 
-1. Square plate without lettering.
-2. Rectangular plate without lettering.
-3. Circular plate without lettering.
-4. Empty wooden frames, photographed independently (and, where needed, a front layer such as the rim around the opening).
-5. Separate photographs of every real color/finish variation of each plate model.
+1. One photograph per model without lettering: Placa cerâmica (10 cm x 10 cm), Quadro (20 cm x 20 cm), Bandeja ondulada M (~ 8 cm), and Bandeja ondulada M (~ 11 cm). Each model has a single fixed color (Bege), so there are no color variations.
+2. Empty wooden frames, photographed independently (and, where needed, a front layer such as the rim around the opening), only if some model is confirmed to take a frame (P-13).
 
-Recommended capture: consistent lighting, camera height, and angle across variations of the same model; the object fully visible and as frontal as possible; high resolution relative to the intended display size; no lettering, props, or busy backgrounds. These are recommendations, not invented requirements: exact resolutions are decided with the real files (P-08).
+Recommended capture: consistent lighting, camera height, and angle across the models; the object fully visible and as frontal as possible; high resolution relative to the intended display size; no lettering, props, or busy backgrounds. These are recommendations, not invented requirements: exact resolutions are decided with the real files (P-08).
 
 ## Directory and naming conventions (D-031)
 
 ```text
 public/catalog/
-├── plates/{plate-id}/{name}.{webp|png|jpg}    # Plate.images[].image
-├── frames/{frame-id}/{name}.{webp|png|jpg}    # Frame.images[].back / .front
-└── colors/{color-id}/{name}.{webp|png|jpg}    # PlateColor.swatch (UI thumbnail only)
+├── plates/{plate-id}/{name}.{webp|png|jpg}    # Plate.image.image
+└── frames/{frame-id}/{name}.{webp|png|jpg}    # Frame.images[].back / .front
 ```
 
-- Catalog `src` values are served paths: `/catalog/plates/placa-quadrada/nude.webp`.
+- Catalog `src` values are served paths: `/catalog/plates/placa-ceramica-10/bege.webp`.
 - The folder name is the owner's stable catalog ID; catalog integrity rejects a file in another owner's folder.
-- File names are lowercase kebab-case. Suggested names: `{color-category}` or `{color-id}` for plate photographs (`nude.webp`, `cor-terracota.webp`), `{plate-id}-back` / `{plate-id}-front` for frame layers.
+- File names are lowercase kebab-case. Suggested names: `bege` for a model's photograph, `{plate-id}-back` / `{plate-id}-front` for frame layers.
 - One folder level per owner; no nested folders.
 - A file used by several entries (e.g. one frame layer calibrated for two plates) is stored once and referenced by each entry; do not copy it.
 - The folder is created by M1.3b together with the first real file. `public/` contents ship in the production build, so demo or test images never go there.
@@ -62,16 +58,13 @@ public/catalog/
 
 ## Catalog association (D-032, D-033)
 
-- **Plate photographs** — `Plate.images[]`, one entry per real variation: `{ colorCategory, colorId?, image, objectBounds?, text? }`.
-  - `colorId` omitted: the photograph shown for the category when the customer has not chosen a specific shade.
-  - `colorId` set: the photograph of that exact shade, which must be one of the plate's `supportedColorIds` in that category.
-  - Lookup (`findPlateImage`) is an **exact match**. No color category selected → pending; a shade without its own photograph → pending. There is no fallback to another shade, to the category photograph, or to another plate.
+- **Plate photograph** — `Plate.image`, one per model: `{ image, objectBounds?, text? }`. Lookup (`findPlateImage`) is exact: a model without a photograph is pending. There is no fallback to another model's image (D-041).
 - **Frame imagery** — `Frame.images[]`, one entry per compatible plate model: `{ plateId, back, front?, platePlacement? }`. Placement depends on the plate model, so one photograph is never assumed to fit every compatible geometry. Entries are allowed only for plate/frame pairs that configuration validation accepts (`isFrameCompatible`).
-- **Swatches** — `PlateColor.swatch` is an optional UI thumbnail. It is never used to tint a plate photograph.
+- **Colors** — the ceramic color is a fixed text property of the model (`Plate.ceramicColor`), never derived from or applied to a photograph.
 
 ## Replacing an image
 
-Product identity is the catalog ID, never the file. To replace a photograph, overwrite the file at the same path (preferred) or point `src` to the new file in the same owner folder; the plate, frame, or color ID never changes. Update `widthPx`/`heightPx` and recalibrate placement, because a new photograph changes the coordinates.
+Product identity is the catalog ID, never the file. To replace a photograph, overwrite the file at the same path (preferred) or point `src` to the new file in the same owner folder; the model or frame ID never changes. Update `widthPx`/`heightPx` and recalibrate placement, because a new photograph changes the coordinates.
 
 ## Intrinsic size
 
@@ -122,11 +115,11 @@ Photograph guidance that follows from this: shoot or crop plates and frame layer
 
 ## Missing and broken images
 
-| State                         | Detected by                                                                       | Behavior in the preview (implemented in M3.1)                                           |
-| ----------------------------- | --------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Image available               | `findPlateImage` / `findFrameImage` → `available`, and the file loads             | Painted.                                                                                |
-| Image pending in the catalog  | Lookup → `pending`                                                                | "A foto desta placa nesta cor ainda não está disponível." Nothing else is substituted.  |
-| Reference exists, file broken | Asset gate test (missing file, at test time); the browser's load error at runtime | "Não foi possível carregar a imagem da placa / do quadro." Nothing else is substituted. |
+| State                         | Detected by                                                                       | Behavior in the preview (implemented in M3.1)                                             |
+| ----------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------- |
+| Image available               | `findPlateImage` / `findFrameImage` → `available`, and the file loads             | Painted.                                                                                  |
+| Image pending in the catalog  | Lookup → `pending`                                                                | "A foto deste modelo ainda não está disponível." Nothing else is substituted.             |
+| Reference exists, file broken | Asset gate test (missing file, at test time); the browser's load error at runtime | "Não foi possível carregar a imagem do modelo / da moldura." Nothing else is substituted. |
 
 Pending, loading, and failed are separate messages. Configuration validity never depends on any of these states.
 
@@ -139,7 +132,7 @@ Pending, loading, and failed are separate messages. Configuration validity never
 
 - [ ] Receive clean photographs; archive originals outside the repository.
 - [ ] Process (crop, background removal/masking, perspective correction) and export from the originals.
-- [ ] Register real plates, frames, and colors in `src/catalog/data.ts` with store-confirmed data.
+- [ ] Confirm the four model IDs, add each model's photograph, and register any frames in `src/catalog/data.ts` with store-confirmed data.
 - [ ] Add files under `public/catalog/` following this guide.
 - [ ] Declare `widthPx`/`heightPx` and add the check that they match the files.
 - [ ] Calibrate `objectBounds`, `text`, and `platePlacement`; verify visually against the originals.

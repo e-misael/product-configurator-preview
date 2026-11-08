@@ -5,9 +5,8 @@ import { contextOf, type FakeContext } from '../support/fake-canvas';
 import { FakeImage, installFakeImages } from '../support/fake-image';
 import { previewCatalog, previewSizes } from '../preview/fixtures';
 
-const SQUARE_NUDE = '/catalog/plates/test-plate-square/nude.webp';
-const SQUARE_COLORED = '/catalog/plates/test-plate-square/colored.webp';
-const SQUARE_SHADE = '/catalog/plates/test-plate-square/test-color-colored.webp';
+const SQUARE_PLATE = '/catalog/plates/test-plate-square/beige.webp';
+const RECTANGLE_PLATE = '/catalog/plates/test-plate-rectangle/beige.webp';
 const SQUARE_BACK = '/catalog/frames/test-frame-any/square-back.webp';
 const SQUARE_FRONT = '/catalog/frames/test-frame-any/square-front.webp';
 
@@ -37,7 +36,7 @@ async function choose(
   await user.click(within(group(group_)).getByRole('radio', { name }));
 }
 const choosePlate = (user: ReturnType<typeof userEvent.setup>, name: RegExp) =>
-  choose(user, 'Placa', name);
+  choose(user, 'Modelo', name);
 
 function settle() {
   act(() => FakeImage.loadAll());
@@ -58,23 +57,14 @@ function currentContext(): FakeContext {
 
 describe('Preview', () => {
   describe('before an image can be shown', () => {
-    it('asks for a plate and shows no image', () => {
+    it('asks for a model and shows no image', () => {
       setup();
 
       expect(
-        within(preview()).getByText('Escolha uma placa para ver a pré-visualização.'),
+        within(preview()).getByText('Escolha um modelo para ver a pré-visualização.'),
       ).toBeVisible();
       expect(canvas()).not.toBeInTheDocument();
       expect(FakeImage.requestedSources).toEqual([]);
-    });
-
-    it('asks for a color once a plate is chosen', async () => {
-      const { user } = setup();
-
-      await choosePlate(user, /^Test plate square /);
-
-      expect(within(preview()).getByText('Escolha a cor da placa para ver a foto.')).toBeVisible();
-      expect(canvas()).not.toBeInTheDocument();
     });
   });
 
@@ -82,7 +72,6 @@ describe('Preview', () => {
     it('shows loading, then paints the exact image', async () => {
       const { user } = setup();
       await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Cor da placa', 'Nude');
 
       expect(within(preview()).getByText('Carregando imagem…')).toBeVisible();
       expect(canvas()).not.toBeInTheDocument();
@@ -90,81 +79,49 @@ describe('Preview', () => {
       settle();
 
       expect(within(preview()).queryByText('Carregando imagem…')).not.toBeInTheDocument();
-      expect(canvas()).toHaveAccessibleName('Square, nude');
-      expect(painted(currentContext())).toContain(SQUARE_NUDE);
+      expect(canvas()).toHaveAccessibleName('Square');
+      expect(painted(currentContext())).toContain(SQUARE_PLATE);
     });
 
-    it('swaps to the photograph of the newly chosen color, never reusing the old one', async () => {
+    it('swaps to the image of the newly chosen model, never reusing the old one', async () => {
       const { user } = setup();
       await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Cor da placa', 'Nude');
       settle();
 
-      await choose(user, 'Cor da placa', 'Colorida');
+      await choosePlate(user, /^Test plate rectangle /);
       settle();
 
       const drawn = painted(currentContext());
-      expect(drawn).toContain(SQUARE_COLORED);
-      expect(drawn).not.toContain(SQUARE_NUDE);
+      expect(drawn).toContain(RECTANGLE_PLATE);
+      expect(drawn).not.toContain(SQUARE_PLATE);
     });
 
-    it('uses the photograph of the exact shade', async () => {
+    it('says the image is pending, and shows nothing else, for a model without a photograph', async () => {
       const { user } = setup();
-      await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Cor da placa', 'Colorida');
-      await choose(user, 'Tom específico (opcional)', 'Test colored');
-      settle();
-
-      expect(painted(currentContext())).toEqual([SQUARE_SHADE]);
-    });
-
-    it('says the image is pending, and shows nothing else, when the shade has no photograph', async () => {
-      const { user } = setup();
-      await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Cor da placa', 'Nude');
-      settle();
-
-      await choose(user, 'Tom específico (opcional)', 'Test nude');
+      await choosePlate(user, /^Test plate pending /);
       settle();
 
       expect(
-        within(preview()).getByText('A foto desta placa nesta cor ainda não está disponível.'),
+        within(preview()).getByText('A foto deste modelo ainda não está disponível.'),
       ).toBeVisible();
       expect(canvas()).not.toBeInTheDocument();
       expect(
-        within(preview()).queryByText('Não foi possível carregar a imagem da placa.'),
+        within(preview()).queryByText('Não foi possível carregar a imagem do modelo.'),
       ).toBeNull();
     });
 
     it('distinguishes a file that fails to load from a missing catalog image', async () => {
       const { user } = setup();
       await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Cor da placa', 'Nude');
 
-      act(() => FakeImage.fail(SQUARE_NUDE));
+      act(() => FakeImage.fail(SQUARE_PLATE));
 
       expect(
-        within(preview()).getByText('Não foi possível carregar a imagem da placa.'),
+        within(preview()).getByText('Não foi possível carregar a imagem do modelo.'),
       ).toBeVisible();
       expect(
-        within(preview()).queryByText('A foto desta placa nesta cor ainda não está disponível.'),
+        within(preview()).queryByText('A foto deste modelo ainda não está disponível.'),
       ).toBeNull();
-      expect(canvas()).not.toBeInTheDocument();
-    });
-
-    it('shows nothing for a color that conflicts with the plate', async () => {
-      const { user } = setup();
-      await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Cor da placa', 'Colorida');
-      settle();
-
-      await choosePlate(user, /^Test plate rectangle /);
-
-      expect(
-        within(preview()).getByText(
-          'A cor escolhida não é válida para esta placa; a foto não é exibida.',
-        ),
-      ).toBeVisible();
       expect(canvas()).not.toBeInTheDocument();
     });
   });
@@ -173,8 +130,7 @@ describe('Preview', () => {
     async function squareWithFrame() {
       const { user } = setup();
       await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Cor da placa', 'Nude');
-      await choose(user, 'Quadro', 'Test frame any');
+      await choose(user, 'Moldura (opcional)', 'Test frame any');
       return { user };
     }
 
@@ -182,8 +138,8 @@ describe('Preview', () => {
       await squareWithFrame();
       settle();
 
-      expect(painted(currentContext())).toEqual([SQUARE_BACK, SQUARE_NUDE, SQUARE_FRONT]);
-      expect(canvas()).toHaveAccessibleName('Frame, square; Square, nude');
+      expect(painted(currentContext())).toEqual([SQUARE_BACK, SQUARE_PLATE, SQUARE_FRONT]);
+      expect(canvas()).toHaveAccessibleName('Frame, square; Square');
     });
 
     it('puts the text between the plate and the frame front', async () => {
@@ -194,7 +150,7 @@ describe('Preview', () => {
 
       expect(painted(currentContext())).toEqual([
         SQUARE_BACK,
-        SQUARE_NUDE,
+        SQUARE_PLATE,
         'text:Ana',
         SQUARE_FRONT,
       ]);
@@ -203,82 +159,77 @@ describe('Preview', () => {
     it('does not paint a frame that became incompatible, and says so', async () => {
       const { user } = setup();
       await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Cor da placa', 'Nude');
-      await choose(user, 'Quadro', 'Test frame any');
+      await choose(user, 'Moldura (opcional)', 'Test frame any');
       settle();
-      expect(painted(currentContext())).toEqual([SQUARE_BACK, SQUARE_NUDE, SQUARE_FRONT]);
+      expect(painted(currentContext())).toEqual([SQUARE_BACK, SQUARE_PLATE, SQUARE_FRONT]);
 
-      // Compatible with squares only, so the rectangular plate cannot take it.
-      await choose(user, 'Quadro', 'Test frame square');
+      // Compatible with squares only, so the rectangular model cannot take it.
+      await choose(user, 'Moldura (opcional)', 'Test frame square');
       await choosePlate(user, /^Test plate rectangle /);
-      await choose(user, 'Cor da placa', 'Nude');
       settle();
 
       expect(
-        within(preview()).getByText('O quadro selecionado é incompatível e não é exibido.'),
+        within(preview()).getByText('A moldura selecionada é incompatível e não é exibida.'),
       ).toBeVisible();
-      expect(painted(currentContext())).toEqual(['/catalog/plates/test-plate-rectangle/nude.webp']);
+      expect(painted(currentContext())).toEqual([RECTANGLE_PLATE]);
     });
 
     it('shows the plate alone, with a message, when the frame is not calibrated', async () => {
       const { user } = setup();
       await choosePlate(user, /^Test plate rectangle /);
-      await choose(user, 'Cor da placa', 'Nude');
-      await choose(user, 'Quadro', 'Test frame any');
+      await choose(user, 'Moldura (opcional)', 'Test frame any');
       settle();
 
       expect(
         within(preview()).getByText(
-          'A posição da placa neste quadro ainda não foi calibrada; o quadro não é exibido.',
+          'A posição do modelo nesta moldura ainda não foi calibrada; a moldura não é exibida.',
         ),
       ).toBeVisible();
-      expect(painted(currentContext())).toEqual(['/catalog/plates/test-plate-rectangle/nude.webp']);
+      expect(painted(currentContext())).toEqual([RECTANGLE_PLATE]);
     });
 
     it('shows the plate alone when a frame file fails to load', async () => {
       await squareWithFrame();
 
       act(() => {
-        FakeImage.load(SQUARE_NUDE);
+        FakeImage.load(SQUARE_PLATE);
         FakeImage.load(SQUARE_BACK);
         FakeImage.fail(SQUARE_FRONT);
       });
 
       expect(
         within(preview()).getByText(
-          'Não foi possível carregar a imagem do quadro; o quadro não é exibido.',
+          'Não foi possível carregar a imagem da moldura; a moldura não é exibida.',
         ),
       ).toBeVisible();
-      expect(painted(currentContext())).toEqual([SQUARE_NUDE]);
+      expect(painted(currentContext())).toEqual([SQUARE_PLATE]);
     });
 
     it('says the frame image is pending when none is registered for the plate', async () => {
       const { user } = setup();
       await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Cor da placa', 'Nude');
-      await choose(user, 'Quadro', 'Test frame square');
+      await choose(user, 'Moldura (opcional)', 'Test frame square');
       settle();
 
       expect(
         within(preview()).getByText(
-          'A imagem deste quadro para esta placa ainda não está disponível; o quadro não é exibido.',
+          'A imagem desta moldura para este modelo ainda não está disponível; a moldura não é exibida.',
         ),
       ).toBeVisible();
-      expect(painted(currentContext())).toEqual([SQUARE_NUDE]);
+      expect(painted(currentContext())).toEqual([SQUARE_PLATE]);
     });
   });
 
   describe('text', () => {
-    async function squareNude() {
+    async function squarePlate() {
       const { user } = setup();
       await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Cor da placa', 'Nude');
       settle();
       return { user };
     }
 
     it('updates the canvas as the user types, one line per line break', async () => {
-      const { user } = await squareNude();
+      const { user } = await squarePlate();
 
       await user.type(screen.getByLabelText('Texto'), 'Casa{Enter}da Ana');
 
@@ -287,15 +238,15 @@ describe('Preview', () => {
     });
 
     it('draws the text over the plate, never under it', async () => {
-      const { user } = await squareNude();
+      const { user } = await squarePlate();
 
       await user.type(screen.getByLabelText('Texto'), 'Ana');
 
-      expect(painted(currentContext())).toEqual([SQUARE_NUDE, 'text:Ana']);
+      expect(painted(currentContext())).toEqual([SQUARE_PLATE, 'text:Ana']);
     });
 
     it('keeps the stored text exactly as typed', async () => {
-      const { user } = await squareNude();
+      const { user } = await squarePlate();
       const field = screen.getByLabelText('Texto');
 
       await user.type(field, '  Ana{Enter}Maria  ');
@@ -305,14 +256,14 @@ describe('Preview', () => {
     });
 
     it('warns instead of clipping when the text does not fit', async () => {
-      const { user } = await squareNude();
+      const { user } = await squarePlate();
 
       await user.click(screen.getByLabelText('Texto'));
       await user.paste(Array.from({ length: 40 }, (_, i) => `linha ${i}`).join('\n'));
 
       expect(
         within(preview()).getByText(
-          'O texto não cabe na área da placa, mesmo no tamanho mínimo. Reduza o texto.',
+          'O texto não cabe na área do modelo, mesmo no tamanho mínimo. Reduza o texto.',
         ),
       ).toBeVisible();
       const texts = painted(currentContext()).filter((entry) => entry.startsWith('text:'));
@@ -322,14 +273,13 @@ describe('Preview', () => {
     it('explains why text is not drawn when the plate has no calibrated text area', async () => {
       const { user } = setup();
       await choosePlate(user, /^Test plate rectangle /);
-      await choose(user, 'Cor da placa', 'Nude');
       settle();
 
       await user.type(screen.getByLabelText('Texto'), 'Ana');
 
       expect(
         within(preview()).getByText(
-          'A área do texto desta placa ainda não foi calibrada; o texto não aparece na imagem.',
+          'A área do texto deste modelo ainda não foi calibrada; o texto não aparece na imagem.',
         ),
       ).toBeVisible();
       expect(painted(currentContext()).some((entry) => entry.startsWith('text:'))).toBe(false);
@@ -347,11 +297,10 @@ describe('Preview', () => {
     it('links the canvas to the text summary', async () => {
       const { user } = setup();
       await choosePlate(user, /^Test plate square /);
-      await choose(user, 'Cor da placa', 'Nude');
       settle();
       await user.type(screen.getByLabelText('Texto'), 'Ana');
 
-      expect(canvas()).toHaveAccessibleDescription(/Test plate square.*Nude.*Ana/s);
+      expect(canvas()).toHaveAccessibleDescription(/Test plate square.*Ana/s);
     });
   });
 });

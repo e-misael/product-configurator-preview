@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import { App } from '../../src/App';
 
 describe('App shell', () => {
@@ -11,12 +11,27 @@ describe('App shell', () => {
     ).toBeInTheDocument();
   });
 
-  it('handles the empty production catalog without demo data', () => {
+  it('lists the four production models without demo data', () => {
     render(<App />);
 
-    expect(screen.getByText('Nenhuma placa disponível no momento.')).toBeInTheDocument();
-    expect(screen.queryByRole('form')).not.toBeInTheDocument();
+    const models = within(screen.getByRole('group', { name: 'Modelo' }));
+    for (const name of [
+      'Placa cerâmica (10 cm x 10 cm)',
+      'Quadro (20 cm x 20 cm)',
+      'Bandeja ondulada M (~ 8 cm)',
+      'Bandeja ondulada M (~ 11 cm)',
+    ]) {
+      expect(models.getByRole('radio', { name })).toBeInTheDocument();
+    }
+    expect(models.getAllByRole('radio')).toHaveLength(4);
     expect(screen.queryByText(/demonstração/i)).not.toBeInTheDocument();
+  });
+
+  it('handles an empty catalog', () => {
+    render(<App catalog={{ plates: [], frames: [] }} />);
+
+    expect(screen.getByText('Nenhum modelo disponível no momento.')).toBeInTheDocument();
+    expect(screen.queryByRole('form')).not.toBeInTheDocument();
   });
 
   it('renders a banner when one is provided', () => {

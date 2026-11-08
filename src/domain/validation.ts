@@ -13,7 +13,6 @@ import type {
   Configuration,
   Frame,
   Plate,
-  PlateColor,
   PlateShape,
   ValidationIssue,
   ValidationResult,
@@ -23,8 +22,6 @@ export function createEmptyConfiguration(): Configuration {
   return {
     plateId: null,
     frameId: null,
-    colorCategory: null,
-    colorId: null,
     text: '',
   };
 }
@@ -35,10 +32,6 @@ export function findPlate(catalog: Catalog, id: string): Plate | undefined {
 
 export function findFrame(catalog: Catalog, id: string): Frame | undefined {
   return catalog.frames.find((frame) => frame.id === id);
-}
-
-export function findColor(catalog: Catalog, id: string): PlateColor | undefined {
-  return catalog.colors.find((color) => color.id === id);
 }
 
 export function isAvailable(component: { readonly available?: boolean }): boolean {
@@ -91,29 +84,6 @@ export function validateConfiguration(config: Configuration, catalog: Catalog): 
     issues.push({ kind: 'invalid', field: 'plateId', code: 'unknown-reference' });
   } else if (!isAvailable(plate)) {
     issues.push({ kind: 'invalid', field: 'plateId', code: 'unavailable' });
-  }
-
-  if (config.colorCategory === null) {
-    issues.push({ kind: 'missing', field: 'colorCategory' });
-  } else if (
-    plate !== undefined &&
-    !plate.supportedColorCategories.includes(config.colorCategory)
-  ) {
-    issues.push({ kind: 'invalid', field: 'colorCategory', code: 'unsupported-by-plate' });
-  }
-
-  // A specific color is optional, but when provided it must be consistent.
-  if (config.colorId !== null) {
-    const color = findColor(catalog, config.colorId);
-    if (color === undefined) {
-      issues.push({ kind: 'invalid', field: 'colorId', code: 'unknown-reference' });
-    } else if (!isAvailable(color)) {
-      issues.push({ kind: 'invalid', field: 'colorId', code: 'unavailable' });
-    } else if (config.colorCategory !== null && color.category !== config.colorCategory) {
-      issues.push({ kind: 'invalid', field: 'colorId', code: 'category-mismatch' });
-    } else if (plate !== undefined && !plate.supportedColorIds.includes(color.id)) {
-      issues.push({ kind: 'invalid', field: 'colorId', code: 'unsupported-by-plate' });
-    }
   }
 
   // Frame is optional: `null` is a valid "no frame" choice. Plate-dependent

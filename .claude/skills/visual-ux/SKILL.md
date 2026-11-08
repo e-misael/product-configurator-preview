@@ -21,14 +21,14 @@ Visual accuracy is a functional requirement: the preview must show exactly what 
 - Design for ~360px width first, then enhance for larger screens.
 - **No horizontal scrolling** at any viewport. Use `min-width: 0` on flex/grid children, wrap long content.
 - On mobile, keep the preview visible while editing (e.g. preview above controls).
-- Preview scales to its container while keeping the configured aspect ratio — never stretch or crop the plate.
+- Preview scales to its container while keeping the configured aspect ratio — never stretch or crop the model image.
 
 ## Form controls (pt-BR)
 
-- Labels: "Placa", "Quadro", "Cor da placa", "Formato da placa", "Texto". "Sem quadro" for no frame.
-- "Formato da placa" is displayed for the selected plate, not chosen (D-023). Plates may be grouped by shape.
-- "Quadro" offers only `getFrameOptions(...)`. A selected frame that is not among them stays visible, marked invalid with its validation message, with "Remover quadro" and the compatible options as replacements; never show "Sem quadro" as selected while a frame is selected (D-030). For a plate without frame support, show "Sem quadro" with a short explanation (e.g. "Esta placa não aceita quadro") instead of an empty or silently missing control.
-- When `selectPlate` reports `cleared: ['frameId']`, announce it visibly and via `aria-live="polite"` (e.g. "O quadro foi removido porque a placa escolhida não aceita quadro.").
+- Labels: "Modelo", "Moldura (opcional)", "Texto"; "Sem moldura" for no frame. Product names such as "Placa cerâmica" and "Quadro" are kept as supplied; options read `displayName (sizeLabel)`.
+- The shape is internal and not shown (D-040). The fixed ceramic color is shown read-only as "Cor da peça: Bege" inside the Modelo field; never offer it as a control (D-041).
+- "Moldura (opcional)" offers only `getFrameOptions(...)` and is hidden when the model takes no frame and none is selected. A selected frame that is not among the options stays visible, marked invalid with its validation message, with "Remover moldura" and the compatible options as replacements; never show "Sem moldura" as selected while a frame is selected (D-030).
+- When `selectPlate` reports `cleared: ['frameId']`, announce it visibly and via `aria-live="polite"` (e.g. "A moldura foi removida porque o modelo escolhido não aceita moldura.").
 - Use native elements: `<fieldset>`/`<legend>` + radio inputs for choice groups, `<textarea>` for text.
 - Every control has a visible, associated label.
 - Touch targets ≥ 44×44 px.
@@ -39,7 +39,7 @@ Visual accuracy is a functional requirement: the preview must show exactly what 
 ## Text in the preview
 
 - Preserve user line breaks.
-- Wrap within the plate's safe area; never let text silently overflow or clip.
+- Wrap within the model's safe area; never let text silently overflow or clip.
 - If text does not fit, show a clear indication rather than hiding content.
 - Typography and positioning rules are **pending** (P-04). Do not invent production typography; use clearly marked provisional values only when approved.
 
@@ -62,6 +62,6 @@ Visual accuracy is a functional requirement: the preview must show exactly what 
 - [ ] Works at 360px, 768px, 1280px without horizontal scroll.
 - [ ] All controls labeled, keyboard operable, focus visible.
 - [ ] Touch targets ≥ 44px.
-- [ ] UI text in pt-BR; "Placa"/"Quadro" preserved.
+- [ ] UI text in pt-BR; "Modelo"/"Moldura" used, product names preserved.
 - [ ] Long and multi-line text handled.
 - [ ] Preview matches the selected configuration.

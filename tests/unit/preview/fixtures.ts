@@ -10,79 +10,61 @@ const BOUNDS = { x: 0.1, y: 0.1, width: 0.8, height: 0.8 };
 const TEXT = { area: { x: 0.2, y: 0.3, width: 0.6, height: 0.4 }, align: 'center' } as const;
 
 export const previewCatalog: Catalog = {
-  colors: [
-    { id: 'test-color-nude', type: 'color', displayName: 'Test nude', category: 'nude' },
-    { id: 'test-color-colored', type: 'color', displayName: 'Test colored', category: 'colored' },
-  ],
   plates: [
     {
       id: 'test-plate-square',
       type: 'plate',
       displayName: 'Test plate square',
+      sizeLabel: 'Test size',
+      ceramicColor: 'Test beige',
       shape: 'square',
       supportsFrame: true,
-      supportedColorCategories: ['nude', 'colored'],
-      supportedColorIds: ['test-color-nude', 'test-color-colored'],
       dimensions: { status: 'pending' },
-      images: [
-        {
-          colorCategory: 'nude',
-          image: { src: '/catalog/plates/test-plate-square/nude.webp', alt: 'Square, nude' },
-          objectBounds: BOUNDS,
-          text: TEXT,
-        },
-        {
-          colorCategory: 'colored',
-          image: { src: '/catalog/plates/test-plate-square/colored.webp', alt: 'Square, colored' },
-          objectBounds: BOUNDS,
-          text: TEXT,
-        },
-        {
-          colorCategory: 'colored',
-          colorId: 'test-color-colored',
-          image: {
-            src: '/catalog/plates/test-plate-square/test-color-colored.webp',
-            alt: 'Square, shade',
-          },
-          objectBounds: BOUNDS,
-          text: TEXT,
-        },
-      ],
+      image: {
+        image: { src: '/catalog/plates/test-plate-square/beige.webp', alt: 'Square' },
+        objectBounds: BOUNDS,
+        text: TEXT,
+      },
     },
     {
       // Calibration pending: no object bounds and no text area.
       id: 'test-plate-rectangle',
       type: 'plate',
       displayName: 'Test plate rectangle',
+      sizeLabel: 'Test size',
+      ceramicColor: 'Test beige',
       shape: 'rectangle',
       supportsFrame: true,
-      supportedColorCategories: ['nude'],
-      supportedColorIds: [],
       dimensions: { status: 'pending' },
-      images: [
-        {
-          colorCategory: 'nude',
-          image: { src: '/catalog/plates/test-plate-rectangle/nude.webp', alt: 'Rectangle' },
-        },
-      ],
+      image: {
+        image: { src: '/catalog/plates/test-plate-rectangle/beige.webp', alt: 'Rectangle' },
+      },
     },
     {
       id: 'test-plate-circle',
       type: 'plate',
       displayName: 'Test plate circle',
+      sizeLabel: 'Test size',
+      ceramicColor: 'Test beige',
       shape: 'circle',
       supportsFrame: false,
-      supportedColorCategories: ['nude'],
-      supportedColorIds: [],
       dimensions: { status: 'pending' },
-      images: [
-        {
-          colorCategory: 'nude',
-          image: { src: '/catalog/plates/test-plate-circle/nude.webp' },
-          objectBounds: BOUNDS,
-          text: { area: { x: 0.25, y: 0.35, width: 0.5, height: 0.3 } },
-        },
-      ],
+      image: {
+        image: { src: '/catalog/plates/test-plate-circle/beige.webp' },
+        objectBounds: BOUNDS,
+        text: { area: { x: 0.25, y: 0.35, width: 0.5, height: 0.3 } },
+      },
+    },
+    {
+      // No photograph registered yet (the production state of every model).
+      id: 'test-plate-pending',
+      type: 'plate',
+      displayName: 'Test plate pending',
+      sizeLabel: 'Test size',
+      ceramicColor: 'Test beige',
+      shape: 'square',
+      supportsFrame: false,
+      dimensions: { status: 'pending' },
     },
   ],
   frames: [
@@ -117,11 +99,9 @@ export const previewCatalog: Catalog = {
 
 /** Natural sizes of the fixture's files. */
 export const previewSizes: Record<string, Size> = {
-  '/catalog/plates/test-plate-square/nude.webp': { width: 400, height: 400 },
-  '/catalog/plates/test-plate-square/colored.webp': { width: 400, height: 400 },
-  '/catalog/plates/test-plate-square/test-color-colored.webp': { width: 400, height: 400 },
-  '/catalog/plates/test-plate-rectangle/nude.webp': { width: 600, height: 400 },
-  '/catalog/plates/test-plate-circle/nude.webp': { width: 400, height: 400 },
+  '/catalog/plates/test-plate-square/beige.webp': { width: 400, height: 400 },
+  '/catalog/plates/test-plate-rectangle/beige.webp': { width: 600, height: 400 },
+  '/catalog/plates/test-plate-circle/beige.webp': { width: 400, height: 400 },
   '/catalog/frames/test-frame-any/square-back.webp': { width: 500, height: 500 },
   '/catalog/frames/test-frame-any/square-front.webp': { width: 500, height: 500 },
   '/catalog/frames/test-frame-any/rectangle-back.webp': { width: 600, height: 400 },
@@ -131,8 +111,6 @@ export function config(overrides: Partial<Configuration> = {}): Configuration {
   return {
     plateId: 'test-plate-square',
     frameId: null,
-    colorCategory: 'nude',
-    colorId: null,
     text: 'Ana',
     ...overrides,
   };

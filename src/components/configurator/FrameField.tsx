@@ -18,9 +18,10 @@ interface FrameFieldProps {
 }
 
 /**
- * Offers `getFrameOptions` for the plate. A selected frame that is not among
- * them is still shown, marked invalid, with remove/replace actions (D-030).
- * "Sem quadro" is only ever checked when no frame is selected.
+ * Offers `getFrameOptions` for the model, and is hidden when there is nothing to
+ * offer (no model yet, or a model that takes no frame). A selected frame that is
+ * not among the options is still shown, marked invalid, with remove/replace
+ * actions (D-030). "Sem moldura" is only ever checked when no frame is selected.
  */
 export function FrameField({ catalog, frameId, plate, issue, onChoose }: FrameFieldProps) {
   const options = plate ? getFrameOptions(catalog, plate.id) : [];
@@ -29,33 +30,22 @@ export function FrameField({ catalog, frameId, plate, issue, onChoose }: FrameFi
   const keptMessage =
     issue?.kind === 'invalid'
       ? invalidMessage(issue)
-      : 'Escolha uma placa para verificar este quadro.';
+      : 'Escolha um modelo para verificar esta moldura.';
+
+  if (options.length === 0 && !kept) return null;
 
   return (
     <fieldset className="field" aria-describedby={kept ? 'frame-issue' : undefined}>
-      <legend className="field__legend">Quadro</legend>
+      <legend className="field__legend">Moldura (opcional)</legend>
 
       {kept && (
         <InvalidSelection
           messageId="frame-issue"
-          title="Quadro selecionado (incompatível)"
+          title="Moldura selecionada (incompatível)"
           name={keptName}
           message={keptMessage}
-          action={{ label: 'Remover quadro', onClick: () => onChoose(null) }}
+          action={{ label: 'Remover moldura', onClick: () => onChoose(null) }}
         />
-      )}
-
-      {!plate && !kept && (
-        <p className="field__info">Escolha uma placa para ver os quadros disponíveis.</p>
-      )}
-
-      {plate && !plate.supportsFrame && !kept && (
-        <div className="field__options">
-          <ChoiceOption name="frame" value="" checked disabled onSelect={() => undefined}>
-            Sem quadro
-          </ChoiceOption>
-          <p className="field__info">Esta placa não aceita quadro.</p>
-        </div>
       )}
 
       {plate?.supportsFrame && (
@@ -66,7 +56,7 @@ export function FrameField({ catalog, frameId, plate, issue, onChoose }: FrameFi
             checked={frameId === null}
             onSelect={() => onChoose(null)}
           >
-            Sem quadro
+            Sem moldura
           </ChoiceOption>
           {options.map((frame) => (
             <ChoiceOption
@@ -79,9 +69,6 @@ export function FrameField({ catalog, frameId, plate, issue, onChoose }: FrameFi
               {frame.displayName}
             </ChoiceOption>
           ))}
-          {options.length === 0 && (
-            <p className="field__info">Nenhum quadro disponível para esta placa.</p>
-          )}
         </div>
       )}
     </fieldset>

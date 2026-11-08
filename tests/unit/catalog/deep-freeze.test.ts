@@ -33,30 +33,25 @@ describe('deepFreeze', () => {
     expectAssignmentRejected(catalog, 'plates', []);
     expectPushRejected(catalog.plates, {});
     expectPushRejected(catalog.frames, {});
-    expect(() => Reflect.apply(Array.prototype.pop, catalog.colors, [])).toThrow(TypeError);
   });
 
   it('freezes component objects', () => {
     const catalog = deepFreeze(buildValidCatalog());
     const plate = at(catalog.plates, 0);
-    const color = at(catalog.colors, 0);
 
     expect(Object.isFrozen(plate)).toBe(true);
     expect(Object.isFrozen(at(catalog.frames, 0))).toBe(true);
-    expect(Object.isFrozen(color)).toBe(true);
     expectAssignmentRejected(plate, 'displayName', 'changed');
-    expectAssignmentRejected(color, 'category', 'colored');
+    expectAssignmentRejected(plate, 'ceramicColor', 'changed');
   });
 
-  it('freezes nested supported lists and compatibility arrays', () => {
+  it('freezes compatibility arrays', () => {
     const catalog = deepFreeze(buildValidCatalog());
     const plate = at(catalog.plates, 0);
     const { compatibility } = at(catalog.frames, 1);
 
     expectAssignmentRejected(plate, 'shape', 'circle');
     expectAssignmentRejected(plate, 'supportsFrame', false);
-    expectPushRejected(plate.supportedColorCategories, 'nude');
-    expectPushRejected(plate.supportedColorIds, 'test-color-x');
     expect(Object.isFrozen(compatibility)).toBe(true);
     expectAssignmentRejected(compatibility, 'plateIds', undefined);
     expectPushRejected(compatibility.shapes, 'rectangle');
@@ -66,22 +61,18 @@ describe('deepFreeze', () => {
   it('freezes dimension and asset objects', () => {
     const catalog = deepFreeze(buildImageCatalog());
     const plate = at(catalog.plates, 0);
-    const swatch = defined(at(catalog.colors, 0).swatch);
 
     expect(Object.isFrozen(plate.dimensions)).toBe(true);
     expectAssignmentRejected(plate.dimensions, 'widthMm', 1);
     expectAssignmentRejected(plate, 'dimensions', { status: 'pending' });
-    expectAssignmentRejected(swatch, 'src', '');
   });
 
-  it('freezes image variations and placement metadata', () => {
+  it('freezes plate and frame imagery and placement metadata', () => {
     const catalog = deepFreeze(buildImageCatalog());
-    const plateImages = defined(at(catalog.plates, 0).images);
-    const plateImage = at(plateImages, 0);
+    const plateImage = defined(at(catalog.plates, 0).image);
     const frameImage = at(defined(at(catalog.frames, 0).images), 0);
 
-    expectPushRejected(plateImages, plateImage);
-    expectAssignmentRejected(plateImage, 'colorCategory', 'colored');
+    expectAssignmentRejected(plateImage, 'image', undefined);
     expectAssignmentRejected(plateImage.image, 'src', '/catalog/plates/x/y.png');
     expectAssignmentRejected(plateImage.image, 'widthPx', 1);
     expectAssignmentRejected(defined(plateImage.objectBounds), 'x', 0.5);

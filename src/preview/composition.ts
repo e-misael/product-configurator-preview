@@ -22,8 +22,6 @@ import {
 export type PreviewNoticeCode =
   | 'plate-not-selected'
   | 'plate-invalid'
-  | 'color-not-selected'
-  | 'color-invalid'
   | 'plate-image-pending'
   | 'plate-image-loading'
   | 'plate-image-error'
@@ -95,28 +93,19 @@ export function composePreview(
 
   const notices: PreviewNoticeCode[] = [];
 
-  // Plate: exact variation only; a selection that conflicts with the plate shows nothing.
+  // Plate: the model's own photograph; pending shows nothing in its place.
   let plateLayer: PlateLayer | undefined;
   let textLayout;
-  if (config.colorCategory === null) {
-    notices.push('color-not-selected');
-  } else if (
-    hasIssue(validation, 'colorCategory', 'invalid') ||
-    hasIssue(validation, 'colorId', 'invalid')
-  ) {
-    notices.push('color-invalid');
+  const lookup = findPlateImage(plate);
+  if (lookup.status === 'available') {
+    plateLayer = {
+      src: lookup.image.image.src,
+      alt: lookup.image.image.alt,
+      objectBounds: lookup.image.objectBounds,
+    };
+    textLayout = lookup.image.text;
   } else {
-    const lookup = findPlateImage(plate, config.colorCategory, config.colorId);
-    if (lookup.status === 'available') {
-      plateLayer = {
-        src: lookup.image.image.src,
-        alt: lookup.image.image.alt,
-        objectBounds: lookup.image.objectBounds,
-      };
-      textLayout = lookup.image.text;
-    } else {
-      notices.push('plate-image-pending');
-    }
+    notices.push('plate-image-pending');
   }
 
   // Frame: drawn only when valid and calibrated; otherwise the plate stands alone.

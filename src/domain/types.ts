@@ -5,7 +5,11 @@
  * `Configuration` describes what the user selected. See docs/04-data-model.md.
  */
 
-export const PLATE_SHAPES = ['square', 'rectangle', 'circle'] as const;
+/**
+ * Classification of a model's outline, used for frame compatibility. It implies
+ * no geometry: `scalloped` (wavy-edged trays) says nothing about the exact outline.
+ */
+export const PLATE_SHAPES = ['square', 'rectangle', 'circle', 'scalloped'] as const;
 export type PlateShape = (typeof PLATE_SHAPES)[number];
 
 /**
@@ -13,10 +17,6 @@ export type PlateShape = (typeof PLATE_SHAPES)[number];
  * checks; everything else relies on `Plate.supportsFrame`.
  */
 export const FRAMELESS_SHAPES: readonly PlateShape[] = ['circle'];
-
-/** Color categories. These are categories, not physical color values. */
-export const COLOR_CATEGORIES = ['nude', 'colored'] as const;
-export type ColorCategory = (typeof COLOR_CATEGORIES)[number];
 
 /**
  * Physical dimensions. Unknown values are explicitly `pending` and must
@@ -60,14 +60,11 @@ export interface TextLayout {
 }
 
 /**
- * The photograph of one real variation of a plate model (D-032). Matched
- * exactly against the configuration's category and shade, never approximated.
- * Placement fields are optional until calibrated from the real photograph.
+ * The photograph of a model (D-032, revised by D-041). The ceramic color is a
+ * fixed property of the model, so each model has one photograph. Placement
+ * fields are optional until calibrated from the real photograph.
  */
 export interface PlateImage {
-  readonly colorCategory: ColorCategory;
-  /** Omitted: the photograph for the category with no specific shade chosen. */
-  readonly colorId?: string;
   readonly image: AssetRef;
   /** Bounding box of the ceramic object within the photograph. */
   readonly objectBounds?: NormalizedBox;
@@ -94,25 +91,23 @@ interface CatalogComponentBase {
   readonly available?: boolean;
 }
 
-/** A specific plate color. Visual representation is optional until provided. */
-export interface PlateColor extends CatalogComponentBase {
-  readonly type: 'color';
-  readonly category: ColorCategory;
-  readonly swatch?: AssetRef;
-}
-
-/** A physical plate model. Each model has one fixed shape (D-023). */
+/**
+ * A physical product model, shown to customers as "Modelo" (D-040). The
+ * internal name stays `Plate`. Each model has one fixed shape (D-023).
+ */
 export interface Plate extends CatalogComponentBase {
   readonly type: 'plate';
   readonly shape: PlateShape;
+  /** Customer-facing size as supplied, e.g. "10 cm x 10 cm" or "~ 8 cm". Display only. */
+  readonly sizeLabel: string;
+  /** Fixed ceramic color shown read-only, e.g. "Bege". Owned by the catalog, never chosen (D-041). */
+  readonly ceramicColor: string;
   /** Explicit capability; never inferred from shape at use sites (D-024). */
   readonly supportsFrame: boolean;
-  readonly supportedColorCategories: readonly ColorCategory[];
-  /** Specific colors this plate can be made in. May be empty while colors are pending. */
-  readonly supportedColorIds: readonly string[];
+  /** Physical dimensions; `pending` until measured. `sizeLabel` is not a measurement. */
   readonly dimensions: Dimensions;
-  /** Photographs per color variation. A variation without an entry has a pending image. */
-  readonly images?: readonly PlateImage[];
+  /** The model's photograph. Omitted while pending. */
+  readonly image?: PlateImage;
 }
 
 /**
@@ -133,12 +128,11 @@ export interface Frame extends CatalogComponentBase {
   readonly images?: readonly FrameImage[];
 }
 
-export type CatalogComponent = Plate | Frame | PlateColor;
+export type CatalogComponent = Plate | Frame;
 
 export interface Catalog {
   readonly plates: readonly Plate[];
   readonly frames: readonly Frame[];
-  readonly colors: readonly PlateColor[];
 }
 
 /**
@@ -149,8 +143,6 @@ export interface Catalog {
 export interface Configuration {
   readonly plateId: string | null;
   readonly frameId: string | null;
-  readonly colorCategory: ColorCategory | null;
-  readonly colorId: string | null;
   /** Raw user text, preserved exactly as entered. */
   readonly text: string;
 }
@@ -160,8 +152,6 @@ export type ConfigurationField = keyof Configuration;
 export type InvalidCode =
   | 'unknown-reference'
   | 'unavailable'
-  | 'unsupported-by-plate'
-  | 'category-mismatch'
   | 'frame-not-supported'
   | 'incompatible-shape'
   | 'incompatible-plate'
@@ -186,10 +176,9 @@ export type CatalogIssueCode =
   | 'empty-list'
   | 'frame-capability-conflict'
   | 'unsupported-frame-shape'
-  | 'color-category-mismatch'
   | 'invalid-dimension'
   | 'invalid-asset'
-  | 'unsupported-variation'
+  | 'empty-label'
   | 'duplicate-variation'
   | 'invalid-placement';
 

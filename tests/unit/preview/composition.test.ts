@@ -17,61 +17,27 @@ describe('composePreview: plate image', () => {
   it('selects the exact category photograph when no shade is chosen', () => {
     const { plate, notices } = compose();
 
-    expect(plate?.src).toBe('/catalog/plates/test-plate-square/nude.webp');
-    expect(plate?.alt).toBe('Square, nude');
+    expect(plate?.src).toBe('/catalog/plates/test-plate-square/beige.webp');
+    expect(plate?.alt).toBe('Square');
     expect(notices).toEqual([]);
   });
 
-  it('selects the photograph of the exact shade', () => {
-    const { plate } = compose({ colorCategory: 'colored', colorId: 'test-color-colored' });
-    expect(plate?.src).toBe('/catalog/plates/test-plate-square/test-color-colored.webp');
-  });
-
-  it('keeps the category photograph apart from the shade photograph', () => {
-    expect(compose({ colorCategory: 'colored' }).plate?.src).toBe(
-      '/catalog/plates/test-plate-square/colored.webp',
-    );
-  });
-
-  it('shows nothing for a shade without its own photograph (no fallback)', () => {
-    const { plate, notices } = compose({ colorId: 'test-color-nude' });
+  it('shows nothing for a model without a photograph (no fallback)', () => {
+    const { plate, notices } = compose({ plateId: 'test-plate-pending' });
 
     expect(plate).toBeUndefined();
     expect(notices).toEqual(['plate-image-pending']);
   });
 
-  it('shows nothing when no color category is selected', () => {
-    const { plate, notices } = compose({ colorCategory: null });
+  it('shows nothing when no model is selected', () => {
+    const { plate, notices } = compose({ plateId: null });
 
     expect(plate).toBeUndefined();
-    expect(notices).toEqual(['color-not-selected']);
+    expect(notices).toEqual(['plate-not-selected']);
   });
 
-  it('shows nothing when no plate is selected', () => {
-    expect(compose({ plateId: null })).toEqual({
-      plate: undefined,
-      frame: undefined,
-      text: undefined,
-      notices: ['plate-not-selected'],
-    });
-  });
-
-  it('shows nothing for an unknown plate', () => {
+  it('shows nothing when the selected model is unknown', () => {
     expect(compose({ plateId: 'does-not-exist' }).notices).toEqual(['plate-invalid']);
-  });
-
-  it.each([
-    [
-      'a category the plate does not support',
-      { plateId: 'test-plate-rectangle', colorCategory: 'colored' },
-    ],
-    ['a shade from another category', { colorCategory: 'nude', colorId: 'test-color-colored' }],
-    ['an unknown shade', { colorId: 'does-not-exist' }],
-  ] as const)('shows no photograph for %s', (_label, overrides) => {
-    const { plate, notices } = compose(overrides);
-
-    expect(plate).toBeUndefined();
-    expect(notices).toContain('color-invalid');
   });
 
   it('exposes the catalog object bounds', () => {
@@ -106,7 +72,7 @@ describe('composePreview: frame', () => {
     });
 
     expect(frame).toBeUndefined();
-    expect(plate?.src).toBe('/catalog/plates/test-plate-rectangle/nude.webp');
+    expect(plate?.src).toBe('/catalog/plates/test-plate-rectangle/beige.webp');
     expect(notices).toEqual(['frame-invalid']);
   });
 
@@ -179,7 +145,7 @@ describe('composePreview: text', () => {
   });
 
   it('draws no text when there is no plate image to put it on', () => {
-    expect(compose({ colorCategory: null }).text).toBeUndefined();
+    expect(compose({ plateId: 'test-plate-pending' }).text).toBeUndefined();
   });
 });
 
@@ -187,7 +153,7 @@ describe('compositionSources', () => {
   it('lists each file once, in painting order', () => {
     expect(compositionSources(compose({ frameId: 'test-frame-any' }))).toEqual([
       '/catalog/frames/test-frame-any/square-back.webp',
-      '/catalog/plates/test-plate-square/nude.webp',
+      '/catalog/plates/test-plate-square/beige.webp',
       '/catalog/frames/test-frame-any/square-front.webp',
     ]);
   });

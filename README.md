@@ -1,8 +1,8 @@
 # Taavi Configurator
 
-Visual configurator for Taavi's handmade ceramic plates. Customers choose a plate (Placa; square, rectangular, or circular), an optional frame (Quadro), color, and custom text, see a live preview, and export an image.
+Visual configurator for Taavi's handmade ceramics. Customers choose a model (Placa cerâmica, Quadro, or Bandeja ondulada M in two sizes), an optional frame (Moldura) where a model takes one, and custom text, see a live preview, and export an image. The ceramic color is fixed per model (Bege) and shown read-only.
 
-> **Status:** M3.1 — Interactive preview. The configuration form, validation feedback, and a Canvas preview that composes catalog images work, verified with synthetic demo images only. The production catalog is intentionally empty until real product data and photographs are provided; use demo mode to try the workflow. See [docs/05-backlog.md](docs/05-backlog.md).
+> **Status:** M4.1a — Product models. The four supplied models are registered in the production catalog (IDs provisional, no photographs or measurements yet, so the preview says the photo is pending). The configuration form, validation feedback, and a Canvas preview that composes catalog images work, verified with synthetic demo images only; use demo mode to try the full workflow. Advanced text options (M4.1b) and PNG export (M4) are not implemented. See [docs/05-backlog.md](docs/05-backlog.md).
 
 ## Requirements
 
@@ -22,7 +22,7 @@ npx playwright install chromium webkit   # only needed for end-to-end tests
 npm run dev
 ```
 
-Opens the app at http://localhost:5173. With the empty production catalog it shows "Nenhuma placa disponível no momento."
+Opens the app at http://localhost:5173. The production catalog lists the four models without photographs.
 
 ```bash
 npm run dev:demo
@@ -58,7 +58,7 @@ Playwright builds and serves both the production build (smoke tests on desktop C
 ```text
 src/
   domain/    Domain types and pure validation
-  catalog/   Local, read-only product catalog (empty for now)
+  catalog/   Local, read-only product catalog (four models, no images yet)
   components/ Configurator form and preview slot
   hooks/     useConfiguration state hook
   preview/   Pure preview composition, layout, text fitting; canvas painting

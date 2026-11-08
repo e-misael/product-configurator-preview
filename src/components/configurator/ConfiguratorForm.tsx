@@ -1,9 +1,8 @@
 import type { Catalog, Plate } from '../../domain';
 import { issueFor, type useConfiguration } from '../../hooks/useConfiguration';
-import { ColorField } from './ColorField';
 import { ConfigurationStatus } from './ConfigurationStatus';
 import { FrameField } from './FrameField';
-import { PlateField } from './PlateField';
+import { ModelField } from './ModelField';
 import { TextField } from './TextField';
 
 interface ConfiguratorFormProps {
@@ -16,8 +15,8 @@ export function ConfiguratorForm({ catalog, plate, state }: ConfiguratorFormProp
   const { config, validation } = state;
 
   return (
-    <form className="form" aria-label="Configurar placa" onSubmit={(e) => e.preventDefault()}>
-      <PlateField
+    <form className="form" aria-label="Configurar peça" onSubmit={(e) => e.preventDefault()}>
+      <ModelField
         catalog={catalog}
         plateId={config.plateId}
         plate={plate}
@@ -30,15 +29,6 @@ export function ConfiguratorForm({ catalog, plate, state }: ConfiguratorFormProp
         plate={plate}
         issue={issueFor(validation, 'frameId')}
         onChoose={state.chooseFrame}
-      />
-      <ColorField
-        catalog={catalog}
-        config={config}
-        plate={plate}
-        categoryIssue={issueFor(validation, 'colorCategory')}
-        colorIssue={issueFor(validation, 'colorId')}
-        onChooseCategory={state.chooseColorCategory}
-        onChooseColor={state.chooseColor}
       />
       <TextField text={config.text} issue={issueFor(validation, 'text')} onChange={state.setText} />
       <ConfigurationStatus validation={validation} notice={state.notice} />

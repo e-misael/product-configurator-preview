@@ -2,7 +2,7 @@
 //
 // The images are deliberately NOT photographs: flat colors, hatched borders,
 // an outlined text area, and a "DEMO" stamp. They exist only to exercise the
-// preview with deterministic geometry (square, rectangle, circle, frame back
+// preview with deterministic geometry (square and scalloped models, frame back
 // and front layers). Dimensions and boxes below must match
 // src/demo/demo-catalog.ts; tests/unit/demo checks that they do.
 //
@@ -18,27 +18,13 @@ const TRANSPARENT = [0, 0, 0, 0];
 /** Fractions of the image, as in the catalog's NormalizedBox. */
 const OBJECT_BOUNDS = { x: 0.1, y: 0.1, width: 0.8, height: 0.8 };
 const SQUARE_TEXT_AREA = { x: 0.2, y: 0.3, width: 0.6, height: 0.4 };
-const CIRCLE_TEXT_AREA = { x: 0.25, y: 0.35, width: 0.5, height: 0.3 };
+const SCALLOPED_TEXT_AREA = { x: 0.25, y: 0.35, width: 0.5, height: 0.3 };
 
-const NUDE = {
+const BEGE = {
   base: [226, 208, 186],
   hatch: [
     [190, 168, 142],
     [206, 186, 160],
-  ],
-};
-const COLORED = {
-  base: [112, 152, 196],
-  hatch: [
-    [78, 116, 160],
-    [96, 134, 178],
-  ],
-};
-const GREEN = {
-  base: [132, 176, 120],
-  hatch: [
-    [96, 140, 84],
-    [114, 158, 102],
   ],
 };
 const WOOD_LIGHT = {
@@ -111,9 +97,13 @@ function plateImage({ width, height, shape, palette, textArea }) {
   return paintImage(width, height, (x, y) => {
     let inside;
     let edgeDistance;
-    if (shape === 'circle') {
-      const radius = (OBJECT_BOUNDS.width * width) / 2;
-      const distance = Math.hypot(x + 0.5 - cx, y + 0.5 - cy);
+    if (shape === 'scalloped') {
+      // Wavy outline: 12 gentle lobes around a circle.
+      const base = (OBJECT_BOUNDS.width * width) / 2;
+      const dx = x + 0.5 - cx;
+      const dy = y + 0.5 - cy;
+      const radius = base * (0.95 + 0.05 * Math.cos(12 * Math.atan2(dy, dx)));
+      const distance = Math.hypot(dx, dy);
       inside = distance <= radius;
       edgeDistance = radius - distance;
     } else {
@@ -218,34 +208,29 @@ function encodePng({ width, height, pixels }) {
 
 // --- Asset list ---
 
-const SQUARE = { width: 400, height: 400, shape: 'square', textArea: SQUARE_TEXT_AREA };
-const RECTANGLE = { width: 600, height: 400, shape: 'rectangle', textArea: SQUARE_TEXT_AREA };
-const CIRCLE = { width: 400, height: 400, shape: 'circle', textArea: CIRCLE_TEXT_AREA };
-const SQUARE_FRAME = { width: 500, height: 500, placement: OBJECT_BOUNDS };
-const RECTANGLE_FRAME = { width: 600, height: 400, placement: OBJECT_BOUNDS };
+const square = (size) => ({
+  width: size,
+  height: size,
+  shape: 'square',
+  textArea: SQUARE_TEXT_AREA,
+});
+const scalloped = (size) => ({
+  width: size,
+  height: size,
+  shape: 'scalloped',
+  textArea: SCALLOPED_TEXT_AREA,
+});
+const FRAME = { width: 500, height: 500, placement: OBJECT_BOUNDS };
 
 const assets = {
-  'plates/demo-placa-quadrada/nude.png': plateImage({ ...SQUARE, palette: NUDE }),
-  'plates/demo-placa-quadrada/colored.png': plateImage({ ...SQUARE, palette: COLORED }),
-  'plates/demo-placa-quadrada/demo-cor-colorida.png': plateImage({ ...SQUARE, palette: GREEN }),
-  'plates/demo-placa-retangular/nude.png': plateImage({ ...RECTANGLE, palette: NUDE }),
-  'plates/demo-placa-retangular/colored.png': plateImage({ ...RECTANGLE, palette: COLORED }),
-  'plates/demo-placa-redonda/nude.png': plateImage({ ...CIRCLE, palette: NUDE }),
-  'frames/demo-quadro-universal/quadrada-back.png': frameBack({
-    ...SQUARE_FRAME,
-    palette: WOOD_LIGHT,
-  }),
-  'frames/demo-quadro-universal/quadrada-front.png': frameFront(SQUARE_FRAME),
-  'frames/demo-quadro-universal/retangular-back.png': frameBack({
-    ...RECTANGLE_FRAME,
-    palette: WOOD_LIGHT,
-  }),
-  'frames/demo-quadro-universal/retangular-front.png': frameFront(RECTANGLE_FRAME),
-  'frames/demo-quadro-quadrado/quadrada-back.png': frameBack({
-    ...SQUARE_FRAME,
-    palette: WOOD_DARK,
-  }),
-  'frames/demo-quadro-quadrado/quadrada-front.png': frameFront(SQUARE_FRAME),
+  'plates/demo-placa-ceramica/bege.png': plateImage({ ...square(400), palette: BEGE }),
+  'plates/demo-quadro/bege.png': plateImage({ ...square(480), palette: BEGE }),
+  'plates/demo-bandeja-ondulada-m-8/bege.png': plateImage({ ...scalloped(320), palette: BEGE }),
+  'plates/demo-bandeja-ondulada-m-11/bege.png': plateImage({ ...scalloped(440), palette: BEGE }),
+  'frames/demo-moldura-clara/back.png': frameBack({ ...FRAME, palette: WOOD_LIGHT }),
+  'frames/demo-moldura-clara/front.png': frameFront(FRAME),
+  'frames/demo-moldura-escura/back.png': frameBack({ ...FRAME, palette: WOOD_DARK }),
+  'frames/demo-moldura-escura/front.png': frameFront(FRAME),
 };
 
 for (const [path, image] of Object.entries(assets)) {

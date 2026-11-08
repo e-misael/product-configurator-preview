@@ -54,8 +54,6 @@ describe('selectPlate', () => {
     const config = Object.freeze(
       validConfiguration({
         frameId: 'test-frame-any',
-        colorCategory: 'colored',
-        colorId: 'test-color-colored',
         text: ' Ana\n',
       }),
     );

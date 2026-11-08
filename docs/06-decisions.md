@@ -63,14 +63,14 @@ Status values:
 
 ### D-011 — Language
 
-- **Decision:** Code, technical docs, agent and skill instructions in English. User-facing UI in Brazilian Portuguese (pt-BR), preserving the terms "Placa" and "Quadro".
+- **Decision:** Code, technical docs, agent and skill instructions in English. User-facing UI in Brazilian Portuguese (pt-BR), preserving the product terms "Placa" and "Quadro"; the generic words are "Modelo" (a product) and "Moldura" (the optional frame) (D-040).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
 ### D-012 — Shape and color as plate-constrained selections
 
 - **Decision:** Shape and color are user selections, constrained by the selected plate's `supportedShapes`, `supportedColorCategories`, and `supportedColorIds`. Configuration stores `colorCategory` and an optional `colorId`; when `colorId` is present it must exist, belong to the category, and be supported by the plate. The model must stay extensible for variant-level availability.
-- **Status:** Approved. **Partially superseded by D-023**: shape is no longer a user selection. The color rules remain in force.
+- **Status:** Superseded — shape by D-023, color by D-041 (color is no longer a user selection).
 - **Date:** 2026-11-07.
 
 ### D-013 — Text validation
@@ -116,6 +116,7 @@ Status values:
 - **Decision:** A pure `validateCatalog(catalog)` returns `valid` or `invalid` with **all** issues, each with an explicit code (`invalid-id`, `duplicate-id`, `duplicate-entry`, `unknown-reference`, `unreachable-compatibility` (D-022), `empty-list`, `unsupported-shape-key` (removed by D-033), `color-category-mismatch`, `invalid-dimension`, `invalid-asset`; extended by D-031–D-034), a path, the owning component ID, and an optional related path. Deterministic order. It never repairs or filters data. A present-but-empty `compatibility.plateIds` is an error (it would fit no plate); omitting it means "no restriction".
 - **Rationale:** Catalog validation is a diagnostic tool for maintainers, so complete reporting beats one-issue-per-field (contrast D-016).
 - **Alternatives:** Runtime schema library (e.g. Zod) — unnecessary dependency for typed local data; fail-fast on first error.
+- **Update (M4.1a):** `color-category-mismatch` and `unsupported-variation` were removed with the color model (D-041); `empty-label` was added.
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -124,6 +125,7 @@ Status values:
 - **Decision:** IDs match `^[a-z0-9]+(?:-[a-z0-9]+)*$` (lowercase kebab-case, e.g. `placa-quadrada-01`) and are unique across colors, plates, and frames. Non-string IDs are rejected with an explicit type check, never coerced by the regular expression (M1.1.1). Reference checks resolve duplicated IDs to their first occurrence.
 - **Rationale:** Stable, URL- and filename-safe, unambiguous in logs, exports, and future store links.
 - **Alternatives:** Only reject empty/whitespace IDs; uniqueness per collection only.
+- **Update (M4.1a):** There is no `colors` collection any more (D-041); IDs are unique across plates and frames. `placa-quadrada-01` is only a format example.
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -190,13 +192,14 @@ Status values:
 - **Rationale:** Visual accuracy is a functional requirement; customers must see the physical product they are ordering.
 - **Alternatives:** Vector-only rendering; tinting a single photograph per plate (rejected: misrepresents ceramic color).
 - **Impact:** D-007 (SVG) was superseded by D-035 (Canvas 2D) in M3.1; D-009 (shared composition) is implemented for the preview and confirmed for export in M4. Adds pending items P-06–P-08.
+- **Update (M4.1a):** Each model has one fixed color, so "color/finish variation" now means the model's own photograph (D-041); the no-tint rule is unchanged.
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
 ### D-028 — Demo mode with an isolated synthetic catalog
 
-- **Context:** The production catalog is empty until the store supplies real data (M1.3), so the configuration workflow cannot be exercised or tested end to end.
-- **Decision:** A Vite `demo` mode (`npm run dev:demo`, `npm run build:demo` → `dist-demo/`) loads `src/demo/demo-catalog.ts` and a "Modo demonstração" banner through a dynamic import guarded by `import.meta.env.MODE`. Demo entries use `demo-` IDs, names labeled "(demonstração)", pending dimensions, and no assets, swatches, or colors. The production build must contain no demo data: `scripts/check-demo-isolation.js` scans every file in `dist/` (all chunks and assets) for demo markers, runs in CI after the build, and is checked against `dist-demo/` with `--expect-present` to prove it detects them. Playwright runs functional flows against the demo build and a smoke test against the production build.
+- **Context:** Production product photographs do not exist yet (M1.3b), so the preview cannot be exercised or tested end to end with real imagery.
+- **Decision:** A Vite `demo` mode (`npm run dev:demo`, `npm run build:demo` → `dist-demo/`) loads `src/demo/demo-catalog.ts` and a "Modo demonstração" banner through a dynamic import guarded by `import.meta.env.MODE`. Demo entries use `demo-` IDs, names labeled "(demonstração)", and pending dimensions; they mirror the four production models, with `demo-quadro` made frame-capable only to exercise the frame flow. The production build must contain no demo data: `scripts/check-demo-isolation.js` scans every file in `dist/` (all chunks and assets) for demo markers, runs in CI after the build, and is checked against `dist-demo/` with `--expect-present` to prove it detects them. Playwright runs functional flows against the demo build and a smoke test against the production build.
 - **Alternatives:** Test fixtures only (no manual demo); demo entries in the production catalog behind a flag (rejected: risk of shipping fake products).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
@@ -212,6 +215,7 @@ Status values:
 - **Context:** M-1: after a plate change, a frame incompatible with the new plate (on a plate that supports frames) is kept by `selectPlate` (D-026) but is no longer among `getFrameOptions`.
 - **Decision:** Any selection that is invalid and not among the offered options (frame, shade, color category, unavailable plate) is shown with its name, an "incompatível/indisponível" title, and its validation message. Frames and shades offer a remove action; any listed option replaces it. "Sem quadro" is checked only when `frameId` is `null`, and the preview never shows "Sem quadro" while a frame is selected. Unavailable plates are not offered.
 - **Alternatives:** Silently clear the frame (rejected: auto-correction beyond D-026); show "Sem quadro" (rejected: misrepresents the configuration).
+- **Update (M4.1a):** Shades and color categories no longer exist (D-041); the frame wording is now "Sem moldura" and the model is "Modelo" (D-040).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -220,6 +224,7 @@ Status values:
 - **Context:** Catalog-defined image paths must be safe and predictable before real files are registered (M1.3a).
 - **Decision:** `AssetRef.src` must match `/catalog/{plates|frames|colors}/{owner-id}/{name}.{webp|png|jpg}` with kebab-case segments, where `owner-id` is the ID of the component that references it. The check is an allowlist at runtime (`isValidAssetPath`, `invalid-asset`), so external URLs, other schemes (`data:`, `javascript:`), traversal, query strings, and encoded characters are rejected; TypeScript types are not relied on. Assets are same-origin files under `public/catalog/` so a future canvas export is not tainted. File existence is verified by a test that lists `public/catalog/` at test time; there is no runtime fetch. Optional `widthPx`/`heightPx` are declared together as positive integers; M1.3b adds a check that they match the files. Originals stay outside the repository in Taavi's source archive (P-10). Guide: `docs/07-product-assets.md`.
 - **Alternatives:** Free-form paths checked only for non-blank (previous rule; too permissive); external hosting (out of scope).
+- **Update (M4.1a):** The `colors` owner folder no longer exists; paths are `/catalog/{plates|frames}/{owner-id}/…` (D-041).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -228,7 +233,7 @@ Status values:
 - **Context:** A real color/finish variation must be shown with its own photograph (FR-08.3).
 - **Decision:** `Plate.images` replaces `Plate.asset`: one `PlateImage` per `(colorCategory, colorId?)`. An entry without `colorId` is the photograph for the category with no shade chosen. Integrity: the category must be supported by the plate (`unsupported-variation`), the shade must exist (`unknown-reference`), belong to the category (`color-category-mismatch`), and be in `supportedColorIds` (`unsupported-variation`), and each combination appears once (`duplicate-variation`). `findPlateImage` returns `available` only for an exact match; it is `pending` when no category is selected (no default photograph) and when a shade has no photograph of its own (no fallback to another shade or to the category photograph).
 - **Alternatives:** A default photograph per plate; category photograph as an approximate fallback (both rejected by the owner).
-- **Status:** Approved.
+- **Status:** Superseded by D-041 (one photograph per model; no color variations). The exact-match, no-fallback principle remains in force.
 - **Date:** 2026-11-07.
 
 ### D-033 — Frame imagery per plate model, with back and front layers
@@ -258,7 +263,7 @@ Status values:
 ### D-036 — Synthetic demonstration images served only in demo mode
 
 - **Context:** The preview needs images to be developed and tested while no real photographs exist, without ever shipping fake products.
-- **Decision:** `scripts/generate-demo-assets.js` (`npm run generate:demo-assets`) writes deterministic synthetic PNGs to `src/demo/public/catalog/…`; the output is committed. They are deliberately not photograph-like: flat fills, hatched borders, an outlined text area, a "DEMO" stamp, and an embedded PNG comment "Synthetic demonstration image - not a Taavi product photograph". They cover a square, a rectangle, and a circle, plate photographs per category and one shade, two frames with back and front layers, and one shade left without a photograph (pending state). Vite copies its public directory into every build, so `vite.config.ts` sets `publicDir` to `src/demo/public` only in demo mode and to the (currently absent) `public/` otherwise; demo files are never in the production public directory. Isolation is checked three ways: `scripts/check-demo-isolation.js` scans file contents and file names of `dist/` for demo markers (including the PNG comment); a unit test asserts `public/` has no `demo-` files; Playwright asserts the production build requests and serves no demo image. Tests verify the demo catalog's declared pixel sizes match the PNG headers, that no file is orphaned, and that every described image is labeled as a demonstration.
+- **Decision:** `scripts/generate-demo-assets.js` (`npm run generate:demo-assets`) writes deterministic synthetic PNGs to `src/demo/public/catalog/…`; the output is committed. They are deliberately not photograph-like: flat fills, hatched borders, an outlined text area, a "DEMO" stamp, and an embedded PNG comment "Synthetic demonstration image - not a Taavi product photograph". They cover two square models and two scalloped trays (one image each), and two frames with back and front layers; the production catalog has no images, which exercises the pending state. Vite copies its public directory into every build, so `vite.config.ts` sets `publicDir` to `src/demo/public` only in demo mode and to the (currently absent) `public/` otherwise; demo files are never in the production public directory. Isolation is checked three ways: `scripts/check-demo-isolation.js` scans file contents and file names of `dist/` for demo markers (including the PNG comment); a unit test asserts `public/` has no `demo-` files; Playwright asserts the production build requests and serves no demo image. Tests verify the demo catalog's declared pixel sizes match the PNG headers, that no file is orphaned, and that every described image is labeled as a demonstration.
 - **Alternatives:** Demo files in `public/` with a build-time exclusion step (rejected: easy to get wrong); generating images at build time (rejected: less reviewable, less deterministic).
 - **Status:** Approved.
 - **Date:** 2026-11-07.
@@ -277,6 +282,35 @@ Status values:
 - **Alternatives:** Clipping to the area (rejected: silently hides text); a fixed font size (rejected: ignores the area).
 - **Status:** Approved (provisional until P-04).
 - **Date:** 2026-11-07.
+
+### D-039 — M4.1 in two slices; text styling is part of M4 acceptance
+
+- **Context:** M4.1 combined a product-model refinement with advanced text customization.
+- **Decision:** M4.1a (models and fixed properties; D-040, D-041) and M4.1b (advanced text; D-042) are separate, independently testable slices; M4.1b is not started with M4.1a. Because M4 (PNG export) is not implemented, the preview and the export must both render the M4.1b styling (font family, colors, position) from the same scene; this is a required M4 acceptance criterion.
+- **Status:** Approved.
+- **Date:** 2026-11-08.
+
+### D-040 — Four product models; "Modelo" and "Moldura"; `scalloped`
+
+- **Context:** Taavi supplied the products currently sold: Placa cerâmica (10 cm x 10 cm), Quadro (20 cm x 20 cm), and two Bandeja ondulada M (~ 8 cm and ~ 11 cm). The earlier "Placa" and "Quadro" wording no longer fits: Quadro is now a product.
+- **Decision:** The customer chooses a **Modelo** (code type `Plate`); the optional frame is **Moldura** (`Frame`). The four models are registered in the production catalog with the supplied names and size labels, which are shown as `displayName (sizeLabel)` and kept as supplied, approximations included. The Quadro (20 cm x 20 cm) is a separate model, not a frame. `PlateShape` gains `scalloped` for the two wavy trays as a classification only: no geometry is inferred and no frame rule depends on it. Physical dimensions stay `pending` (`sizeLabel` is display text). Every model is `supportsFrame: false` because no model is confirmed to take an optional frame; the production catalog has no frames. Provisional IDs (`placa-ceramica-10`, `quadro-20`, `bandeja-ondulada-m-8`, `bandeja-ondulada-m-11`) become permanent once Taavi confirms them (P-12). The shape is no longer shown in the UI.
+- **Alternatives:** Keeping "Placa" as the generic word (ambiguous with the Placa cerâmica model); inferring shapes for the trays (rejected: invented data).
+- **Status:** Approved (IDs pending confirmation).
+- **Date:** 2026-11-08.
+
+### D-041 — Fixed ceramic color owned by the catalog; one image per model
+
+- **Context:** Taavi's pieces are all beige ("Bege"); the customer does not choose the ceramic color. Supersedes D-012 (color) and D-032.
+- **Decision:** Color categories, specific colors, and the color selection are removed. `Plate.ceramicColor` holds the fixed color as supplied ("Bege") and is shown read-only as "Cor da peça". Configuration validation has no color rule. `Plate.image` is the model's single photograph (optional while pending); the former per-variation images, swatches, `colors` collection, and `/catalog/colors/` asset folder are gone. Integrity adds `empty-label` for blank `sizeLabel`/`ceramicColor`. No customer configuration is persisted, so no data migration is needed; a demo session simply restarts. Preview and export keep the real-image rule (D-027): the photograph is never tinted.
+- **Status:** Approved.
+- **Date:** 2026-11-08.
+
+### D-042 — Advanced text customization design (planned, M4.1b)
+
+- **Context:** The product needs font family, up to two lettering colors, and text positioning.
+- **Decision (design only, not implemented):** (1) `fontFamily` is `serif` or `sans-serif` ("Com serifa" / "Sem serifa", default sans-serif), mapped to provisional system font stacks; real typography stays pending (P-04). (2) `textColorId` is required (no default) and `secondaryColorId` is optional with `secondaryRanges` as UTF-16 offsets snapped to grapheme boundaries; the lettering palette is catalog data (P-02). (3) One source of truth for position: nine presets (left/center/right × top/middle/bottom) plus a normalized manual position inside the calibrated text area; dragging keeps the line alignment; "Redefinir posição" restores the catalog default; the position survives model changes constrained to the new safe area. (4) Touch movement requires an explicit "Mover texto" mode so scrolling is not hijacked; keyboard positioning is supported. (5) Editing text keeps secondary ranges when they map unambiguously and removes or invalidates them otherwise; grapheme clusters are never split. (6) The handmade disclaimer is shown near the controls: "Todas as solicitações de personalização estão sujeitas à análise da Taavi. Como nossas peças são produzidas artesanalmente, podem apresentar pequenas variações de formato, cor, acabamento e posicionamento em relação à pré-visualização." (7) A per-line text-length limit is a future rule, recorded in the backlog and not implemented.
+- **Status:** Approved as a plan; implementation requires approval of M4.1b.
+- **Date:** 2026-11-08.
 
 ## Proposed
 
@@ -300,13 +334,16 @@ Status values:
 ## Pending
 
 - **P-01:** Real plate dimensions and aspect ratios per shape.
-- **P-02:** Real colors and their visual representations.
+- **P-02:** The production lettering-color palette (names and values) for M4.1b; until supplied, a configuration cannot be completed in production once the text color is required. The ceramic color is resolved by D-041.
 - **P-03:** Frame dimensions and mounting constraints.
 - **P-04:** Production typography rules and text limits (max length, lines).
 - **P-05:** Export resolution, transparency, background, file naming.
-- **P-06:** Real product images per plate model, per color/finish variation, and per frame; how variations map to image files.
+- **P-06:** Real product images per model and per frame; each model now has one photograph (D-041).
 - **P-07:** Layer placement metadata: text safe area, frame aperture and offset, scale relative to real dimensions.
 - **P-08:** Source image format, resolution, and consistency requirements (framing, lighting, background). Conventions and recommendations: `docs/07-product-assets.md`.
 - **P-09:** Whether frames have finish variations (e.g. wood tones) that need their own imagery.
 - **P-10:** Location and naming of original photographs in Taavi's source archive, for provenance records.
-- **P-11:** Which store product is the circular plate (the scalloped dish in the reference photos is not assumed to be it).
+- **P-11:** Resolved by D-040: the scalloped dishes are the Bandeja ondulada M models. No circular model is registered.
+- **P-12:** Confirmation of the four permanent model IDs.
+- **P-13:** Whether any model takes an optional frame (`supportsFrame`), and if so which frames and imagery.
+- **P-14:** Real serif and sans-serif typefaces for the text (system stacks are provisional) and the per-line text-length limit.

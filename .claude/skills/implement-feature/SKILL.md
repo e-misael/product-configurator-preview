@@ -24,7 +24,7 @@ Follow these steps in order. Do not skip the approval gate.
 
 - Which domain rules apply? (Use the `product-domain` skill for anything touching types, catalog, or validation.)
 - Which UI/preview concerns apply? (Use the `visual-ux` skill for UI, layout, preview, or export.)
-- Does the request depend on information that doesn't exist yet (dimensions, colors, assets, typography, export specs)? If so, **stop and ask** — never invent it.
+- Does the request depend on information that doesn't exist yet (dimensions, colors, lettering palette, assets, typography, export specs)? If so, **stop and ask** — never invent it.
 - Does it rely on a **Proposed** decision? Ask for confirmation before treating it as approved.
 
 ## 4. Propose a plan

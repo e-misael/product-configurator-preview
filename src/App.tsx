@@ -21,10 +21,10 @@ export function App({ catalog = getCatalog(), banner }: AppProps) {
       {banner}
       <header className="app__header">
         <h1 className="app__title">Taavi Configurator</h1>
-        <p className="app__note">Personalize sua placa de cerâmica.</p>
+        <p className="app__note">Personalize sua peça de cerâmica.</p>
       </header>
       {catalog.plates.length === 0 ? (
-        <p className="app__empty">Nenhuma placa disponível no momento.</p>
+        <p className="app__empty">Nenhum modelo disponível no momento.</p>
       ) : (
         <div className="app__layout">
           <PreviewPanel

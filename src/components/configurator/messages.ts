@@ -1,52 +1,24 @@
-import type {
-  ColorCategory,
-  ConfigurationField,
-  InvalidCode,
-  PlateShape,
-  ValidationIssue,
-} from '../../domain';
+import type { ConfigurationField, InvalidCode, Plate, ValidationIssue } from '../../domain';
 
 /** User-facing pt-BR text. Domain codes never reach the UI untranslated. */
 
-export const SHAPE_LABELS: Record<PlateShape, string> = {
-  square: 'Quadrada',
-  rectangle: 'Retangular',
-  circle: 'Redonda',
-};
-
-export const CATEGORY_LABELS: Record<ColorCategory, string> = {
-  nude: 'Nude',
-  colored: 'Colorida',
-};
-
 export const FIELD_LABELS: Record<ConfigurationField, string> = {
-  plateId: 'Placa',
-  frameId: 'Quadro',
-  colorCategory: 'Cor da placa',
-  colorId: 'Tom específico',
+  plateId: 'Modelo',
+  frameId: 'Moldura',
   text: 'Texto',
 };
 
 const INVALID_MESSAGES: Record<ConfigurationField, Partial<Record<InvalidCode, string>>> = {
   plateId: {
-    'unknown-reference': 'Esta placa não está no catálogo.',
-    unavailable: 'Esta placa está indisponível no momento.',
-  },
-  colorCategory: {
-    'unsupported-by-plate': 'Esta placa não é feita nesta cor.',
-  },
-  colorId: {
-    'unknown-reference': 'Este tom não está no catálogo.',
-    unavailable: 'Este tom está indisponível no momento.',
-    'category-mismatch': 'Este tom não pertence à cor escolhida.',
-    'unsupported-by-plate': 'Este tom não está disponível para esta placa.',
+    'unknown-reference': 'Este modelo não está no catálogo.',
+    unavailable: 'Este modelo está indisponível no momento.',
   },
   frameId: {
-    'unknown-reference': 'Quadro não encontrado no catálogo.',
-    unavailable: 'Este quadro está indisponível no momento.',
-    'frame-not-supported': 'Esta placa não aceita quadro.',
-    'incompatible-shape': 'Este quadro não serve no formato desta placa.',
-    'incompatible-plate': 'Este quadro não é compatível com esta placa.',
+    'unknown-reference': 'Moldura não encontrada no catálogo.',
+    unavailable: 'Esta moldura está indisponível no momento.',
+    'frame-not-supported': 'Este modelo não aceita moldura.',
+    'incompatible-shape': 'Esta moldura não serve no formato deste modelo.',
+    'incompatible-plate': 'Esta moldura não é compatível com este modelo.',
   },
   text: {
     blank: 'O texto não pode ficar em branco.',
@@ -58,5 +30,10 @@ export function invalidMessage(issue: ValidationIssue): string {
   return INVALID_MESSAGES[issue.field][issue.code] ?? 'Esta escolha não é válida.';
 }
 
+/** Customer-facing model label: the name plus the supplied size description. */
+export function modelLabel(plate: Pick<Plate, 'displayName' | 'sizeLabel'>): string {
+  return `${plate.displayName} (${plate.sizeLabel})`;
+}
+
 export const FRAME_CLEARED_NOTICE =
-  'O quadro foi removido porque a placa escolhida não aceita quadro.';
+  'A moldura foi removida porque o modelo escolhido não aceita moldura.';

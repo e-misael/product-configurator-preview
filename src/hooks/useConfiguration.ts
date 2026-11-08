@@ -4,7 +4,6 @@ import {
   selectPlate,
   validateConfiguration,
   type Catalog,
-  type ColorCategory,
   type Configuration,
   type ConfigurationField,
   type ValidationIssue,
@@ -48,11 +47,6 @@ export function useConfiguration(catalog: Catalog) {
   );
 
   const chooseFrame = useCallback((frameId: string | null) => update({ frameId }), [update]);
-  const chooseColorCategory = useCallback(
-    (colorCategory: ColorCategory) => update({ colorCategory }),
-    [update],
-  );
-  const chooseColor = useCallback((colorId: string | null) => update({ colorId }), [update]);
   const setText = useCallback((text: string) => update({ text }), [update]);
 
   const validation = useMemo(
@@ -66,8 +60,6 @@ export function useConfiguration(catalog: Catalog) {
     validation,
     choosePlate,
     chooseFrame,
-    chooseColorCategory,
-    chooseColor,
     setText,
   };
 }

@@ -54,7 +54,7 @@ src/
 ├── preview/          # pure composition, scene layout, text fitting; canvas painting (M3.1)
 ├── demo/             # demo catalog, banner, and public/ with synthetic images (demo mode only)
 └── services/         # export (M4)
-public/catalog/{plates,frames,colors}/{owner-id}/  # real images (M1.3b; docs/07)
+public/catalog/{plates,frames}/{owner-id}/  # real images (M1.3b; docs/07)
 tests/{unit,e2e}/
 ```
 
@@ -70,7 +70,7 @@ Directories are created only when their increment needs them.
 | `src/domain/catalog-validation.ts` | Pure `validateCatalog(catalog)` integrity check.                                                    |
 
 - Components are referenced by stable kebab-case string IDs, unique across the whole catalog (D-019).
-- Asset references are same-origin paths `/catalog/{plates|frames|colors}/{owner-id}/…` validated by catalog integrity (D-031); a missing asset must degrade gracefully, never crash.
+- Asset references are same-origin paths `/catalog/{plates|frames}/{owner-id}/…` validated by catalog integrity (D-031); a missing asset must degrade gracefully, never crash.
 - Unknown dimensions are `{ status: 'pending' }`.
 - The catalog is **empty** until the store provides real data.
 
@@ -84,7 +84,7 @@ Directories are created only when their increment needs them.
 
 ## Configuration state
 
-- Plain serializable object (`Configuration`), all selections nullable, text stored raw. No shape field: the shape is derived from the selected plate (`getPlateShape`, D-023).
+- Plain serializable object (`Configuration`), all selections nullable, text stored raw. No shape or color field: the shape is derived from the selected model (`getPlateShape`, D-023) and the fixed ceramic color belongs to the catalog (D-041).
 - Selection transitions are pure domain functions in `src/domain/selection.ts`. `selectPlate` explicitly clears a frame when the new plate does not support frames and returns `cleared` so the UI can announce it (D-026). `getFrameOptions` lists the frames that can be offered for a plate.
 - Frame support is an explicit plate capability (`supportsFrame`, D-024). Application code never tests `shape === 'circle'`; the circle rule is enforced once, by catalog integrity.
 - `useConfiguration(catalog)` (`src/hooks`) holds the configuration in React state, exposes one action per field, derives `validation` with `validateConfiguration`, and raises a one-off `frame-cleared` notice when `selectPlate` clears a frame. No global state library (D-003).
@@ -92,7 +92,7 @@ Directories are created only when their increment needs them.
 
 ## User interface (M2)
 
-- `src/components/configurator/`: one fieldset per field (Placa, Quadro, Cor da placa, Texto) built from native radios and a textarea, plus a status summary. Controls are generated from catalog data and domain helpers; pt-BR labels and messages live in `messages.ts`.
+- `src/components/configurator/`: one fieldset per field (Modelo, Moldura (opcional), Texto) built from native radios and a textarea, plus a status summary. The Moldura fieldset is hidden when the model takes no frame, and the fixed "Cor da peça" is shown as read-only text inside Modelo. Controls are generated from catalog data and domain helpers; pt-BR labels and messages live in `messages.ts`.
 - Message placement (D-029): invalid issues next to their field; missing fields in the summary.
 - Kept-but-invalid selections stay visible with remove/replace actions (D-030).
 - `src/components/preview/PreviewPanel.tsx`: the preview slot. In M2 it shows a labeled placeholder and a text summary; M3 replaces its content with the composed real-image renderer.
@@ -127,8 +127,8 @@ The final preview and export are composed from **real product image assets** for
 
 ### Rules
 
-- **Layered composition** (bottom to top): plate image for the selected plate model and color variation → optional frame image → personalized text. Each layer comes from catalog data; rendering code contains no per-product coordinates.
-- **Color and finish** are represented by images (or other store-approved visual data) of the actual variation. **No CSS tint, filter, or blend over a photograph** to simulate a ceramic color. If the image for a selected variation is missing, the UI shows a visible "image unavailable" state instead of an approximation.
+- **Layered composition** (bottom to top): image of the selected model → optional frame image → personalized text. Each layer comes from catalog data; rendering code contains no per-product coordinates.
+- **Color and finish** are represented by the real photograph of the model (its ceramic color is fixed, D-041). **No CSS tint, filter, or blend over a photograph** to simulate a ceramic color. If the model's image is missing, the UI shows a visible "image unavailable" state instead of an approximation.
 - **Missing assets** degrade visibly and never substitute another product's image (FR-06.4).
 - **Same-origin assets.** Images are served from `public/catalog/` so the export can rasterize them without cross-origin restrictions.
 - **No invented photographs.** Production images come only from the store. Synthetic demonstration assets for workflow testing live under `tests/` (or a clearly named non-production fixture location), are labeled as demonstration content, and never enter `src/catalog/data.ts`.
@@ -142,7 +142,7 @@ The final preview and export are composed from **real product image assets** for
 
 ### Implications for M1.3 / M3 (catalog and renderer)
 
-- **Catalog contract (M1.3a, implemented):** `Plate.images` holds one photograph per `(colorCategory, colorId?)` (D-032); `Frame.images` holds `back`/optional `front` layers per compatible plate model (D-033); optional `NormalizedBox` placement (`objectBounds`, `text.area`, `platePlacement`) in image coordinates (D-034). Pure lookups `findPlateImage` / `findFrameImage` return `available` or `pending` by exact match. Real files and calibration values arrive in M1.3b. Details: [07-product-assets.md](07-product-assets.md).
+- **Catalog contract (M1.3a, revised by M4.1a):** `Plate.image` holds the model's single photograph (D-041, which superseded the per-color variations of D-032); `Frame.images` holds `back`/optional `front` layers per compatible plate model (D-033); optional `NormalizedBox` placement (`objectBounds`, `text.area`, `platePlacement`) in image coordinates (D-034). Pure lookups `findPlateImage` / `findFrameImage` return `available` or `pending` by exact match. Real files and calibration values arrive in M1.3b. Details: [07-product-assets.md](07-product-assets.md).
 - **Layer contract for M3:** frame `back` → plate image placed so its `objectBounds` fill `platePlacement` (or the plate image alone when no frame) → text inside `text.area` → frame `front`. A `pending` lookup or an image that fails to load (renderer `error` event) shows a visible unavailable state; nothing is substituted. Clipping/masking of circular or irregular outlines is an M3 decision: a bounding box does not describe them.
 - **Text boundary:** raw text (`Configuration`), layout (catalog `TextLayout`), and typography/material effects (M3+, pending P-04) are separate; stamped or raised lettering is not assumed reproducible with plain text.
 - **Renderer (D-035):** Canvas 2D, decided in M3.1 (see "Preview rendering").
@@ -151,7 +151,7 @@ The final preview and export are composed from **real product image assets** for
 
 ```text
 Configuration + validation + catalog
-  └─ composePreview (pure)  → plate / frame / text layers + notice codes   (exact image lookup, D-032/D-033)
+  └─ composePreview (pure)  → plate / frame / text layers + notice codes   (exact image lookup, D-033/D-041)
        └─ useImages         → per-file state: loading | loaded | error      (same-origin, browser-cached)
             └─ buildScene (pure, text measured by a passed-in function)
                  → positioned layers in painting order + notices
@@ -190,8 +190,8 @@ Nuvemshop integration is out of scope. The serializable `Configuration` plus an 
 
 ## Assumptions
 
-- A1: Shape is a fixed property of each plate model (D-023); color is a user selection constrained by the selected plate (confirmed).
+- A1: Shape is a fixed classification of each model (D-023, D-040) and the ceramic color is fixed per model (D-041) (confirmed).
 - A2: The app can be fully static and client-side for the MVP.
 - A3: Frame–plate compatibility can be expressed declaratively in catalog data; physical fit requires real dimensions and mounting data (pending).
-- A4: Variant-level availability (e.g. specific colors per plate model) may be needed later; the plate-level lists can be extended without changing `Configuration`.
-- A5: The store will provide real product images for each plate model, each color/finish variation, and each frame, with enough consistency (framing, lighting, resolution) to be layered. Format, resolution, and placement metadata are pending (P-06–P-08).
+- A4: Per-model options may be needed later; an optional field on `Plate` can carry them without changing `Configuration`.
+- A5: The store will provide real product images for each model and each frame, with enough consistency (framing, lighting, resolution) to be layered. Format, resolution, and placement metadata are pending (P-06–P-08).

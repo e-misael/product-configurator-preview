@@ -41,7 +41,7 @@ const order = (scene: Scene<TestImage>) =>
 
 const SQUARE_BACK = '/catalog/frames/test-frame-any/square-back.webp';
 const SQUARE_FRONT = '/catalog/frames/test-frame-any/square-front.webp';
-const SQUARE_NUDE = '/catalog/plates/test-plate-square/nude.webp';
+const SQUARE_NUDE = '/catalog/plates/test-plate-square/beige.webp';
 
 describe('placePlate', () => {
   const placement = { x: 50, y: 50, width: 400, height: 400 };
@@ -93,7 +93,7 @@ describe('buildScene: standalone plate', () => {
     expect(scene.height).toBe(400);
     expect(order(scene)).toEqual(['plate', 'text']);
     expect(scene.layers[0]).toMatchObject({ rect: { x: 0, y: 0, width: 400, height: 400 } });
-    expect(scene.description).toBe('Square, nude');
+    expect(scene.description).toBe('Square');
   });
 
   it('maps the normalized text area onto the plate image', () => {
@@ -169,7 +169,7 @@ describe('buildScene: framed plate', () => {
   });
 
   it('describes both product images', () => {
-    expect(sceneFor({ frameId: 'test-frame-any' }).description).toBe('Frame, square; Square, nude');
+    expect(sceneFor({ frameId: 'test-frame-any' }).description).toBe('Frame, square; Square');
   });
 });
 
@@ -254,7 +254,7 @@ describe('buildScene: image states', () => {
   });
 
   it('keeps the catalog-pending state distinct from a load error', () => {
-    expect(sceneFor({ colorId: 'test-color-nude' }).notices).toEqual(['plate-image-pending']);
+    expect(sceneFor({ plateId: 'test-plate-pending' }).notices).toEqual(['plate-image-pending']);
   });
 });
 

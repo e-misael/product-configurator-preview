@@ -18,7 +18,7 @@ import type {
 } from './types';
 import { isFrameCompatible } from './validation';
 
-/** Lowercase kebab-case, e.g. `placa-quadrada-01` (D-019). */
+/** Lowercase kebab-case, e.g. `placa-ceramica-10` (D-019). */
 const ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 /** Accepts `unknown` so malformed runtime data is rejected, not coerced. */
@@ -26,7 +26,7 @@ export function isValidCatalogId(id: unknown): boolean {
   return typeof id === 'string' && ID_PATTERN.test(id);
 }
 
-export type AssetOwner = 'plates' | 'frames' | 'colors';
+export type AssetOwner = 'plates' | 'frames';
 
 /**
  * `/catalog/{owner}/{owner-id}/{name}.{webp|png|jpg}` with kebab-case
@@ -34,7 +34,7 @@ export type AssetOwner = 'plates' | 'frames' | 'colors';
  * (`data:`, `javascript:`), traversal, query strings, and encoded characters.
  */
 const ASSET_PATH_PATTERN =
-  /^\/catalog\/(plates|frames|colors)\/([a-z0-9]+(?:-[a-z0-9]+)*)\/[a-z0-9]+(?:-[a-z0-9]+)*\.(?:webp|png|jpg)$/;
+  /^\/catalog\/(plates|frames)\/([a-z0-9]+(?:-[a-z0-9]+)*)\/[a-z0-9]+(?:-[a-z0-9]+)*\.(?:webp|png|jpg)$/;
 
 /** Whether `src` is a well-formed asset path inside the folder of the given owner. */
 export function isValidAssetPath(src: unknown, owner: AssetOwner, ownerId: string): boolean {
@@ -161,16 +161,7 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
     }
   }
 
-  const colorsById = indexFirstById(catalog.colors, 'colors');
   const platesById = indexFirstById(catalog.plates, 'plates');
-
-  catalog.colors.forEach((color, i) => {
-    const path = `colors[${i}]`;
-    checkId(color.id, path);
-    if (color.swatch !== undefined) {
-      checkAsset(color.swatch, `${path}.swatch`, 'colors', color.id);
-    }
-  });
 
   catalog.plates.forEach((plate, i) => {
     const path = `plates[${i}]`;
@@ -178,57 +169,31 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
     if (plate.supportsFrame && FRAMELESS_SHAPES.includes(plate.shape)) {
       report('frame-capability-conflict', `${path}.supportsFrame`, plate.id);
     }
-    checkList(plate.supportedColorCategories, `${path}.supportedColorCategories`, plate.id, true);
-    checkList(plate.supportedColorIds, `${path}.supportedColorIds`, plate.id, false);
-    plate.supportedColorIds.forEach((colorId, j) => {
-      const refPath = `${path}.supportedColorIds[${j}]`;
-      const color = colorsById.get(colorId)?.item;
-      if (color === undefined) {
-        report('unknown-reference', refPath, plate.id);
-      } else if (!plate.supportedColorCategories.includes(color.category)) {
-        report('color-category-mismatch', refPath, plate.id);
+    for (const label of ['sizeLabel', 'ceramicColor'] as const) {
+      // Typed as strings but may be malformed at runtime; blank labels are never repaired.
+      if (typeof plate[label] !== 'string' || plate[label].trim().length === 0) {
+        report('empty-label', `${path}.${label}`, plate.id);
       }
-    });
+    }
     checkDimensions(plate.dimensions, `${path}.dimensions`, plate.id);
 
-    const images = plate.images ?? [];
-    images.forEach((entry, j) => {
-      const imagePath = `${path}.images[${j}]`;
-      if (!plate.supportedColorCategories.includes(entry.colorCategory)) {
-        report('unsupported-variation', `${imagePath}.colorCategory`, plate.id);
-      }
-      if (entry.colorId !== undefined) {
-        const colorPath = `${imagePath}.colorId`;
-        const color = colorsById.get(entry.colorId)?.item;
-        if (color === undefined) {
-          report('unknown-reference', colorPath, plate.id);
-        } else if (color.category !== entry.colorCategory) {
-          report('color-category-mismatch', colorPath, plate.id);
-        } else if (!plate.supportedColorIds.includes(entry.colorId)) {
-          report('unsupported-variation', colorPath, plate.id);
-        }
-      }
-      checkAsset(entry.image, `${imagePath}.image`, 'plates', plate.id);
-      const bounds = entry.objectBounds;
+    if (plate.image !== undefined) {
+      const imagePath = `${path}.image`;
+      checkAsset(plate.image.image, `${imagePath}.image`, 'plates', plate.id);
+      const bounds = plate.image.objectBounds;
       const hasBounds = checkBox(bounds, `${imagePath}.objectBounds`, plate.id);
-      if (entry.text !== undefined) {
+      const { text } = plate.image;
+      if (text !== undefined) {
         const areaPath = `${imagePath}.text.area`;
-        const hasArea = checkBox(entry.text.area, areaPath, plate.id);
-        if (hasArea && hasBounds && bounds && !isBoxInside(entry.text.area, bounds)) {
+        const hasArea = checkBox(text.area, areaPath, plate.id);
+        if (hasArea && hasBounds && bounds && !isBoxInside(text.area, bounds)) {
           report('invalid-placement', areaPath, plate.id, `${imagePath}.objectBounds`);
         }
-        const { align } = entry.text;
-        if (align !== undefined && !TEXT_ALIGNMENTS.includes(align)) {
+        if (text.align !== undefined && !TEXT_ALIGNMENTS.includes(text.align)) {
           report('invalid-placement', `${imagePath}.text.align`, plate.id);
         }
       }
-    });
-    // One photograph per category/shade combination (D-032).
-    checkVariationKeys(
-      images.map((entry) => `${entry.colorCategory}|${entry.colorId ?? ''}`),
-      `${path}.images`,
-      plate.id,
-    );
+    }
   });
 
   catalog.frames.forEach((frame, i) => {

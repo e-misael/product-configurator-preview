@@ -32,12 +32,9 @@ describe('validateConfiguration', () => {
       expect(validateConfiguration(config, testCatalog)).toEqual({ status: 'valid' });
     });
 
-    it('accepts a specific color that matches category and plate', () => {
-      const config = validConfiguration({
-        colorCategory: 'colored',
-        colorId: 'test-color-colored',
-      });
-      expect(validateConfiguration(config, testCatalog).status).toBe('valid');
+    it('accepts a scalloped model without a frame', () => {
+      const config = validConfiguration({ plateId: 'test-plate-scalloped' });
+      expect(validateConfiguration(config, testCatalog)).toEqual({ status: 'valid' });
     });
   });
 
@@ -48,27 +45,25 @@ describe('validateConfiguration', () => {
       expect(result.status).toBe('incomplete');
       expect(issuesOf(result)).toEqual([
         { kind: 'missing', field: 'plateId' },
-        { kind: 'missing', field: 'colorCategory' },
         { kind: 'missing', field: 'text' },
       ]);
     });
 
-    it('does not require a frame or a specific color', () => {
+    it('does not require a frame', () => {
       const missingFields = issuesOf(
         validateConfiguration(createEmptyConfiguration(), testCatalog),
       ).map((issue) => issue.field);
 
       expect(missingFields).not.toContain('frameId');
-      expect(missingFields).not.toContain('colorId');
     });
 
-    it.each<keyof Configuration>(['plateId', 'colorCategory'])(
-      'is incomplete when %s is not selected',
-      (field) => {
-        const result = validateConfiguration(validConfiguration({ [field]: null }), testCatalog);
-        expect(result).toEqual({ status: 'incomplete', issues: [{ kind: 'missing', field }] });
-      },
-    );
+    it('is incomplete when the model is not selected', () => {
+      const result = validateConfiguration(validConfiguration({ plateId: null }), testCatalog);
+      expect(result).toEqual({
+        status: 'incomplete',
+        issues: [{ kind: 'missing', field: 'plateId' }],
+      });
+    });
 
     it('is incomplete when text is empty', () => {
       const result = validateConfiguration(validConfiguration({ text: '' }), testCatalog);
@@ -83,26 +78,6 @@ describe('validateConfiguration', () => {
     it.each([
       ['unknown plate', { plateId: 'does-not-exist' }, 'plateId', 'unknown-reference'],
       ['unavailable plate', { plateId: 'test-plate-unavailable' }, 'plateId', 'unavailable'],
-      [
-        'color category unsupported by plate',
-        { plateId: 'test-plate-rectangle', colorCategory: 'colored' },
-        'colorCategory',
-        'unsupported-by-plate',
-      ],
-      ['unknown color', { colorId: 'does-not-exist' }, 'colorId', 'unknown-reference'],
-      ['unavailable color', { colorId: 'test-color-retired' }, 'colorId', 'unavailable'],
-      [
-        'color from another category',
-        { colorCategory: 'nude', colorId: 'test-color-colored' },
-        'colorId',
-        'category-mismatch',
-      ],
-      [
-        'color unsupported by plate',
-        { colorId: 'test-color-unsupported' },
-        'colorId',
-        'unsupported-by-plate',
-      ],
       ['unknown frame', { frameId: 'does-not-exist' }, 'frameId', 'unknown-reference'],
       ['unavailable frame', { frameId: 'test-frame-unavailable' }, 'frameId', 'unavailable'],
       [
@@ -182,13 +157,7 @@ describe('validateConfiguration', () => {
 
   describe('derived shape', () => {
     it('does not store a shape in the configuration', () => {
-      expect(Object.keys(createEmptyConfiguration())).toEqual([
-        'plateId',
-        'frameId',
-        'colorCategory',
-        'colorId',
-        'text',
-      ]);
+      expect(Object.keys(createEmptyConfiguration())).toEqual(['plateId', 'frameId', 'text']);
     });
 
     it.each([
