@@ -4,6 +4,7 @@ import {
   isAvailable,
   type Catalog,
   type TextColor,
+  type TextRange,
   type ValidationIssue,
 } from '../../domain';
 import { readSelection, useFieldSelection } from '../../hooks/useFieldSelection';
@@ -17,6 +18,11 @@ interface SwatchProps {
   readonly disabled?: boolean;
   /** Show the name only on the selected chip; the others keep it as their accessible name. */
   readonly compact?: boolean;
+  /**
+   * Call `onSelect` on every activation, also of the chip already selected
+   * (a second-color tap applies the color to a new selection, D-069).
+   */
+  readonly selectOnClick?: boolean;
   readonly onSelect: () => void;
 }
 
@@ -25,7 +31,15 @@ interface SwatchProps {
  * check mark and a heavier border, so the choice never depends on color alone.
  * Compact chips show the name only when selected (a tooltip otherwise).
  */
-function Swatch({ name, color, checked, disabled, compact = false, onSelect }: SwatchProps) {
+function Swatch({
+  name,
+  color,
+  checked,
+  disabled,
+  compact = false,
+  selectOnClick = false,
+  onSelect,
+}: SwatchProps) {
   const hideName = compact && !checked;
   return (
     <label
@@ -39,7 +53,9 @@ function Swatch({ name, color, checked, disabled, compact = false, onSelect }: S
         value={color.id}
         checked={checked}
         disabled={disabled}
-        onChange={onSelect}
+        // A click also follows arrow keys and Space, and fires on the checked chip.
+        onChange={selectOnClick ? () => undefined : onSelect}
+        onClick={selectOnClick ? onSelect : undefined}
       />
       <span
         className="swatch-option__chip"
@@ -106,13 +122,13 @@ interface SecondaryProps {
   readonly catalog: Catalog;
   readonly colorId: string | null;
   readonly primaryColorId: string | null;
-  readonly rangeCount: number;
+  readonly ranges: readonly TextRange[];
   readonly issue: ValidationIssue | undefined;
-  /** An invalid `secondaryRanges` issue, shown beside the actions. */
+  /** An invalid `secondaryRanges` issue, shown beside the list of trechos. */
   readonly rangeIssue: ValidationIssue | undefined;
-  /** The text as lettered (capitals for "Sem serifa"), to name what was selected. */
+  /** The text as lettered (capitals for "Sem serifa"), to name the letters. */
   readonly text: string;
-  /** The "Texto" field whose selection the actions use. */
+  /** The "Texto" field whose selection a tap on a color uses. */
   readonly fieldRef: RefObject<HTMLTextAreaElement | null>;
   /** Whether the options are shown. Hiding them never changes the configuration. */
   readonly open: boolean;
@@ -126,12 +142,9 @@ interface SecondaryProps {
 
 const rangeSummary = (count: number) => (count === 1 ? '1 trecho' : `${count} trechos`);
 
-/** The selected characters as shown on the piece, on one line. */
+/** The characters as shown on the piece, on one line. */
 const quoted = (text: string, start: number, end: number) =>
   `“${text.slice(start, end).replace(/\r\n|\r|\n/g, ' ')}”`;
-
-const NO_SELECTION =
-  'Nenhuma letra selecionada. Selecione no campo Texto as letras que devem mudar de cor.';
 
 /**
  * Optional second color behind "Usar segunda cor" (D-047). Collapsing only hides
@@ -139,16 +152,16 @@ const NO_SELECTION =
  * its ranges (D-042). A color equal to the primary cannot be chosen, and an
  * invalid kept choice stays visible until it is replaced or removed (D-030).
  *
- * Applying (D-068): the actions sit right after the swatches and read the
- * "Texto" field's selection when pressed, which the field keeps after losing
- * focus. They are never disabled: without a selection they say what to do,
- * and after acting they name the characters that changed.
+ * Applying (D-069): tapping a color applies it at once to the letters selected
+ * in "Texto", read at the moment of the tap (the field keeps its selection
+ * when it loses focus); without a selection the tap only chooses the color and
+ * says what to do next. The colored trechos are listed, each removable.
  */
 export function SecondaryColorField({
   catalog,
   colorId,
   primaryColorId,
-  rangeCount,
+  ranges,
   issue,
   rangeIssue,
   text,
@@ -161,37 +174,56 @@ export function SecondaryColorField({
   onRemove,
 }: SecondaryProps) {
   const toggle = useRef<HTMLButtonElement>(null);
+  const removeAll = useRef<HTMLButtonElement>(null);
+  const list = useRef<HTMLUListElement>(null);
   const selection = useFieldSelection(fieldRef);
-  // Feedback belongs to the selection and text it was given for.
+  // Feedback belongs to the text it was given for.
   const [feedback, setFeedback] = useState<{
-    readonly key: string;
+    readonly text: string;
     readonly message: string;
-    readonly error: boolean;
   } | null>(null);
-  const key = `${selection.start}:${selection.end}:${text}`;
-  const shown = feedback?.key === key ? feedback : null;
+  const shown = feedback?.text === text ? feedback.message : '';
   if (catalog.textColors.length === 0) return null;
   const options = catalog.textColors.filter(isAvailable);
   const invalid = issue?.kind === 'invalid' ? issue : undefined;
   const expanded = open || invalid !== undefined;
   const kept = colorId !== null && !options.some((color) => color.id === colorId);
-  const name = colorId === null ? '' : (findTextColor(catalog, colorId)?.displayName ?? colorId);
-  const selected = selection.end > selection.start;
+  const nameOf = (id: string) => findTextColor(catalog, id)?.displayName ?? id;
+  const name = colorId === null ? '' : nameOf(colorId);
+  const hex = colorId === null ? undefined : findTextColor(catalog, colorId)?.hex;
+  const selected =
+    selection.end > selection.start &&
+    text.slice(selection.start, selection.end).replace(/\r\n|\r|\n/g, '') !== '';
 
-  const act = (action: (start: number, end: number) => void, done: (what: string) => string) => {
-    // Read at the moment of the press: the field keeps its selection when it loses focus.
+  const choose = (color: TextColor) => {
+    onChoose(color.id);
+    // Read at the moment of the tap: the field keeps its selection when it loses focus.
     const { start, end } = readSelection(fieldRef.current);
-    const what = text.slice(start, end).replace(/\r\n|\r|\n/g, '');
-    if (end <= start || what === '') {
-      setFeedback({ key: `${start}:${end}:${text}`, message: NO_SELECTION, error: true });
+    const letters = text.slice(start, end).replace(/\r\n|\r|\n/g, '');
+    if (end <= start || letters === '') {
+      setFeedback({
+        text,
+        message: `Segunda cor: ${color.displayName}. Selecione as letras no campo Texto e toque na cor para aplicá-la.`,
+      });
       return;
     }
-    action(start, end);
+    onApply(start, end);
     setFeedback({
-      key: `${start}:${end}:${text}`,
-      message: done(quoted(text, start, end)),
-      error: false,
+      text,
+      message: `${color.displayName} aplicado a ${quoted(text, start, end)}.`,
     });
+  };
+
+  const unapply = (range: TextRange, index: number) => {
+    onUnapply(range.start, range.end);
+    setFeedback({
+      text,
+      message: `Segunda cor removida de ${quoted(text, range.start, range.end)}.`,
+    });
+    // Keep focus in the list: the next trecho, the previous one, or "Remover segunda cor".
+    const buttons = list.current?.querySelectorAll('button');
+    const next = buttons?.[index + 1] ?? buttons?.[index - 1];
+    (next ?? removeAll.current)?.focus();
   };
 
   return (
@@ -213,15 +245,23 @@ export function SecondaryColorField({
       )}
       {!expanded && colorId !== null && (
         <p className="field__info">
-          Segunda cor em uso: {name} ({rangeSummary(rangeCount)}).
+          Segunda cor em uso: {name} ({rangeSummary(ranges.length)}).
         </p>
       )}
       <div id="secondary-color-panel" className="secondary__panel" hidden={!expanded}>
         <fieldset
           className="field"
-          aria-describedby={invalid ? 'secondary-color-issue' : undefined}
+          aria-describedby={invalid ? 'secondary-color-issue secondary-help' : 'secondary-help'}
         >
           <legend className="field__legend">Segunda cor</legend>
+          <p className="field__info" id="secondary-help">
+            Selecione as letras no campo Texto e toque em uma cor para destacá-las.
+          </p>
+          <p className="field__info selection-actions__selection">
+            {selected
+              ? `Seleção: ${quoted(text, selection.start, selection.end)}`
+              : 'Nenhuma letra selecionada.'}
+          </p>
           {kept && invalid && (
             <InvalidSelection
               messageId="secondary-color-issue"
@@ -238,7 +278,9 @@ export function SecondaryColorField({
                 color={color}
                 checked={color.id === colorId}
                 disabled={color.id === primaryColorId && color.id !== colorId}
-                onSelect={() => onChoose(color.id)}
+                compact
+                selectOnClick
+                onSelect={() => choose(color)}
               />
             ))}
           </div>
@@ -248,58 +290,53 @@ export function SecondaryColorField({
             </p>
           )}
         </fieldset>
-        {colorId === null ? (
-          <p className="field__info">
-            Escolha a segunda cor para destacar letras do texto. Ela não pode ser igual à cor do
-            texto.
-          </p>
-        ) : (
+        {/* Always rendered so assistive technology announces each result. */}
+        <p className="field__info selection-actions__feedback" aria-live="polite">
+          {shown}
+        </p>
+        {colorId !== null && (
           <div className="selection-actions">
-            <p className="field__info" id="secondary-help">
-              Selecione as letras no campo Texto e toque em &quot;Aplicar segunda cor à
-              seleção&quot;.
-            </p>
-            <p className="field__info selection-actions__selection">
-              {selected
-                ? `Seleção: ${quoted(text, selection.start, selection.end)}`
-                : 'Nenhuma letra selecionada.'}
-            </p>
-            <div className="selection-actions__buttons">
-              <button
-                type="button"
-                className="button"
-                aria-describedby="secondary-help"
-                onClick={() => act(onApply, (what) => `Segunda cor aplicada a ${what}.`)}
-              >
-                Aplicar segunda cor à seleção
-              </button>
-              <button
-                type="button"
-                className="button"
-                onClick={() => act(onUnapply, (what) => `Segunda cor removida de ${what}.`)}
-              >
-                Remover segunda cor da seleção
-              </button>
-            </div>
-            {/* Always rendered so assistive technology announces each result. */}
-            <p className={shown?.error ? 'field__error' : 'field__info'} aria-live="polite">
-              {shown?.message}
-            </p>
-            <p className="field__info">
-              {rangeCount === 0
-                ? 'Nenhum trecho com a segunda cor.'
-                : rangeCount === 1
-                  ? '1 trecho com a segunda cor.'
-                  : `${rangeCount} trechos com a segunda cor.`}
-            </p>
+            {ranges.length > 0 && (
+              <>
+                <p className="field__info">
+                  {ranges.length === 1
+                    ? `1 trecho em ${name}:`
+                    : `${ranges.length} trechos em ${name}. Todos os trechos usam a mesma segunda cor:`}
+                </p>
+                <ul ref={list} className="secondary__ranges" aria-label="Trechos com a segunda cor">
+                  {ranges.map((range, index) => (
+                    <li key={`${range.start}:${range.end}`} className="secondary__range">
+                      <span
+                        className="secondary__range-chip"
+                        style={{ backgroundColor: hex }}
+                        aria-hidden="true"
+                      />
+                      <span className="secondary__range-text">
+                        {quoted(text, range.start, range.end)}
+                      </span>
+                      <button
+                        type="button"
+                        className="button"
+                        aria-label={`Remover segunda cor de ${quoted(text, range.start, range.end)}`}
+                        onClick={() => unapply(range, index)}
+                      >
+                        Remover
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
             {rangeIssue?.kind === 'invalid' && (
               <p className="field__error">{invalidMessage(rangeIssue)}</p>
             )}
             <button
+              ref={removeAll}
               type="button"
               className="button"
               onClick={() => {
                 onRemove();
+                setFeedback(null);
                 toggle.current?.focus();
               }}
             >

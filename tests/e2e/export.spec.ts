@@ -228,7 +228,8 @@ test('exports font, both lettering colors, alignment, and position as previewed'
   await field.focus();
   await field.evaluate((element) => (element as HTMLTextAreaElement).setSelectionRange(0, 0));
   for (let i = 0; i < 2; i += 1) await field.press('Shift+ArrowRight');
-  await page.getByRole('button', { name: 'Aplicar segunda cor à seleção' }).click();
+  // Tapping the chosen color applies it to the selection (D-069).
+  await radio(page, 'Segunda cor', /Letra vinho/).click();
   await openStep(page, 'Posição do texto');
   const position = page.getByRole('group', { name: 'Posição do texto' });
   await position.getByRole('radio', { name: 'Alinhar à direita' }).check();

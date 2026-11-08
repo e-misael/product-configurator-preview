@@ -171,7 +171,7 @@ export function ConfiguratorForm({
           catalog={catalog}
           colorId={config.secondaryColorId}
           primaryColorId={config.textColorId}
-          rangeCount={config.secondaryRanges.length}
+          ranges={config.secondaryRanges}
           issue={secondaryIssue}
           rangeIssue={issueFor(validation, 'secondaryRanges')}
           text={lettered}

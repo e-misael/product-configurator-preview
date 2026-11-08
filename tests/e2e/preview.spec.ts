@@ -292,7 +292,11 @@ test.describe('personalized text', () => {
     await field.focus();
     await field.press('End');
     for (let i = 0; i < 2; i += 1) await field.press('Shift+ArrowLeft');
-    await page.getByRole('button', { name: 'Aplicar segunda cor à seleção' }).click();
+    // Tapping the chosen color applies it to the selection (D-069).
+    await page
+      .getByRole('group', { name: 'Segunda cor' })
+      .getByRole('radio', { name: /Letra vinho/ })
+      .click();
 
     await expect.poll(() => textPixels(page, WINE)).toBeGreaterThan(20);
     expect(await textPixels(page, BLUE)).toBeGreaterThan(20);

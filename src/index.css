@@ -861,10 +861,40 @@ body {
   color: var(--color-text);
 }
 
-.selection-actions__buttons {
+.selection-actions__feedback:empty {
+  display: none;
+}
+
+/* The trechos in the second color, each with its own "Remover" (D-069). */
+.secondary__ranges {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.secondary__range {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0 0.75rem;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: var(--touch-target);
+}
+
+.secondary__range-chip {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+  border-radius: 50%;
+}
+
+.secondary__range-text {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+  overflow-wrap: anywhere;
+}
+
+.secondary__range .button {
+  margin-top: 0;
 }
 
 .disclaimer {

@@ -537,6 +537,13 @@ Status values:
 - **Open:** whether lowercase serif lettering is manufacturable (no character-set rule exists, P-04/P-14); accented serif capitals overshoot their line slot by about 0.035 em in Chromium (pre-existing).
 - **Status:** Approved as requested (product owner, 2026-11-08). Implementation pending acceptance.
 
+### D-069 — Second color applied on tap (2026-11-08)
+
+- Requested by the product owner (2026-11-08): only the selected second color shows its name; the color is applied as soon as it is chosen, so "Aplicar segunda cor à seleção" is removed; the component should be more intuitive.
+- Tapping a second-color chip reads the "Texto" selection (as in D-068) and applies the color to it at once; the chip reacts to every activation (click, Space, arrow keys), also when already selected, so the same color can be applied to further selections. Without a selection the tap only chooses the color and says to select letters and tap again (approved option).
+- The help line and the "Seleção" indicator come before the chips. "Remover segunda cor da seleção" and the trecho count are replaced by a list of the colored trechos, each with "Remover"; focus stays in the list. "Remover segunda cor" still clears the color and all trechos. The domain is unchanged (one second color, ranges as before).
+- **Status:** Approved (product owner, 2026-11-08). Implementation pending acceptance.
+
 ## Proposed
 
 ### D-066 — Lettering font evaluation: Georgia Bold and Century Gothic Bold (2026-11-08)

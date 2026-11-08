@@ -111,36 +111,38 @@ test('applies the second color to a keyboard selection without changing the text
   await toggle.click();
   await expect(toggle).toHaveAttribute('aria-expanded', 'true');
   await expect(secondary.getByRole('radio', { name: /Letra grafite/ })).toBeDisabled();
-  await secondary.getByRole('radio', { name: /Letra vinho/ }).check();
-
-  const apply = page.getByRole('button', { name: 'Aplicar segunda cor à seleção' });
-  // Never disabled: without a selection it says what to do (D-068).
-  await expect(apply).toBeEnabled();
+  const wine = secondary.getByRole('radio', { name: /Letra vinho/ });
+  // Without a selection a tap only chooses the color and says what to do (D-069).
+  await wine.check();
+  await expect(page.getByText(/^Segunda cor: .*Letra vinho\. Selecione as letras/)).toBeVisible();
+  await expect(page.getByRole('button', { name: /segunda cor à seleção/ })).toHaveCount(0);
   await field.focus();
   // Caret at the start (Home is not portable across platforms), then select by keyboard.
   await field.evaluate((element) => (element as HTMLTextAreaElement).setSelectionRange(0, 0));
   for (let i = 0; i < 4; i += 1) await field.press('Shift+ArrowRight');
   await expect(page.getByText('Seleção: “CASA”')).toBeVisible();
-  await apply.click();
+  // Tapping the chosen color again applies it to the selection.
+  await wine.click();
 
   await expect(field).toHaveValue('Casa da Ana');
-  await expect(page.getByText('Segunda cor aplicada a “CASA”.')).toBeVisible();
-  await expect(page.getByText('1 trecho com a segunda cor.')).toBeVisible();
+  await expect(page.getByText(/Letra vinho aplicado a “CASA”\.$/)).toBeVisible();
+  const remove = page.getByRole('button', { name: 'Remover segunda cor de “CASA”' });
+  await expect(remove).toBeVisible();
 
   // Collapsing only hides the options; the color and its trecho stay.
   await toggle.click();
-  await expect(apply).toBeHidden();
+  await expect(remove).toBeHidden();
   await expect(page.getByText(/Segunda cor em uso: .*Letra vinho.*\(1 trecho\)/)).toBeVisible();
 
   await toggle.click();
   await page.getByRole('button', { name: 'Remover segunda cor', exact: true }).click();
-  await expect(apply).toHaveCount(0);
+  await expect(remove).toHaveCount(0);
   await expect(secondary.getByRole('radio', { name: /Letra vinho/ })).not.toBeChecked();
   await expect(await summary(page, 'Segunda cor')).toHaveText('—');
   await expectNoHorizontalScroll(page);
 });
 
-test('applies the second color to a touch-style selection made before the color (D-068)', async ({
+test('applies the second color on tap to a touch-style selection (D-068, D-069)', async ({
   page,
 }) => {
   await model(page, CERAMIC_PLATE).check();
@@ -156,23 +158,20 @@ test('applies the second color to a touch-style selection made before the color 
     area.setSelectionRange(8, 11);
   });
   await page.getByRole('button', { name: 'Usar segunda cor' }).click();
+  await expect(field).not.toBeFocused();
+  await expect(page.getByText('Seleção: “ANA”')).toBeVisible();
   await inks(page, 'Segunda cor')
     .getByRole('radio', { name: /Letra vinho/ })
     .check();
-  await expect(field).not.toBeFocused();
-  await expect(page.getByText('Seleção: “ANA”')).toBeVisible();
 
-  await page.getByRole('button', { name: 'Aplicar segunda cor à seleção' }).click();
-  await expect(page.getByText('Segunda cor aplicada a “ANA”.')).toBeVisible();
-  await expect(page.getByText('1 trecho com a segunda cor.')).toBeVisible();
+  await expect(page.getByText(/aplicado a “ANA”\.$/)).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Remover segunda cor de “ANA”' })).toBeVisible();
   await expect(field).toHaveValue('Casa da Ana');
 
-  // Nothing selected: a clear message instead of silence.
-  await field.evaluate((element) => (element as HTMLTextAreaElement).setSelectionRange(0, 0));
-  await page.getByRole('button', { name: 'Aplicar segunda cor à seleção' }).click();
-  await expect(
-    page.getByText(/^Nenhuma letra selecionada\. Selecione no campo Texto/),
-  ).toBeVisible();
+  // Removing the trecho from the list keeps the color.
+  await page.getByRole('button', { name: 'Remover segunda cor de “ANA”' }).click();
+  await expect(page.getByText('Segunda cor removida de “ANA”.')).toBeVisible();
+  await expect(inks(page, 'Segunda cor').getByRole('radio', { name: /Letra vinho/ })).toBeChecked();
   await expectNoHorizontalScroll(page);
 });
 

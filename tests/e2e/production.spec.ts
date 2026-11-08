@@ -258,18 +258,15 @@ test.describe('Production customization to PNG export (D-056)', () => {
     for (const name of ['Marrom', 'Azul', 'Vermelho escuro']) {
       await expect(secondary.getByRole('radio', { name })).toBeEnabled();
     }
-    await secondary.getByRole('radio', { name: 'Vermelho escuro' }).check();
-
-    // "Ação" (accented) in the second color.
+    // "Ação" (accented) in the second color, applied by the tap on the color (D-069).
     await field.focus();
     // Caret at the start (Home is not portable across platforms), then select by keyboard.
     await field.evaluate((element) => (element as HTMLTextAreaElement).setSelectionRange(0, 0));
     for (let i = 0; i < 4; i += 1) await field.press('Shift+ArrowRight');
-    const apply = page.getByRole('button', { name: 'Aplicar segunda cor à seleção' });
-    await expect(apply).toBeEnabled();
-    await apply.click();
+    await secondary.getByRole('radio', { name: 'Vermelho escuro' }).check();
     await expect(field).toHaveValue('Ação\nJoão');
-    await expect(page.getByText('1 trecho com a segunda cor.')).toBeVisible();
+    await expect(page.getByText('Vermelho escuro aplicado a “AÇÃO”.')).toBeVisible();
+    await expect(page.getByText('1 trecho em Vermelho escuro:')).toBeVisible();
 
     const green = COLORS[2][1];
     const red = COLORS[3][1];

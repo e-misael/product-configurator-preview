@@ -301,16 +301,17 @@ test.describe('accordion focus and scrolling (WAI-ARIA)', () => {
       area.setSelectionRange(0, 4);
     });
     await page.getByRole('button', { name: 'Usar segunda cor' }).tap();
+    await expect(page.getByText('Seleção: “CASA”')).toBeVisible();
+    // One tap on the color applies it (D-069).
     await page
       .getByRole('group', { name: 'Segunda cor' })
       .locator('label', { has: page.getByRole('radio', { name: /Letra vinho/ }) })
       .tap();
-    const apply = page.getByRole('button', { name: 'Aplicar segunda cor à seleção' });
-    await apply.scrollIntoViewIfNeeded();
-    await expect(page.getByText('Seleção: “CASA”')).toBeVisible();
-    await apply.tap();
-    await expect(page.getByText('Segunda cor aplicada a “CASA”.')).toBeVisible();
-    await expect(page.getByText('1 trecho com a segunda cor.')).toBeVisible();
+    await expect(page.getByText(/aplicado a “CASA”\.$/)).toBeVisible();
+    const remove = page.getByRole('button', { name: 'Remover segunda cor de “CASA”' });
+    await remove.scrollIntoViewIfNeeded();
+    await remove.tap();
+    await expect(page.getByText('Segunda cor removida de “CASA”.')).toBeVisible();
     await expectNoHorizontalScroll(page);
   });
 });

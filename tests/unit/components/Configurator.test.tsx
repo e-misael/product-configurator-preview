@@ -121,8 +121,9 @@ describe('Configurator', () => {
       field.setSelectionRange(start, end);
       fireEvent.select(field);
     };
-    const apply = () => screen.getByRole('button', { name: 'Aplicar segunda cor à seleção' });
-    const unapply = () => screen.getByRole('button', { name: 'Remover segunda cor da seleção' });
+    const trechos = () => screen.queryByRole('list', { name: 'Trechos com a segunda cor' });
+    const removeTrecho = (letters: string) =>
+      screen.getByRole('button', { name: `Remover segunda cor de “${letters}”` });
     const removeColor = () => screen.getByRole('button', { name: 'Remover segunda cor' });
 
     /** Text typed, primary ink A chosen, secondary ink B chosen, and the section open. */
@@ -198,42 +199,72 @@ describe('Configurator', () => {
       expect(document.getElementById(disclosure().getAttribute('aria-controls') ?? '')).toBe(
         group('Segunda cor').parentElement,
       );
-      // Range actions appear only once a second color is chosen.
+      // There is no apply button: tapping a color applies it (D-069).
       expect(screen.queryByRole('button', { name: /segunda cor à seleção/ })).toBeNull();
       expect(screen.queryByRole('button', { name: 'Remover segunda cor' })).toBeNull();
+      expect(group('Segunda cor')).toHaveAccessibleDescription(
+        'Selecione as letras no campo Texto e toque em uma cor para destacá-las.',
+      );
     });
 
-    it('applies the second color only to the selection, keeping the text unchanged', async () => {
-      const { user } = await withSecondary('Casa da Ana');
-      expect(screen.getByText('Nenhum trecho com a segunda cor.')).toBeInTheDocument();
+    it('shows the name only on the selected second color (D-069)', async () => {
+      await withSecondary('Casa');
+      const nameOf = (label: string) =>
+        within(group('Segunda cor')).getByText(label, { selector: 'label span' });
+
+      expect(nameOf('Test ink B')).toHaveClass('swatch-option__name');
+      expect(nameOf('Test ink A')).toHaveClass('visually-hidden');
+      expect(secondary('ink A').closest('label')).toHaveAttribute('title', 'Test ink A');
+      expect(secondary('ink A')).toHaveAccessibleName('Test ink A');
+    });
+
+    it('applies the color as soon as it is tapped, keeping the text unchanged (D-069)', async () => {
+      const { user } = setup();
+      await user.type(screen.getByLabelText('Texto'), 'Casa da Ana');
+      await user.click(ink('ink A'));
+      await user.click(disclosure());
 
       select(0, 4);
-      // The selection is named next to the actions (D-068).
+      // The selection is named before the colors (D-068).
       expect(screen.getByText('Seleção: “CASA”')).toBeInTheDocument();
-      await user.click(apply());
+      await user.click(secondary('ink B'));
 
+      expect(secondary('ink B')).toBeChecked();
       expect(screen.getByLabelText('Texto')).toHaveValue('Casa da Ana');
-      expect(screen.getByText('Segunda cor aplicada a “CASA”.')).toBeInTheDocument();
-      expect(screen.getByText('1 trecho com a segunda cor.')).toBeInTheDocument();
+      expect(screen.getByText('Test ink B aplicado a “CASA”.')).toBeInTheDocument();
+      expect(within(trechos() as HTMLElement).getAllByRole('listitem')).toHaveLength(1);
+      expect(removeTrecho('CASA')).toBeInTheDocument();
       expect(within(review()).getByText(/1 trecho/)).toBeInTheDocument();
     });
 
-    it('never disables the actions: without a selection they say what to do (D-068)', async () => {
+    it('applies the chosen color again to a new selection when its chip is tapped', async () => {
       const { user } = await withSecondary('Casa da Ana');
-      expect(apply()).toBeEnabled();
-      expect(apply()).toHaveAccessibleDescription(/Selecione as letras no campo Texto/);
+      select(0, 4);
+      await user.click(secondary('ink B'));
+      select(8, 11);
+      await user.click(secondary('ink B'));
 
-      await user.click(apply());
-      expect(screen.getByText(/^Nenhuma letra selecionada\. Selecione no campo Texto/)).toHaveClass(
-        'field__error',
-      );
-      expect(screen.getByText('Nenhum trecho com a segunda cor.')).toBeInTheDocument();
-
-      await user.click(unapply());
-      expect(screen.getByText(/^Nenhuma letra selecionada\. Selecione/)).toBeInTheDocument();
+      expect(screen.getByText('Test ink B aplicado a “ANA”.')).toBeInTheDocument();
+      expect(within(trechos() as HTMLElement).getAllByRole('listitem')).toHaveLength(2);
+      expect(
+        screen.getByText('2 trechos em Test ink B. Todos os trechos usam a mesma segunda cor:'),
+      ).toBeInTheDocument();
     });
 
-    it('applies a selection made before the color, after focus moved away (D-068)', async () => {
+    it('only chooses the color without a selection, and says what to do next', async () => {
+      await withSecondary('Casa da Ana');
+
+      expect(secondary('ink B')).toBeChecked();
+      expect(screen.getByText('Nenhuma letra selecionada.')).toBeInTheDocument();
+      expect(
+        screen.getByText(
+          'Segunda cor: Test ink B. Selecione as letras no campo Texto e toque na cor para aplicá-la.',
+        ),
+      ).toBeInTheDocument();
+      expect(trechos()).toBeNull();
+    });
+
+    it('applies a selection made before opening the section, after focus moved away', async () => {
       const { user } = setup();
       const field = screen.getByLabelText<HTMLTextAreaElement>('Texto');
       await user.type(field, 'Casa da Ana');
@@ -243,24 +274,28 @@ describe('Configurator', () => {
       field.setSelectionRange(8, 11);
       fireEvent(document, new Event('selectionchange'));
       await user.click(disclosure());
-      await user.click(secondary('ink B'));
       expect(field).not.toHaveFocus();
 
-      await user.click(apply());
-      expect(screen.getByText('Segunda cor aplicada a “ANA”.')).toBeInTheDocument();
-      expect(screen.getByText('1 trecho com a segunda cor.')).toBeInTheDocument();
+      await user.click(secondary('ink B'));
+      expect(screen.getByText('Test ink B aplicado a “ANA”.')).toBeInTheDocument();
+      expect(removeTrecho('ANA')).toBeInTheDocument();
     });
 
-    it('removes the second color from a selection but keeps the chosen color', async () => {
-      const { user } = await withSecondary('Casa');
+    it('removes one trecho from the list but keeps the chosen color', async () => {
+      const { user } = await withSecondary('Casa da Ana');
       select(0, 4);
-      await user.click(apply());
-      expect(unapply()).toBeEnabled();
+      await user.click(secondary('ink B'));
+      select(8, 11);
+      await user.click(secondary('ink B'));
 
-      select(0, 4);
-      await user.click(unapply());
+      await user.click(removeTrecho('CASA'));
 
-      expect(screen.getByText('Nenhum trecho com a segunda cor.')).toBeInTheDocument();
+      expect(screen.getByText('Segunda cor removida de “CASA”.')).toBeInTheDocument();
+      // Focus stays in the list, on the remaining trecho.
+      expect(removeTrecho('ANA')).toHaveFocus();
+      await user.click(removeTrecho('ANA'));
+      expect(trechos()).toBeNull();
+      expect(removeColor()).toHaveFocus();
       expect(secondary('ink B')).toBeChecked();
     });
 
@@ -276,30 +311,29 @@ describe('Configurator', () => {
     it('keeps the color and its trechos when the section is collapsed', async () => {
       const { user } = await withSecondary('Casa');
       select(1, 3);
-      await user.click(apply());
+      await user.click(secondary('ink B'));
 
       await user.click(disclosure());
 
       expect(disclosure()).toHaveAttribute('aria-expanded', 'false');
       expect(screen.queryByRole('group', { name: 'Segunda cor' })).not.toBeInTheDocument();
-      expect(screen.queryByRole('button', { name: /segunda cor à seleção/ })).toBeNull();
       expect(screen.getByText('Segunda cor em uso: Test ink B (1 trecho).')).toBeInTheDocument();
       expect(within(review()).getByText('Test ink B (1 trecho)')).toBeInTheDocument();
 
       await user.click(disclosure());
       expect(secondary('ink B')).toBeChecked();
-      expect(screen.getByText('1 trecho com a segunda cor.')).toBeInTheDocument();
+      expect(removeTrecho('AS')).toBeInTheDocument();
     });
 
     it('clears the color and every trecho with "Remover segunda cor"', async () => {
       const { user } = await withSecondary('Casa');
       select(1, 3);
-      await user.click(apply());
+      await user.click(secondary('ink B'));
 
       await user.click(removeColor());
 
       expect(secondary('ink B')).not.toBeChecked();
-      expect(screen.queryByRole('button', { name: /segunda cor à seleção/ })).toBeNull();
+      expect(trechos()).toBeNull();
       expect(screen.queryByRole('button', { name: 'Remover segunda cor' })).toBeNull();
       expect(disclosure()).toHaveFocus();
       expect(within(review()).queryByText(/trecho/)).not.toBeInTheDocument();
@@ -314,7 +348,7 @@ describe('Configurator', () => {
       // The section cannot hide an invalid choice (D-030).
       expect(screen.queryByRole('button', { name: 'Usar segunda cor' })).toBeNull();
       expect(group('Segunda cor')).toHaveAccessibleDescription(
-        'A segunda cor deve ser diferente da cor do texto.',
+        'A segunda cor deve ser diferente da cor do texto. Selecione as letras no campo Texto e toque em uma cor para destacá-las.',
       );
       await user.click(removeColor());
       expect(screen.queryByRole('group', { name: 'Segunda cor' })).not.toBeInTheDocument();
@@ -324,14 +358,14 @@ describe('Configurator', () => {
       const { user } = await withSecondary('aaaa');
       const field = screen.getByLabelText<HTMLTextAreaElement>('Texto');
       select(0, 4);
-      await user.click(apply());
+      await user.click(secondary('ink B'));
 
       // The caret after the edit locates it: the last character was deleted.
       // (Ambiguous edits without usable caret data are covered in the hook tests.)
       fireEvent.change(field, { target: { value: 'aaa' } });
 
       expect(field).toHaveValue('aaa');
-      expect(screen.getByText('1 trecho com a segunda cor.')).toBeInTheDocument();
+      expect(removeTrecho('AAA')).toBeInTheDocument();
       expect(formattingNotice()).toBeEmptyDOMElement();
     });
 
