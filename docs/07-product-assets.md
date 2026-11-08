@@ -2,11 +2,12 @@
 
 How Taavi's real product photographs become catalog imagery (FR-08, D-027, D-031–D-034). This guide covers **M1.3a** (conventions and catalog contract, implemented) and the steps for **M1.3b** (registering real assets, pending until photographs and measurements arrive).
 
-> One production photograph is registered: the Placa cerâmica (`public/catalog/plates/placa-ceramica-10/bege.png`, M1.3b-1), with provisional calibration pending final visual review. Store reference photographs in `docs/reference-images/` are not assets. The other three models have no photograph yet.
+> One production photograph is registered: the Placa cerâmica (`public/catalog/plates/placa-ceramica-10/bege.png`, M1.3b-1), with its calibration, approved for the first production iteration (D-053). Store reference photographs in `docs/reference-images/` are not assets. The other three models have no photograph yet.
 
 ## Provenance and originals
 
-- **Originals stay outside the Git repository**, in Taavi's source archive. The repository holds only processed, web-ready files under `public/catalog/`.
+- **Originals stay outside the Git repository**, in Taavi's source archive. The repository serves only processed, web-ready files under `public/catalog/`.
+- **Selected reference photographs may be versioned** in `docs/reference-images/` when Taavi has the rights to them (D-031 update), as documentation of where a catalog image came from; they are never served or registered. Temporary working files and unrelated originals stay outside the repository.
 - For every processed file, record its provenance in the M1.3b registration notes (pull request description or a note next to the catalog entry): original file name in the archive, date, and the processing applied (crop, background removal, perspective correction, resize, export settings).
 - Processed files are always exported **from the original**, never from a previously processed file, to avoid cumulative recompression.
 
@@ -52,8 +53,8 @@ Three store photographs are kept in `docs/reference-images/` (WebP or PNG, 1024 
 - **Framing:** the plate spans roughly x 290–830 and y 745–1270 px (about half the width, a third of the height), nearly frontal with slight perspective. The rest is the lifestyle scene: vase, marble table, wall, and diagonal window shadows.
 - **Background and light:** opaque and busy, not white; warm, raking light. Rendered lettering is flat-colored, so it will not share the photograph's light and shadows.
 - **Quality check (D-050): passed.** No residue of the removed lettering, no smears or seams on the face; the shape, rounded edges, and speckled finish match the product. The plate face is about 540 px wide, enough for preview and a modest export.
-- **Crop (provisionally accepted for the first iteration, 2026-11-08):** a 640 × 640 px crop at offset x 240, y 687 of the original, plate centered with the marble table around it; no tint, no background removal. File: `docs/reference-images/review/placa-ceramica-10-crop.png`. Proposed path once approved: `/catalog/plates/placa-ceramica-10/bege.png` (`widthPx` 640, `heightPx` 640).
-- **Calibration (provisionally accepted for the first iteration), relative to the crop:** `objectBounds` `{ x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 }` (measured plate edges, 539 × 526 px); `text.area` `{ x: 0.145, y: 0.155, width: 0.71, height: 0.69 }`, an inset of about 8% of the plate on each side, which is the margin of the lettering on Taavi's real stamped piece and keeps text off the rounded edge (~10 px); default placement centered horizontally and vertically (`text.align` `center`, D-051).
+- **Crop (approved for the first production iteration, D-053):** a 640 × 640 px crop at offset x 240, y 687 of the original, plate centered with the marble table around it; no tint, no background removal. File: `docs/reference-images/review/placa-ceramica-10-crop.png`. Registered as `/catalog/plates/placa-ceramica-10/bege.png` (`widthPx` 640, `heightPx` 640).
+- **Calibration (approved for the first production iteration, D-053), relative to the crop:** `objectBounds` `{ x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 }` (measured plate edges, 539 × 526 px); `text.area` `{ x: 0.145, y: 0.155, width: 0.71, height: 0.69 }`, an inset of about 8% of the plate on each side, which is the margin of the lettering on Taavi's real stamped piece and keeps text off the rounded edge (~10 px); default placement centered horizontally and vertically (`text.align` `center`, D-051).
 - **Review sheet:** `docs/reference-images/review/review-sheet.png` (source `review.html`) shows the crop with both boxes and sample lettering in every proposed color.
 
 ### Lettering-color review (proposals, not approved)

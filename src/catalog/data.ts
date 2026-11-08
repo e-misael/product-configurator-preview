@@ -13,7 +13,7 @@ import type { Catalog } from '../domain';
  * The Placa cerâmica (official name "Placa cerâmica (tamanho 10 x 10 cm)",
  * D-048, D-051) has Taavi's photograph with the lettering removed (D-050),
  * cropped to 640 × 640, and its measured placement; crop and placement are
- * accepted for implementation testing, pending final visual review (M1.3b-1).
+ * approved for the first production iteration (M1.3b-1, D-053).
  * Everything else is pending and must not be invented: no other photographs or
  * placement (`image` omitted) and no physical dimensions.
  * Every change must keep `validateCatalog` passing (tests/unit/catalog).

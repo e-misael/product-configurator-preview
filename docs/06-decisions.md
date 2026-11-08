@@ -231,6 +231,7 @@ Status values:
 - **Alternatives:** Free-form paths checked only for non-blank (previous rule; too permissive); external hosting (out of scope).
 - **Update (M4.1a):** The `colors` owner folder no longer exists; paths are `/catalog/{plates|frames}/{owner-id}/…` (D-041).
 - **Update (M4.2):** The `frames` owner folder no longer exists; paths are `/catalog/plates/{owner-id}/…` (D-046).
+- **Update (2026-11-08):** Selected reference photographs that Taavi has the rights to may be versioned in `docs/reference-images/` as documentation (never served or registered); temporary working files and unrelated originals stay outside the repository.
 - **Status:** Approved.
 - **Date:** 2026-11-07.
 
@@ -421,7 +422,16 @@ Status values:
 - **Decision:** `drawScene` paints the lettering colors exactly as before, then draws a shading layer over them (`src/preview/deboss.ts`). (1) An inverse mask: an opaque sheet with every glyph run cut out (`destination-out`). (2) A layer twice the mask's width: the mask is drawn whole in its right half with a shadow offset by one mask width, so the blurred shadow lands in the left half; a dark shadow offset down (top inner edge), then a light one offset up (bottom inner edge). (3) The same mask over the left half with `destination-out` removes the shading wherever there is no glyph, in one draw for all lines and colors. (4) The left half is drawn over the lettering. Offset and blur are fractions of the font size in device pixels (canvas shadows ignore the transform), so preview and export match; below 9 device pixels the effect is skipped. Offscreen canvases are pooled between frames. No drop shadow, stroke, halo, or `ctx.filter`; no customer controls; photographs untouched.
 - **Strength:** offset 0.02, blur 0.025, shadow 0.25, highlight 0.14 of the font size: half of the first candidates (0.04, 0.05, 0.5, 0.28). At the Placa's text sizes the first candidates changed stroke centers by up to 59 of 255 levels (lettering visibly darkened throughout); half strength changes them by at most 4.
 - **Engine notes:** WebKit casts no shadow for an image drawn fully off-canvas or for a sub-rectangle of a larger canvas, and per-call `destination-in` erases earlier runs; the technique avoids all three.
-- **Status:** Architecture approved (2026-11-08) and implemented; the strength and the final look await visual approval. Pixel tests guard the technique, not the look.
+- **Status:** Architecture approved (2026-11-08) and implemented; half strength is technically accepted (D-053), but the look is not approved until the flat-versus-debossed comparison is reviewed. Pixel tests guard the technique, not the look.
+- **Performance:** Under 4× CPU throttling a debossed redraw takes about 25 ms (about 40 fps while dragging) against 60 fps flat. No optimization is made without evidence from real devices.
+- **Date:** 2026-11-08.
+
+### D-053 — Placa photograph and calibration approved (2026-11-08)
+
+- **Decision:** Approved by the product owner for the first production iteration, after reviewing the rendered crop, overlay, and colors: (1) the 640 × 640 crop of `plate-no-text.png`; (2) `objectBounds` `{ x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 }`; (3) `text.area` `{ x: 0.145, y: 0.155, width: 0.71, height: 0.69 }`; (4) centered default alignment and placement; (5) the photographic presentation as is, with no background removal or tinting.
+- **Color review (not a production approval):** Marrom `#4a2a14`, Azul `#2b4a7a`, Verde `#2f4a36`, and Vermelho escuro `#7a1f1f` are visually acceptable. Amarelo `#e0b225` and Laranja `#e07a1f` stay proposals with a legibility concern; they are not removed or darkened automatically. All six stay in demonstration data until Taavi approves production values (P-02).
+- **Deboss (D-052):** half strength is technically accepted; its look is not yet approved.
+- **Status:** Approved (product owner, 2026-11-08).
 - **Date:** 2026-11-08.
 
 ## Proposed
