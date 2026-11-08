@@ -13,6 +13,12 @@ export interface ModelGroup {
   readonly description: string;
   /** In display order. */
   readonly sizes: readonly { readonly plateId: string; readonly letter: string }[];
+  /**
+   * The size whose photograph is shown, without lettering, before a size is
+   * chosen; only for groups whose sizes share one photograph (M4.6). It
+   * selects nothing: the configuration still has no model until a size is chosen.
+   */
+  readonly previewPlateId?: string;
 }
 
 export const MODEL_GROUPS: readonly ModelGroup[] = [
@@ -24,6 +30,8 @@ export const MODEL_GROUPS: readonly ModelGroup[] = [
       { plateId: 'bandeja-ondulada-m-8', letter: 'M' },
       { plateId: 'bandeja-ondulada-g-11', letter: 'G' },
     ],
+    // M and G are photographed once: the two files are identical.
+    previewPlateId: 'bandeja-ondulada-m-8',
   },
 ];
 

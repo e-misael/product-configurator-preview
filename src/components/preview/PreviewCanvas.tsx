@@ -14,7 +14,7 @@ interface PreviewCanvasProps {
   readonly scene: Scene;
   readonly label: string;
   readonly describedBy: string;
-  /** Touch dragging is allowed only in the explicit "Mover texto" mode (D-044). */
+  /** Dragging is enabled only in the "Ajustar manualmente" mode (D-058). */
   readonly moveMode: boolean;
   /** Called with the new block position while the text is dragged; alignment is not changed. */
   readonly onMoveText: ((position: Point) => void) | undefined;
@@ -30,9 +30,9 @@ interface Drag {
 /**
  * Paints a scene on a canvas that scales to its container with the scene's
  * aspect ratio. The backing store follows the displayed width and the device
- * pixel ratio, capped at the source image's resolution. The text block can be
- * dragged with a mouse or pen, and with touch only in "Mover texto" mode so
- * the page still scrolls normally. Overflowing text gets a dashed outline of
+ * pixel ratio, capped at the source image's resolution. In the "Ajustar
+ * manualmente" mode the text block can be dragged with a mouse, pen, or
+ * finger; otherwise touch scrolls the page as usual. Overflowing text gets a dashed outline of
  * the text area here, never in the export (D-057).
  */
 export function PreviewCanvas({
@@ -47,7 +47,7 @@ export function PreviewCanvas({
   const drag = useRef<Drag | null>(null);
   const [cursor, setCursor] = useState<'grab' | 'grabbing' | undefined>(undefined);
   const block = textBlockOf(scene);
-  const movable = onMoveText !== undefined && block !== undefined;
+  const movable = onMoveText !== undefined && block !== undefined && moveMode;
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -81,7 +81,6 @@ export function PreviewCanvas({
   const handlers = movable
     ? {
         onPointerDown: (event: PointerEvent<HTMLCanvasElement>) => {
-          if (event.pointerType === 'touch' && !moveMode) return;
           if (event.button !== 0) return;
           const { point, hit } = locate(event);
           if (!hit) return;
@@ -130,8 +129,8 @@ export function PreviewCanvas({
       aria-describedby={describedBy}
       style={{
         aspectRatio: `${scene.width} / ${scene.height}`,
-        // Without "Mover texto", touch gestures scroll the page as usual.
-        touchAction: movable && moveMode ? 'none' : 'auto',
+        // Outside manual adjustment, touch gestures scroll the page as usual.
+        touchAction: movable ? 'none' : 'auto',
         cursor,
       }}
       {...handlers}

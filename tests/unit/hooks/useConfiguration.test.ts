@@ -174,7 +174,7 @@ describe('useConfiguration: lettering', () => {
 });
 
 describe('useConfiguration: text placement', () => {
-  it('stores a preset (alignment and position together), then moves only the position', () => {
+  it('stores a placement, then moves only the position', () => {
     const { result } = setup();
     act(() => result.current.choosePlate('test-plate-square'));
 
@@ -191,7 +191,7 @@ describe('useConfiguration: text placement', () => {
     expect(result.current.config.textLayout).toEqual({ align: 'center', x: 0.48, y: 0.5 });
   });
 
-  it('keeps the placement across model changes and resets to the catalog default', () => {
+  it('keeps the placement across model changes; reset restores the position, not the alignment', () => {
     const { result } = setup();
     act(() => result.current.choosePlate('test-plate-square'));
     act(() => result.current.placeText({ align: 'right', x: 1, y: 1 }));
@@ -200,7 +200,36 @@ describe('useConfiguration: text placement', () => {
     expect(result.current.config.textLayout).toEqual({ align: 'right', x: 1, y: 1 });
 
     act(() => result.current.resetTextLayout());
+    expect(result.current.config.textLayout).toEqual({ align: 'right', x: 0.5, y: 0.5 });
+  });
+
+  it('clears the stored layout when reset leaves the catalog alignment', () => {
+    const { result } = setup();
+    act(() => result.current.choosePlate('test-plate-square'));
+    act(() => result.current.placeText({ align: 'center', x: 0, y: 1 }));
+
+    act(() => result.current.resetTextLayout());
     expect(result.current.config.textLayout).toBeNull();
+  });
+
+  it.each(['left', 'center', 'right'] as const)(
+    'aligns the lines %s without moving the block (D-059)',
+    (align) => {
+      const { result } = setup();
+      act(() => result.current.choosePlate('test-plate-square'));
+      act(() => result.current.placeText({ align: 'center', x: 0.2, y: 0.9 }));
+
+      act(() => result.current.alignText(align));
+      expect(result.current.config.textLayout).toEqual({ align, x: 0.2, y: 0.9 });
+    },
+  );
+
+  it('aligns from the catalog default position when nothing is stored', () => {
+    const { result } = setup();
+    act(() => result.current.choosePlate('test-plate-square'));
+
+    act(() => result.current.alignText('left'));
+    expect(result.current.config.textLayout).toEqual({ align: 'left', x: 0.5, y: 0.5 });
   });
 });
 

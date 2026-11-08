@@ -474,6 +474,32 @@ Status values:
 - **Status:** Approved (product owner, 2026-11-08).
 - **Date:** 2026-11-08.
 
+### D-058 — Mobile-first layout and Taavi visual identity (2026-11-08)
+
+- **Order:** the preview first (approved strategy A), then four steps: "Modelo e tamanho", "Texto e cores", "Posição do texto", "Revisar personalização". The review holds the full summary (bold labels with a colon, regular values; field order unchanged), the configuration status, the approved disclaimer (D-056, wording unchanged), the export reasons, and "Exportar imagem" as the last control of the page. No "Continuar" buttons.
+- **Steps:** below 48 rem they are a WAI-ARIA accordion. Each header is a button in an `h2`, with `aria-expanded` and `aria-controls`. One step is open at a time; closed steps stay mounted with `hidden`, so every input and choice is kept. Focus stays on the activated header (it focuses itself, since Safari does not focus tapped buttons); no input is focused automatically. The page scrolls only when the opened header is off screen or under the preview band, without animation when motion is reduced. Each header shows "Concluído"/"Pendente" and a one-line summary. At 48 rem and above, all steps are open with plain headings, and the preview is sticky beside them.
+- **Preview band (phones):** space is reserved from the start. Once a model is chosen the band sticks to the top. It is compact (`clamp(150px, 28svh, 230px)`), reduced while "Texto e cores" is open (`clamp(110px, 20svh, 170px)`; tied to the step, not to focus, so leaving the field never shifts the page), and larger while "Posição do texto" is open (`clamp(200px, 45svh, 420px)`). `scroll-padding-top` keeps focused or revealed elements below the band (WCAG 2.4.11).
+- **Identity:** tokens `--color-bg #faf8f5`, `--color-surface #f4ede6`, `--color-sand #e6d8cb`, `--color-text #302a26`, muted `#5f554d`, control borders `#8c7b6b` (contrast 13.3 / 6.9 / 3.8 on the background); 5 px radius; interface font Red Hat Display (latin 400/500/700), self-hosted from `@fontsource/red-hat-display` 5.3.0 (OFL-1.1). The canvas lettering fonts and sizes are unchanged. No logo in the header.
+- **Status:** Approved (product owner, 2026-11-08, M4.6). Implementation pending acceptance.
+
+### D-059 — Line alignment independent of the block position (2026-11-08)
+
+- Supersedes the D-047 coupling of alignment and preset column. **Model:** the text block is the widest line by all lines (`bounds`), placed by `x`, `y` as fractions of the free space in the calibrated area (D-044). The lines are then aligned inside the block: left edges at `bounds.x`, centers at `bounds.x + width/2`, or right edges at `bounds.x + width`. Alignment never moves the block. Overflow on an axis keeps `x` horizontally and centers vertically, also independent of the alignment.
+- **Controls:** "Alinhamento das linhas" offers three icon-only radios named "Alinhar à esquerda", "Centralizar texto", "Alinhar à direita" (default: the catalog alignment, center). Presets, moves, dragging, and "Redefinir posição" change only the position; reset restores the catalog position and keeps the chosen alignment.
+- **Position modes:** "Posição do bloco" has two exclusive modes (a segmented radio group). "Escolher posição" shows the nine presets; "Ajustar manualmente" shows the arrow pad (2% / 10% with Shift, arrow keys) and enables dragging on the preview for mouse, pen, and touch. Switching modes keeps the position. "Mover texto" is removed, since manual mode enables dragging. Leaving manual mode, or closing the step, restores touch scrolling. The arrow-key instructions are a visually hidden description of the pad.
+- **Status:** Approved (product owner, 2026-11-08, M4.6). Implementation pending acceptance.
+
+### D-060 — Taavi signature on every image (2026-11-08)
+
+- The official arch symbol (`docs/reference-images/logo/logo-taavi.png`, copied unmodified to `src/assets/brand/taavi-arch.png`, aspect preserved) and "© Taavi" are drawn on a light pill at the bottom-right of every composition. They are the scene's last layer, painted by `drawScene`, so the preview and the PNG are identical at any resolution. Geometry is relative to the shorter side: pill height 0.055, margin 0.022, pill opacity 0.64, ink opacity 0.72 (the first values × 1.1 and × 0.8; M4.6 refinement). The pill sits below and right of every model's text area and never overlaps the lettering; on the Quadro it lies on the frame's bottom rail.
+- The signature is not interactive and cannot be removed. If the mark cannot load, the preview says so ("Não foi possível carregar a assinatura Taavi da imagem. Recarregue a página para exportar."), the notice blocks export, and `renderPng` refuses a scene without it (`no-watermark`). It identifies Taavi's images; it does not prevent copying or removal.
+- **Status:** Approved (product owner, 2026-11-08, M4.6). Implementation pending acceptance.
+
+### D-061 — Bandeja ondulada photograph before the size is chosen (2026-11-08)
+
+- A model group may name the size whose photograph stands in before a size is chosen (`previewPlateId`, presentation data beside the grouping; production: `bandeja-ondulada-m-8`, whose file is byte-identical to G's). Choosing "Bandeja ondulada" shows that photograph at once, without lettering, with "Selecione o tamanho para visualizar a personalização.". The configuration still has no model (`plateId: null`), no size is preselected or stored, and export stays blocked ("Falta escolher: Tamanho."). Choosing M or G draws the lettering with that size's calibration. Switching sizes re-renders at once, and an already loaded photograph is never requested again.
+- **Status:** Approved (product owner, 2026-11-08, M4.6). Implementation pending acceptance.
+
 ## Proposed
 
 ### D-007 — SVG preview rendering

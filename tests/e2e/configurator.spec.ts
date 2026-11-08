@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { openStep, step, textField } from './support/steps';
 
 /** Functional flows against the demo build's synthetic catalog (D-028). */
 
@@ -11,6 +12,11 @@ const QUADRO = /Quadro — 20 × 20 cm/;
 /** The two demo Bandeja sizes are one option with a required "Tamanho" (D-057). */
 const TRAYS = /^\(demonstração\) Bandeja ondulada$/;
 const sizes = (page: Page) => page.getByRole('group', { name: 'Tamanho' });
+/** The summary value for a term, in "Revisar personalização" (D-058). */
+async function summary(page: Page, term: string) {
+  const review = await step(page, 'Revisar personalização');
+  return review.locator('dt', { hasText: term }).locator('+ dd');
+}
 
 async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(
@@ -51,16 +57,17 @@ test('groups the Bandejas like production: one option, a required size (D-057)',
   await model(page, TRAYS).check();
   await expect(sizes(page).getByRole('radio')).toHaveCount(2);
   await expect(sizes(page).getByRole('radio', { checked: true })).toHaveCount(0);
+  await expect(preview).toContainText('Selecione o tamanho para visualizar a personalização.');
+  await expect(preview.getByRole('img')).toBeVisible();
+  await expect(await summary(page, 'Tamanho')).toHaveText('Não escolhido');
   await expect(page.getByRole('region', { name: 'Situação da configuração' })).toContainText(
     'Falta escolher: Tamanho, Texto, Cor do texto.',
   );
-  await expect(preview).toContainText('Escolha o tamanho para ver a pré-visualização.');
 
+  await openStep(page, 'Modelo e tamanho');
   await sizes(page).getByRole('radio', { name: 'M — 8 × 8 cm' }).check();
   await expect(preview.getByRole('img')).toHaveAttribute('aria-label', /Bandeja ondulada M/);
-  await expect(preview.locator('dt', { hasText: 'Tamanho' }).locator('+ dd')).toHaveText(
-    'M — 8 × 8 cm',
-  );
+  await expect(await summary(page, 'Tamanho')).toHaveText('M — 8 × 8 cm');
   await expectNoHorizontalScroll(page);
 });
 
@@ -68,18 +75,22 @@ test('completes a configuration @smoke', async ({ page }) => {
   await model(page, CERAMIC_PLATE).check();
   await expect(page.getByRole('group', { name: 'Modelo' })).toContainText('Cor da peça: Bege');
 
-  await page.getByLabel('Texto', { exact: true }).fill('Casa da Ana\nDesde 2024');
-  await expect(page.getByRole('region', { name: 'Situação da configuração' })).toContainText(
-    'Falta escolher: Cor do texto.',
-  );
+  await (await textField(page)).fill('Casa da Ana\nDesde 2024');
   await inks(page, 'Cor do texto')
     .getByRole('radio', { name: /Letra grafite/ })
     .check();
+  // The step heading summarizes the step's state (D-058).
+  await expect(page.locator('#step-text-summary')).toContainText('Concluído');
 
-  await expect(page.getByText('Configuração completa.')).toBeVisible();
+  const review = await step(page, 'Revisar personalização');
+  await expect(review.getByText('Configuração completa.')).toBeVisible();
+  await expect(review).toContainText('Casa da Ana');
+  await expect(review).toContainText('Bege');
+  await expect(review.getByRole('button', { name: 'Exportar imagem' })).toHaveAttribute(
+    'aria-disabled',
+    'false',
+  );
   const preview = page.getByRole('region', { name: 'Pré-visualização' });
-  await expect(preview).toContainText('Casa da Ana');
-  await expect(preview).toContainText('Bege');
   await expect(preview.getByRole('img')).toBeVisible();
   await expectNoHorizontalScroll(page);
 });
@@ -88,7 +99,7 @@ test('applies the second color to a keyboard selection without changing the text
   page,
 }) => {
   await model(page, CERAMIC_PLATE).check();
-  const field = page.getByLabel('Texto', { exact: true });
+  const field = await textField(page);
   await field.fill('Casa da Ana');
   await inks(page, 'Cor do texto')
     .getByRole('radio', { name: /Letra grafite/ })
@@ -112,7 +123,6 @@ test('applies the second color to a keyboard selection without changing the text
 
   await expect(field).toHaveValue('Casa da Ana');
   await expect(page.getByText('1 trecho com a segunda cor.')).toBeVisible();
-  await expect(page.getByText('Configuração completa.')).toBeVisible();
 
   // Collapsing only hides the options; the color and its trecho stay.
   await toggle.click();
@@ -123,18 +133,23 @@ test('applies the second color to a keyboard selection without changing the text
   await page.getByRole('button', { name: 'Remover segunda cor', exact: true }).click();
   await expect(apply).toHaveCount(0);
   await expect(secondary.getByRole('radio', { name: /Letra vinho/ })).not.toBeChecked();
-  await expect(page.getByRole('region', { name: 'Pré-visualização' })).not.toContainText('trecho');
+  await expect(await summary(page, 'Segunda cor')).toHaveText('—');
   await expectNoHorizontalScroll(page);
 });
 
-test('shows the handmade-product disclaimer', async ({ page }) => {
+test('shows the handmade-product disclaimer in the review, before export', async ({ page }) => {
+  const review = await step(page, 'Revisar personalização');
   for (const paragraph of [
     /^A pré-visualização é ilustrativa\. Como nossas peças são produzidas artesanalmente/,
     /^As cores também podem variar conforme a iluminação/,
     'Todas as solicitações de personalização estão sujeitas à análise e aprovação da Taavi.',
   ]) {
-    await expect(page.getByText(paragraph)).toBeVisible();
+    await expect(review.getByText(paragraph)).toBeVisible();
   }
+  const disclaimer = review.getByText(/^Todas as solicitações/);
+  const exportButton = review.getByRole('button', { name: 'Exportar imagem' });
+  const [text, button] = [await disclaimer.boundingBox(), await exportButton.boundingBox()];
+  expect((text?.y ?? 0) < (button?.y ?? 0)).toBe(true);
 });
 
 test('the Quadro is one complete product (plate and frame), chosen as a model', async ({
@@ -143,15 +158,12 @@ test('the Quadro is one complete product (plate and frame), chosen as a model', 
   await model(page, QUADRO).check();
 
   await expect(model(page, QUADRO)).toBeChecked();
-  const preview = page.getByRole('region', { name: 'Pré-visualização' });
   // Model and size are separate summary rows (D-057).
-  await expect(preview.locator('dt', { hasText: 'Modelo' }).locator('+ dd')).toHaveText(
-    '(demonstração) Quadro',
+  await expect(await summary(page, 'Modelo')).toHaveText('(demonstração) Quadro');
+  await expect(await summary(page, 'Tamanho')).toHaveText('20 × 20 cm');
+  await expect(page.getByRole('region', { name: 'Revisar personalização' })).not.toContainText(
+    'Moldura',
   );
-  await expect(preview.locator('dt', { hasText: 'Tamanho' }).locator('+ dd')).toHaveText(
-    '20 × 20 cm',
-  );
-  await expect(preview).not.toContainText('Moldura');
 });
 
 test('is operable with the keyboard', async ({ page }) => {

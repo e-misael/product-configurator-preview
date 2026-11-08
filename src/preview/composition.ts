@@ -20,10 +20,12 @@ import {
   type TextRange,
   type ValidationResult,
 } from '../domain';
+import { WATERMARK_SRC } from './watermark';
 
 /** Why part of the preview is not shown. Wording lives in the UI layer. */
 export type PreviewNoticeCode =
   | 'plate-not-selected'
+  | 'size-not-selected'
   | 'plate-invalid'
   | 'plate-image-pending'
   | 'plate-image-loading'
@@ -31,7 +33,8 @@ export type PreviewNoticeCode =
   | 'text-area-pending'
   | 'text-size-pending'
   | 'text-color-provisional'
-  | 'text-overflow';
+  | 'text-overflow'
+  | 'watermark-error';
 
 export interface PlateLayer {
   readonly src: string;
@@ -161,7 +164,26 @@ function secondaryStyle(
   return color === undefined ? undefined : { color, ranges: config.secondaryRanges };
 }
 
+/**
+ * A model group before its size is chosen (M4.6): the photograph its sizes
+ * share, illustrative only. No text is drawn, since each size has its own
+ * lettering scale and text area, and the notice keeps export blocked.
+ */
+export function composeIllustration(catalog: Catalog, plateId: string): Composition {
+  const plate = findPlate(catalog, plateId);
+  const lookup = plate === undefined ? undefined : findPlateImage(plate);
+  if (lookup?.status !== 'available') {
+    return { plate: undefined, text: undefined, notices: ['size-not-selected'] };
+  }
+  return {
+    plate: { src: lookup.image.image.src, alt: lookup.image.image.alt },
+    text: undefined,
+    notices: ['size-not-selected'],
+  };
+}
+
 /** Every image file the composition needs: the model's photograph, when there is one. */
 export function compositionSources(composition: Composition): readonly string[] {
-  return composition.plate === undefined ? [] : [composition.plate.src];
+  // The Taavi signature is part of every composition that shows a model (D-060).
+  return composition.plate === undefined ? [] : [composition.plate.src, WATERMARK_SRC];
 }

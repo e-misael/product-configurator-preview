@@ -1,16 +1,20 @@
 import { useCallback, useMemo, useState } from 'react';
 import {
   addRange,
+  alignPlacement,
+  catalogTextAlign,
   createEmptyConfiguration,
   effectivePlacement,
   nudgePlacement,
   remapRanges,
   removeRange,
+  resetPosition,
   validateConfiguration,
   type Catalog,
   type Configuration,
   type ConfigurationField,
   type FontFamily,
+  type TextAlignment,
   type TextPlacement,
   type ValidationIssue,
   type ValidationResult,
@@ -111,8 +115,33 @@ export function useConfiguration(catalog: Catalog) {
       })),
     [catalog],
   );
-  /** Back to the catalog default alignment and position. */
-  const resetTextLayout = useCallback(() => update({ textLayout: null }), [update]);
+  /** The line alignment alone; the block stays where it is (D-059). */
+  const alignText = useCallback(
+    (align: TextAlignment) =>
+      setState(({ config }) => ({
+        config: {
+          ...config,
+          textLayout: alignPlacement(effectivePlacement(config, catalog), align),
+        },
+        notice: null,
+      })),
+    [catalog],
+  );
+  /** Back to the catalog default position; the chosen line alignment is kept (D-059). */
+  const resetTextLayout = useCallback(
+    () =>
+      setState(({ config }) => {
+        const plate = catalog.plates.find((candidate) => candidate.id === config.plateId);
+        return {
+          config: {
+            ...config,
+            textLayout: resetPosition(effectivePlacement(config, catalog), catalogTextAlign(plate)),
+          },
+          notice: null,
+        };
+      }),
+    [catalog],
+  );
 
   const validation = useMemo(
     () => validateConfiguration(state.config, catalog),
@@ -134,6 +163,7 @@ export function useConfiguration(catalog: Catalog) {
     removeSecondaryColor,
     placeText,
     nudgeText,
+    alignText,
     resetTextLayout,
   };
 }

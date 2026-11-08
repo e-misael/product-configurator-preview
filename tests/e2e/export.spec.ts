@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
+import { chooseModel, openStep, textField } from './support/steps';
 
 /**
  * PNG export against the demo build (D-008, D-036). Each test downloads a real
@@ -34,20 +35,13 @@ const WINE = [0x8c, 0x1f, 0x3d] as const;
 const PLATE_AREA: Area = { x0: 0.2, y0: 0.3, x1: 0.8, y1: 0.7 };
 
 const preview = (page: Page) => page.getByRole('region', { name: 'Pré-visualização' });
-const exportButton = (page: Page) => preview(page).getByRole('button', { name: 'Exportar imagem' });
-const model = (page: Page, name: RegExp) =>
-  page.getByRole('group', { name: 'Modelo' }).getByRole('radio', { name });
+/** Export is the last action of "Revisar personalização" (D-058). */
+const review = (page: Page) => page.getByRole('region', { name: 'Revisar personalização' });
+const exportButton = (page: Page) => review(page).getByRole('button', { name: 'Exportar imagem' });
 
 /** Chooses a demo Bandeja size under its grouped option (D-057). */
 async function chooseTray(page: Page, size: 'M' | 'G') {
-  await page
-    .getByRole('group', { name: 'Modelo' })
-    .getByRole('radio', { name: /Bandeja ondulada$/ })
-    .check();
-  await page
-    .getByRole('group', { name: 'Tamanho' })
-    .getByRole('radio', { name: new RegExp(`^${size} — `) })
-    .check();
+  await chooseModel(page, /Bandeja ondulada$/, new RegExp(`^${size} — `));
 }
 const radio = (page: Page, group: string, name: RegExp | string) =>
   page.getByRole('group', { name: group }).getByRole('radio', { name });
@@ -158,8 +152,9 @@ const nearAny = (actual: Rgba | undefined, options: readonly Rgba[]) =>
   options.some((option) => near(actual, option));
 
 async function ready(page: Page, text = 'HHH', color = /Letra grafite/) {
-  await page.getByLabel('Texto', { exact: true }).fill(text);
+  await (await textField(page)).fill(text);
   await radio(page, 'Cor do texto', color).check();
+  await openStep(page, 'Revisar personalização');
   await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'false');
 }
 
@@ -171,14 +166,14 @@ test.beforeEach(async ({ page }) => {
 test('downloads the standalone plate as a native-size PNG matching the preview @smoke', async ({
   page,
 }) => {
-  await model(page, /Placa cerâmica/).check();
+  await chooseModel(page, /Placa cerâmica/);
   await ready(page);
 
   const file = await downloadPng(page);
 
   expect(file.fileName).toBe('taavi-demo-placa-ceramica.png');
   expect([file.width, file.height]).toEqual([400, 400]);
-  await expect(preview(page)).toContainText('Imagem exportada: taavi-demo-placa-ceramica.png');
+  await expect(review(page)).toContainText('Imagem exportada: taavi-demo-placa-ceramica.png');
   const points = [
     [0.02, 0.02], // outside the plate photograph: opaque white background
     [0.5, 0.8], // ceramic
@@ -200,7 +195,7 @@ test('downloads the standalone plate as a native-size PNG matching the preview @
 test('exports the assembled Quadro, frame included, at its photograph’s native size', async ({
   page,
 }) => {
-  await model(page, /Quadro/).check();
+  await chooseModel(page, /Quadro/);
   await ready(page);
 
   const file = await downloadPng(page);
@@ -224,9 +219,9 @@ test('exports the assembled Quadro, frame included, at its photograph’s native
 test('exports font, both lettering colors, alignment, and manual position as previewed', async ({
   page,
 }) => {
-  await model(page, /Placa cerâmica/).check();
-  const field = page.getByLabel('Texto', { exact: true });
+  await chooseModel(page, /Placa cerâmica/);
   await ready(page, 'HHHH\nHH', /Letra azul/);
+  const field = await textField(page);
   await radio(page, 'Fonte', 'Com serifa').check();
   await page.getByRole('button', { name: 'Usar segunda cor' }).click();
   await radio(page, 'Segunda cor', /Letra vinho/).check();
@@ -234,12 +229,17 @@ test('exports font, both lettering colors, alignment, and manual position as pre
   await field.evaluate((element) => (element as HTMLTextAreaElement).setSelectionRange(0, 0));
   for (let i = 0; i < 2; i += 1) await field.press('Shift+ArrowRight');
   await page.getByRole('button', { name: 'Aplicar segunda cor à seleção' }).click();
+  await openStep(page, 'Posição do texto');
   const position = page.getByRole('group', { name: 'Posição do texto' });
+  await position.getByRole('radio', { name: 'Alinhar à direita' }).check();
   await position.getByRole('button', { name: 'Inferior à direita', exact: true }).click();
+  await position.getByRole('radio', { name: 'Ajustar manualmente' }).check();
   await position
     .getByRole('button', { name: 'Mover para a esquerda' })
     .click({ modifiers: ['Shift'] });
   await expect(position).toContainText('Posição personalizada: horizontal 90%, vertical 100%.');
+  // Right-aligned lines in the preview: both end at the same edge.
+  await openStep(page, 'Revisar personalização');
   await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'false');
 
   const file = await downloadPng(page);
@@ -292,33 +292,36 @@ test.describe('blocked export', () => {
   }
 
   test('without a lettering color: no provisional color is ever exported', async ({ page }) => {
-    await model(page, /Placa cerâmica/).check();
-    await page.getByLabel('Texto', { exact: true }).fill('HHH');
+    await chooseModel(page, /Placa cerâmica/);
+    await (await textField(page)).fill('HHH');
+    await openStep(page, 'Revisar personalização');
 
     await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'true');
-    await expect(preview(page)).toContainText('Para exportar a imagem:');
-    await expect(preview(page)).toContainText('Falta escolher: Cor do texto.');
+    await expect(review(page)).toContainText('Para exportar a imagem:');
+    await expect(review(page)).toContainText('Falta escolher: Cor do texto.');
     await expectNoDownload(page);
   });
 
   test('when the text does not fit', async ({ page }) => {
-    await model(page, /Placa cerâmica/).check();
+    await chooseModel(page, /Placa cerâmica/);
     await ready(page);
-    await page
-      .getByLabel('Texto', { exact: true })
-      .fill(Array.from({ length: 40 }, (_, i) => `linha ${i}`).join('\n'));
+    await (
+      await textField(page)
+    ).fill(Array.from({ length: 40 }, (_, i) => `linha ${i}`).join('\n'));
+    await openStep(page, 'Revisar personalização');
 
     await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'true');
-    await expect(preview(page)).toContainText('Resolva os avisos da pré-visualização acima.');
+    await expect(review(page)).toContainText('Resolva os avisos da pré-visualização acima.');
     await expect(exportButton(page)).toHaveAccessibleDescription(/O texto não cabe/);
     await expectNoDownload(page);
   });
 
   test('when the photograph fails to load, instead of exporting without it', async ({ page }) => {
     await page.route('**/catalog/plates/demo-quadro/**', (route) => route.abort());
-    await model(page, /Quadro/).check();
-    await page.getByLabel('Texto', { exact: true }).fill('HHH');
+    await chooseModel(page, /Quadro/);
+    await (await textField(page)).fill('HHH');
     await radio(page, 'Cor do texto', /Letra azul/).check();
+    await openStep(page, 'Revisar personalização');
 
     await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'true');
     await expect(exportButton(page)).toHaveAccessibleDescription(
@@ -326,4 +329,92 @@ test.describe('blocked export', () => {
     );
     await expectNoDownload(page);
   });
+
+  test('when the Taavi signature cannot be loaded (D-060)', async ({ page }) => {
+    await page.route('**/assets/taavi-arch-*.png', (route) => route.abort());
+    await chooseModel(page, /Placa cerâmica/);
+    await (await textField(page)).fill('HHH');
+    await radio(page, 'Cor do texto', /Letra azul/).check();
+    await openStep(page, 'Revisar personalização');
+
+    await expect(preview(page)).toContainText(
+      'Não foi possível carregar a assinatura Taavi da imagem. Recarregue a página para exportar.',
+    );
+    await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'true');
+    await expect(exportButton(page)).toHaveAccessibleDescription(/assinatura Taavi/);
+    await expectNoDownload(page);
+  });
+});
+
+test('signs every export like its preview, at the bottom-right (D-060)', async ({ page }) => {
+  /** Where the signature is drawn, as fractions of the image: its pill and mark. */
+  const CORNER: Area = { x0: 0.8, y0: 0.9, x1: 0.99, y1: 0.99 };
+  const signature = async (source: { png: string } | 'preview') =>
+    page.evaluate(
+      async ({ png, area }) => {
+        let canvas: HTMLCanvasElement;
+        if (png === null) {
+          const element = document.querySelector('.preview__canvas');
+          if (!(element instanceof HTMLCanvasElement)) throw new Error('No preview canvas');
+          canvas = element;
+        } else {
+          const image = new Image();
+          image.src = `data:image/png;base64,${png}`;
+          await image.decode();
+          canvas = document.createElement('canvas');
+          canvas.width = image.naturalWidth;
+          canvas.height = image.naturalHeight;
+          canvas.getContext('2d')?.drawImage(image, 0, 0);
+        }
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('No 2D context');
+        const W = canvas.width;
+        const H = canvas.height;
+        const { data } = ctx.getImageData(0, 0, W, H);
+        // Dark ink (mark and "© Taavi") inside the corner, as a box in fractions.
+        let left = Infinity;
+        let right = -Infinity;
+        let top = Infinity;
+        let bottom = -Infinity;
+        let ink = 0;
+        for (let y = Math.floor(area.y0 * H); y < Math.ceil(area.y1 * H); y += 1) {
+          for (let x = Math.floor(area.x0 * W); x < Math.ceil(area.x1 * W); x += 1) {
+            const i = (y * W + x) * 4;
+            const [r = 255, g = 255, b = 255] = [data[i], data[i + 1], data[i + 2]];
+            // Navy-blue ink: dark, with more blue than red.
+            if (r < 120 && b > r + 15 && g < 140) {
+              ink += 1;
+              left = Math.min(left, x / W);
+              right = Math.max(right, (x + 1) / W);
+              top = Math.min(top, y / H);
+              bottom = Math.max(bottom, (y + 1) / H);
+            }
+          }
+        }
+        return { ink, pixels: W * H, box: { left, right, top, bottom } };
+      },
+      { png: source === 'preview' ? null : source.png, area: CORNER },
+    );
+
+  for (const choose of [
+    () => chooseModel(page, /Placa cerâmica/),
+    () => chooseModel(page, /Quadro/),
+    () => chooseTray(page, 'M'),
+    () => chooseTray(page, 'G'),
+  ]) {
+    await choose();
+    await ready(page);
+    const file = await downloadPng(page);
+    const exported = await signature({ png: file.png });
+    const shown = await signature('preview');
+
+    // Present in the file, small, and in the same place as on screen.
+    // Few solid ink pixels on the smallest (320 px) demo photograph; the place is what matters.
+    expect(exported.ink).toBeGreaterThanOrEqual(4);
+    expect(exported.ink).toBeLessThan(exported.pixels * 0.01);
+    expect(shown.ink).toBeGreaterThan(0);
+    for (const side of ['left', 'right', 'top', 'bottom'] as const) {
+      expect(Math.abs(exported.box[side] - shown.box[side])).toBeLessThan(0.012);
+    }
+  }
 });

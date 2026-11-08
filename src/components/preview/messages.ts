@@ -1,8 +1,17 @@
+import type { TextAlignment } from '../../domain';
 import type { PreviewNoticeCode } from '../../preview/composition';
+
+/** Line alignment inside the text block (D-059). */
+export const ALIGNMENT_LABELS: Record<TextAlignment, string> = {
+  left: 'À esquerda',
+  center: 'Centralizado',
+  right: 'À direita',
+};
 
 /** pt-BR wording for each reason part of the preview is not shown (D-037). */
 export const NOTICE_MESSAGES: Record<PreviewNoticeCode, string> = {
   'plate-not-selected': 'Escolha um modelo para ver a pré-visualização.',
+  'size-not-selected': 'Selecione o tamanho para visualizar a personalização.',
   'plate-invalid': 'O modelo selecionado não está disponível; nada é exibido.',
   'plate-image-pending': 'A foto deste modelo ainda não está disponível.',
   'plate-image-loading': 'Carregando imagem…',
@@ -14,6 +23,8 @@ export const NOTICE_MESSAGES: Record<PreviewNoticeCode, string> = {
   'text-color-provisional':
     'Cor do texto ainda não escolhida: o texto aparece em uma cor provisória, que não é uma das cores disponíveis.',
   'text-overflow': 'O texto não cabe na área do modelo. Reduza o texto ou use menos linhas.',
+  'watermark-error':
+    'Não foi possível carregar a assinatura Taavi da imagem. Recarregue a página para exportar.',
 };
 
 /** Replaces "plate-not-selected" while a model group waits for its size (D-057). */
@@ -34,4 +45,5 @@ export const EXPORT_MESSAGES = {
   done: 'Imagem exportada:',
   failed: 'Não foi possível gerar a imagem. Tente novamente.',
   invalidSize: 'As dimensões da imagem não permitem a exportação.',
+  noWatermark: 'A assinatura Taavi não foi carregada; a imagem não pode ser exportada.',
 } as const;

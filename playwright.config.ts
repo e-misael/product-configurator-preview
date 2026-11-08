@@ -37,6 +37,17 @@ export default defineConfig({
       testMatch: ['configurator.spec.ts', 'preview.spec.ts', 'export.spec.ts'],
       use: { ...devices['Pixel 7'], baseURL: demo },
     },
+    // Mobile-first layout at phone widths, by touch, in both engines (D-058).
+    {
+      name: 'layout-chromium',
+      testMatch: 'mobile-layout.spec.ts',
+      use: { ...devices['Pixel 7'], baseURL: demo },
+    },
+    {
+      name: 'layout-webkit',
+      testMatch: 'mobile-layout.spec.ts',
+      use: { ...devices['iPhone 14'], baseURL: demo },
+    },
     // Debossed lettering painted by the real drawing code (no app server needed).
     {
       name: 'rendering-chromium',

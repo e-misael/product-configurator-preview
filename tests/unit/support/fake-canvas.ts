@@ -16,6 +16,7 @@ export type PaintCall =
       readonly width: number;
       readonly height: number;
       readonly composite: string;
+      readonly alpha: number;
       readonly shadow: {
         readonly color: string;
         readonly blur: number;
@@ -30,7 +31,12 @@ export type PaintCall =
       readonly lineWidth: number;
       readonly lineDash: readonly number[];
     }
-  | { readonly op: 'save' | 'restore' }
+  | { readonly op: 'save' | 'restore' | 'beginPath' }
+  | {
+      readonly op: 'roundRect';
+      readonly args: readonly number[];
+    }
+  | { readonly op: 'fill'; readonly fillStyle: string; readonly alpha: number }
   | {
       readonly op: 'fillText';
       readonly text: string;
@@ -68,6 +74,7 @@ export class FakeContext {
     'textAlign',
     'textBaseline',
     'globalCompositeOperation',
+    'globalAlpha',
     'shadowColor',
     'shadowBlur',
     'shadowOffsetX',
@@ -112,6 +119,7 @@ export class FakeContext {
       width,
       height,
       composite: this.globalCompositeOperation,
+      alpha: this.globalAlpha,
       shadow: {
         color: this.shadowColor,
         blur: this.shadowBlur,
@@ -146,6 +154,18 @@ export class FakeContext {
       fillStyle: this.fillStyle,
       composite: this.globalCompositeOperation,
     });
+  }
+
+  beginPath() {
+    this.calls.push({ op: 'beginPath' });
+  }
+
+  roundRect(...args: number[]) {
+    this.calls.push({ op: 'roundRect', args });
+  }
+
+  fill() {
+    this.calls.push({ op: 'fill', fillStyle: this.fillStyle, alpha: this.globalAlpha });
   }
 
   measureText(text: string) {

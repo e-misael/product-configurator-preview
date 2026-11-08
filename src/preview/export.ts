@@ -79,7 +79,8 @@ export function exportFileName(plateId: string): string {
   return `taavi-${stem === '' ? 'peca' : stem}.png`;
 }
 
-export type ExportFailure = 'invalid-size' | 'no-canvas' | 'no-context' | 'draw' | 'encode';
+export type ExportFailure =
+  'invalid-size' | 'no-watermark' | 'no-canvas' | 'no-context' | 'draw' | 'encode';
 
 export class ExportError extends Error {
   readonly reason: ExportFailure;
@@ -98,6 +99,10 @@ export async function renderPng(
 ): Promise<Blob> {
   const size = exportSize(scene);
   if (size === undefined) throw new ExportError('invalid-size');
+  // Never an image without the Taavi signature (D-060); the UI blocks this case first.
+  if (!scene.layers.some((layer) => layer.kind === 'signature')) {
+    throw new ExportError('no-watermark');
+  }
 
   let canvas: HTMLCanvasElement;
   try {

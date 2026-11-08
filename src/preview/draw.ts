@@ -11,6 +11,7 @@ import { DEBOSS, paintDeboss, type DebossStyle, type GlyphRun } from './deboss';
 import type { ImageSize, Scene, TextBlock } from './scene';
 import type { MeasureText } from './text-fit';
 import { FALLBACK_TEXT_COLOR, FONT_STACKS } from './text-style';
+import { MARK_INK, SIGNATURE, signatureBox, signatureFont } from './watermark';
 
 /** Provisional typography (P-04, P-14, D-038, D-042): replace when the store defines it. */
 export const TEXT_FONT_FAMILY = FONT_STACKS['sans-serif'];
@@ -111,6 +112,10 @@ export function drawScene(
       ctx.drawImage(layer.image, x, y, width, height);
       continue;
     }
+    if (layer.kind === 'signature') {
+      drawSignature(ctx, layer.image, scene.width, scene.height);
+      continue;
+    }
     const { block } = layer;
     const font = fontFor(block.fontSize, block.fontFamily);
     ctx.font = font;
@@ -133,6 +138,34 @@ export function drawScene(
     };
     paintDeboss(ctx, runs, font, block.fontSize, scale, region, deboss);
   }
+}
+
+/** The Taavi signature (D-060), in scene units under the current transform. */
+function drawSignature(
+  ctx: CanvasRenderingContext2D,
+  mark: CanvasImageSource,
+  width: number,
+  height: number,
+): void {
+  ctx.save();
+  const box = signatureBox(width, height, (fontSize) => {
+    ctx.font = signatureFont(fontSize);
+    return ctx.measureText(SIGNATURE.text).width;
+  });
+  ctx.globalAlpha = SIGNATURE.fillAlpha;
+  ctx.fillStyle = SIGNATURE.fill;
+  ctx.beginPath();
+  ctx.roundRect(box.x, box.y, box.width, box.height, box.height / 2);
+  ctx.fill();
+  ctx.globalAlpha = SIGNATURE.inkAlpha;
+  const { x, y, width: w, height: h } = box.mark;
+  ctx.drawImage(mark, MARK_INK.x, MARK_INK.y, MARK_INK.width, MARK_INK.height, x, y, w, h);
+  ctx.font = signatureFont(box.text.fontSize);
+  ctx.fillStyle = SIGNATURE.ink;
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'middle';
+  ctx.fillText(SIGNATURE.text, box.text.x, box.text.y);
+  ctx.restore();
 }
 
 /** Dash pattern and stroke width of the overflow outline, in device pixels. */

@@ -10,6 +10,7 @@ import {
   renderPng,
 } from '../../../src/preview/export';
 import { buildScene, type ImageState, type Scene } from '../../../src/preview/scene';
+import { WATERMARK_SRC } from '../../../src/preview/watermark';
 import { contextOf } from '../support/fake-canvas';
 import { config, previewCatalog, previewSizes, validate } from './fixtures';
 
@@ -134,10 +135,29 @@ describe('renderPng', () => {
     expect(calls[2]).toMatchObject({ op: 'fillRect', fillStyle: '#ffffff' });
     expect(
       contextOf(canvas).drawn.map((call) => {
-        if (call.op === 'fillText') return call.fillStyle;
-        return call.image instanceof HTMLCanvasElement ? 'deboss' : 'image';
+        if (call.op === 'fillText') return call.text === '© Taavi' ? 'signature' : call.fillStyle;
+        if (call.image instanceof HTMLCanvasElement) return 'deboss';
+        return (call.image as { src: string }).src === WATERMARK_SRC ? 'mark' : 'image';
       }),
-    ).toEqual(['image', '#aa2200', '#112233', 'deboss']);
+    ).toEqual(['image', '#aa2200', '#112233', 'deboss', 'mark', 'signature']);
+  });
+
+  it('refuses to export without the Taavi signature (D-060)', async () => {
+    const { scene } = sceneFor();
+    const unsigned = {
+      ...scene,
+      layers: scene.layers.filter((layer) => layer.kind !== 'signature'),
+    };
+    const created = vi.fn(() => document.createElement('canvas'));
+
+    await expect(renderPng(unsigned, created)).rejects.toMatchObject({ reason: 'no-watermark' });
+    expect(created).not.toHaveBeenCalled();
+  });
+
+  it('blocks export when the mark could not be loaded', () => {
+    expect(codes({}, loaded({ [WATERMARK_SRC]: { status: 'error' } }))).toEqual([
+      'watermark-error',
+    ]);
   });
 
   it('never paints the overflow outline, which is preview only (D-057)', async () => {
@@ -179,7 +199,10 @@ describe('renderPng', () => {
       await failing(
         {
           ...scene,
-          layers: [{ kind: 'image', image: null as never, rect: null as never }],
+          layers: [
+            { kind: 'image', image: null as never, rect: null as never },
+            ...scene.layers.filter((layer) => layer.kind === 'signature'),
+          ],
         },
         () => document.createElement('canvas'),
       ),

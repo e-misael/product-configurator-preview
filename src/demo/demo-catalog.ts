@@ -151,5 +151,6 @@ export const demoModelGroups: readonly ModelGroup[] = deepFreeze([
       { plateId: 'demo-bandeja-ondulada-m-8', letter: 'M' },
       { plateId: 'demo-bandeja-ondulada-g-11', letter: 'G' },
     ],
+    previewPlateId: 'demo-bandeja-ondulada-m-8',
   },
 ]);

@@ -18,7 +18,12 @@ declare global {
 }
 
 async function bundle(): Promise<string> {
-  const build = await rolldown({ input: 'tests/e2e/support/render-entry.ts', logLevel: 'silent' });
+  // The Taavi mark (D-060) is inlined, so the bundle needs no file server.
+  const build = await rolldown({
+    input: 'tests/e2e/support/render-entry.ts',
+    logLevel: 'silent',
+    moduleTypes: { '.png': 'dataurl' },
+  });
   const { output } = await build.generate({ format: 'iife', name: 'Render' });
   await build.close();
   return output[0].code;
@@ -79,6 +84,11 @@ test.describe('Lettering on the catalog photographs', () => {
           await image.decode();
           photos[src] = image;
         }
+        // Every composition includes the signature mark, keyed by its (inlined) source.
+        const mark = new Image();
+        mark.src = window.Render.WATERMARK_SRC;
+        await mark.decode();
+        photos[window.Render.WATERMARK_SRC] = mark;
         (window as unknown as { photos: Record<string, HTMLImageElement> }).photos = photos;
       },
       MODELS.map((model, i): [string, string] => [
@@ -365,4 +375,167 @@ test.describe('Lettering on the catalog photographs', () => {
     expect(result.changedOutside).toBe(0);
     expect(result.glyph).toBeGreaterThan(0);
   });
+  /**
+   * Paints a model at `pixelWidth` twice, with and without `text` (with and
+   * without the signature when `text` is empty), and returns where they differ.
+   */
+  const inkOf = (
+    page: import('@playwright/test').Page,
+    plateId: string,
+    text: string,
+    align: 'left' | 'center' | 'right',
+    pixelWidth?: number,
+  ) =>
+    page.evaluate(
+      ({ plateId, text, align, pixelWidth }) => {
+        const R = window.Render;
+        const photos = (window as unknown as { photos: Photos }).photos;
+        const catalog = R.getCatalog();
+        const images = new Map(
+          Object.entries(photos).map(([src, image]) => [src, { status: 'loaded' as const, image }]),
+        );
+        const sceneOf = (value: string) => {
+          const config = {
+            ...R.createEmptyConfiguration(),
+            plateId,
+            text: value,
+            textColorId: catalog.textColors[0]?.id ?? null,
+            textLayout: { align, x: 0.5, y: 0.5 },
+          };
+          const validation = R.validateConfiguration(config, catalog);
+          return R.buildScene(
+            R.composePreview(catalog, config, validation),
+            images,
+            R.createTextMeasurer(),
+          );
+        };
+        const withText = sceneOf(text);
+        const width = pixelWidth ?? withText.width;
+        const height = Math.round((width * withText.height) / withText.width);
+        const pixels = (paint: (ctx: CanvasRenderingContext2D) => void) => {
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) throw new Error('No 2D context');
+          paint(ctx);
+          return ctx.getImageData(0, 0, width, height).data;
+        };
+        // Flat lettering: the glyph outlines without shading.
+        const a = pixels((ctx) => R.drawScene(ctx, withText, width, null));
+        // Without text: the same scene without its signature layer, so only the signature differs.
+        const unsigned = {
+          ...withText,
+          layers: withText.layers.filter((layer) => layer.kind !== 'signature'),
+        };
+        const b = pixels((ctx) =>
+          R.drawScene(ctx, text === '' ? unsigned : sceneOf(''), width, null),
+        );
+        const changed = (i: number) =>
+          Math.max(
+            Math.abs((a[i] ?? 0) - (b[i] ?? 0)),
+            Math.abs((a[i + 1] ?? 0) - (b[i + 1] ?? 0)),
+            Math.abs((a[i + 2] ?? 0) - (b[i + 2] ?? 0)),
+          ) > 24;
+        const layer = withText.layers.find((candidate) => candidate.kind === 'text');
+        const block = layer?.kind === 'text' ? layer.block : null;
+        const scale = width / withText.width;
+        // Horizontal ink extent of each drawn line, in scene units.
+        const lines = (block?.lines ?? []).map((_, line) => {
+          let min = Infinity;
+          let max = -Infinity;
+          if (block === null) return { min, max };
+          const top = Math.floor((block.bounds.y + line * block.lineHeight) * scale);
+          const bottom = Math.ceil((block.bounds.y + (line + 1) * block.lineHeight) * scale);
+          for (let y = Math.max(0, top); y < Math.min(height, bottom); y += 1) {
+            for (let x = 0; x < width; x += 1) {
+              if (!changed((y * width + x) * 4)) continue;
+              min = Math.min(min, x / scale);
+              max = Math.max(max, (x + 1) / scale);
+            }
+          }
+          return { min, max };
+        });
+        // Everything that differs, as fractions of the scene.
+        let box = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity, count: 0 };
+        for (let y = 0; y < height; y += 1) {
+          for (let x = 0; x < width; x += 1) {
+            if (!changed((y * width + x) * 4)) continue;
+            box = {
+              x0: Math.min(box.x0, x / width),
+              y0: Math.min(box.y0, y / height),
+              x1: Math.max(box.x1, (x + 1) / width),
+              y1: Math.max(box.y1, (y + 1) / height),
+              count: box.count + 1,
+            };
+          }
+        }
+        const plate = catalog.plates.find((candidate) => candidate.id === plateId);
+        return {
+          lines: block?.lines ?? [],
+          bounds: block?.bounds ?? null,
+          extents: lines,
+          box,
+          area: plate?.image?.text?.area ?? null,
+          pixels: width * height,
+        };
+      },
+      { plateId, text, align, pixelWidth },
+    );
+
+  for (const model of MODELS) {
+    test(`aligns the lines inside the unmoved block on the ${model.id} photograph (D-059)`, async ({
+      page,
+    }) => {
+      const text = 'O que não cabe\ntransborda.';
+      const [left, center, right] = await Promise.all(
+        (['left', 'center', 'right'] as const).map((align) => inkOf(page, model.id, text, align)),
+      );
+      if (!left || !center || !right) throw new Error('No result');
+
+      // Same lines and the same block for every alignment: only the lines move inside it.
+      expect(left.lines.length).toBeGreaterThan(1);
+      expect(center.lines).toEqual(left.lines);
+      expect(right.lines).toEqual(left.lines);
+      expect(center.bounds).toEqual(left.bounds);
+      expect(right.bounds).toEqual(left.bounds);
+      // Lines of different lengths share the aligned edge (within antialiasing and side bearings).
+      const spread = (values: number[]) => Math.max(...values) - Math.min(...values);
+      const tolerance = 0.02 * (left.bounds?.width ?? 0);
+      expect(spread(left.extents.map((line) => line.max - line.min))).toBeGreaterThan(tolerance);
+      expect(spread(left.extents.map((line) => line.min))).toBeLessThan(tolerance);
+      expect(spread(right.extents.map((line) => line.max))).toBeLessThan(tolerance);
+      expect(spread(center.extents.map((line) => (line.min + line.max) / 2))).toBeLessThan(
+        tolerance,
+      );
+      // And all the ink stays inside the block.
+      const bounds = left.bounds ?? { x: 0, width: 0 };
+      for (const line of [...left.extents, ...center.extents, ...right.extents]) {
+        expect(line.min).toBeGreaterThanOrEqual(bounds.x - tolerance);
+        expect(line.max).toBeLessThanOrEqual(bounds.x + bounds.width + tolerance);
+      }
+    });
+
+    test(`signs the ${model.id} photograph at the bottom-right, away from the text (D-060)`, async ({
+      page,
+    }) => {
+      const full = await inkOf(page, model.id, '', 'center');
+      const preview = await inkOf(page, model.id, '', 'center', 360);
+      const area = full.area ?? { x: 0, y: 0, width: 0, height: 0 };
+
+      // Something is painted, only in the corner, below and right of the text area.
+      expect(full.box.count).toBeGreaterThan(full.pixels * 0.002);
+      expect(full.box.x0).toBeGreaterThan(0.75);
+      expect(full.box.y0).toBeGreaterThan(0.9);
+      expect(full.box.x1).toBeLessThan(0.99);
+      expect(full.box.y1).toBeLessThan(0.99);
+      expect(full.box.y0).toBeGreaterThan(area.y + area.height);
+      // Small: a signature, not a watermark across the piece.
+      expect((full.box.x1 - full.box.x0) * (full.box.y1 - full.box.y0)).toBeLessThan(0.01);
+      // The same place and size at a preview resolution as in the full-size export.
+      for (const edge of ['x0', 'y0', 'x1', 'y1'] as const) {
+        expect(Math.abs(preview.box[edge] - full.box[edge])).toBeLessThan(0.01);
+      }
+    });
+  }
 });

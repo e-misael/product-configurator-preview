@@ -270,6 +270,21 @@ Status: **Done** (2026-11-08). Accepted by the product owner (D-057).
 - [x] Tests: unit (excess-line count, message plural, grouping table, size flow, position status, outline only while overflowing, never in export), Playwright in production Chromium and mobile WebKit (grouped size flow and export file name, capacity boundaries Placa 6/7, Quadro 7/8, M 3/4, G 4/5 with outline and blocking, font-change revalidation, position section), demo specs updated
 - [x] Demo mode groups its Bandejas the same way, from its own table in `src/demo` (same grouping code, demo IDs and assets unchanged, isolation intact); unit and demo Playwright tests cover it
 
+## M4.6 — Mobile-first layout, identity, alignment, signature
+
+Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decisions D-058–D-061.
+
+- [x] Preview first; four steps; collapsible WAI-ARIA accordion on phones (one open, state kept, focus on the header, scroll only when needed, reduced motion); all open on wide screens
+- [x] Sticky preview band: compact, reduced while editing text, larger while positioning; scroll padding keeps focus below it; no horizontal scroll at 320/375/393/430 px
+- [x] Review: bold labels with colons, status, disclaimer (unchanged wording), export reasons, "Exportar imagem" last; formatting notice beside the text field
+- [x] Identity tokens and self-hosted Red Hat Display; lettering fonts and sizes unchanged
+- [x] Independent line alignment (icon-only, named radios); presets and reset keep it; overflow placement independent of it
+- [x] Position modes "Escolher posição" / "Ajustar manualmente"; "Mover texto" removed; keyboard instructions visually hidden
+- [x] Taavi signature (arch + "© Taavi") in every preview and PNG, 0.055 high, opacities 0.64 / 0.72; export blocked and `renderPng` refusing without it
+- [x] Bandeja ondulada: shared photograph before the size, no lettering, export blocked until M or G
+- [x] Tests: unit (alignment model, presets, reset, modes, accordion, signature geometry and factors, illustration flow, image reuse); Playwright on real photographs (alignment edges and signature placement per model, both engines), demo flows, export PNG signature pixels and missing-mark blocking, mobile layout at four widths by touch in Chromium and WebKit, production tray transition
+- Remaining: product-owner review on real phones (LAN); the signature over the Quadro frame rail; whether M and G should share one image file.
+
 ## M5 — Quality and usability
 
 Status: Planned.

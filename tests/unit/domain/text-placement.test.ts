@@ -1,13 +1,16 @@
 import {
+  alignPlacement,
   catalogTextAlign,
   defaultPlacement,
   effectivePlacement,
+  isDefaultPosition,
   isValidPlacement,
   matchesPreset,
   nudgePlacement,
   PRESET_COLUMNS,
   PRESET_ROWS,
   presetPlacement,
+  resetPosition,
   resolvePlacement,
   validateConfiguration,
   type TextPlacement,
@@ -61,29 +64,65 @@ describe('defaults', () => {
 });
 
 describe('presets', () => {
-  it('set alignment, x, and y together: column → alignment and x, row → y', () => {
-    expect(presetPlacement('top', 'left')).toEqual({ align: 'left', x: 0, y: 0 });
-    expect(presetPlacement('middle', 'center')).toEqual({ align: 'center', x: 0.5, y: 0.5 });
-    expect(presetPlacement('bottom', 'right')).toEqual({ align: 'right', x: 1, y: 1 });
+  it('place the block only: column → x, row → y, the alignment is kept (D-059)', () => {
+    expect(presetPlacement('top', 'left', 'center')).toEqual({ align: 'center', x: 0, y: 0 });
+    expect(presetPlacement('middle', 'center', 'right')).toEqual({
+      align: 'right',
+      x: 0.5,
+      y: 0.5,
+    });
+    expect(presetPlacement('bottom', 'right', 'left')).toEqual({ align: 'left', x: 1, y: 1 });
   });
 
-  it('are nine distinct placements, each matching only itself', () => {
+  it('are nine distinct positions, each matching only itself', () => {
     const all = PRESET_ROWS.flatMap((row) => PRESET_COLUMNS.map((column) => ({ row, column })));
     expect(
-      new Set(all.map(({ row, column }) => JSON.stringify(presetPlacement(row, column)))).size,
+      new Set(all.map(({ row, column }) => JSON.stringify(presetPlacement(row, column, 'center'))))
+        .size,
     ).toBe(9);
     for (const a of all) {
       for (const b of all) {
-        expect(matchesPreset(presetPlacement(a.row, a.column), b.row, b.column)).toBe(a === b);
+        expect(matchesPreset(presetPlacement(a.row, a.column, 'left'), b.row, b.column)).toBe(
+          a === b,
+        );
       }
     }
   });
 
-  it('require the alignment as well as the position', () => {
-    // A stored placement (e.g. from the catalog default) need not match any preset.
-    const moved = { align: 'right', x: 0, y: 0 } as const;
-    expect(matchesPreset(moved, 'top', 'left')).toBe(false);
-    expect(matchesPreset(moved, 'top', 'right')).toBe(false);
+  it('match by position whatever the alignment', () => {
+    for (const align of ['left', 'center', 'right'] as const) {
+      expect(matchesPreset({ align, x: 0, y: 0 }, 'top', 'left')).toBe(true);
+      expect(matchesPreset({ align, x: 0, y: 0 }, 'top', 'right')).toBe(false);
+    }
+  });
+});
+
+describe('alignPlacement', () => {
+  it.each(['left', 'center', 'right'] as const)('sets %s without moving the block', (align) => {
+    const start = { align: 'center', x: 0.3, y: 0.8 } as const;
+    expect(alignPlacement(start, align)).toEqual({ align, x: 0.3, y: 0.8 });
+  });
+});
+
+describe('resetPosition', () => {
+  it('returns the default position and keeps the chosen alignment', () => {
+    expect(resetPosition({ align: 'right', x: 0, y: 0 })).toEqual({
+      align: 'right',
+      x: 0.5,
+      y: 0.5,
+    });
+    expect(resetPosition({ align: 'left', x: 0.2, y: 0.1 }, 'left')).toBeNull();
+    expect(resetPosition({ align: 'center', x: 1, y: 1 }, 'right')).toEqual({
+      align: 'center',
+      x: 1,
+      y: 0.5,
+    });
+  });
+
+  it('isDefaultPosition compares the position only', () => {
+    expect(isDefaultPosition({ align: 'right', x: 0.5, y: 0.5 })).toBe(true);
+    expect(isDefaultPosition({ align: 'center', x: 0, y: 0.5 })).toBe(false);
+    expect(isDefaultPosition({ align: 'center', x: 0, y: 0.5 }, 'left')).toBe(true);
   });
 });
 
@@ -114,7 +153,7 @@ describe('validateConfiguration: textLayout', () => {
     expect(validateConfiguration(validConfiguration(), testCatalog)).toEqual({ status: 'valid' });
     expect(
       validateConfiguration(
-        validConfiguration({ textLayout: presetPlacement('bottom', 'right') }),
+        validConfiguration({ textLayout: presetPlacement('bottom', 'right', 'right') }),
         testCatalog,
       ),
     ).toEqual({ status: 'valid' });

@@ -1,7 +1,10 @@
 /**
- * Pure text-placement rules (D-044). Positions are fractions of the free
- * space around the text block inside the calibrated text area; see
- * `TextPlacement`. Nothing here knows about pixels or the canvas.
+ * Pure text-placement rules (D-044, D-059). Positions are fractions of the
+ * free space around the text block inside the calibrated text area; see
+ * `TextPlacement`. Position and line alignment are independent (D-059): the
+ * block is the widest line by all lines, placed by `x`/`y`; `align` arranges
+ * the lines inside that block, so changing it never moves the block, and
+ * placing the block never changes it. Nothing here knows about pixels or the canvas.
  */
 
 import { TEXT_ALIGNMENTS } from './types';
@@ -23,10 +26,12 @@ export const LARGE_POSITION_STEP = 0.1;
 
 export const PRESET_ROWS = ['top', 'middle', 'bottom'] as const;
 export type PresetRow = (typeof PRESET_ROWS)[number];
-export const PRESET_COLUMNS = TEXT_ALIGNMENTS;
-export type PresetColumn = TextAlignment;
+/** Preset columns are positions (left edge, center, right edge), not line alignments. */
+export const PRESET_COLUMNS = ['left', 'center', 'right'] as const;
+export type PresetColumn = (typeof PRESET_COLUMNS)[number];
 
 const ROW_Y: Readonly<Record<PresetRow, number>> = { top: 0, middle: 0.5, bottom: 1 };
+const COLUMN_X: Readonly<Record<PresetColumn, number>> = { left: 0, center: 0.5, right: 1 };
 
 /** Accepts `unknown` so malformed runtime data is rejected, not coerced. */
 export function isValidPlacement(value: unknown): value is TextPlacement {
@@ -36,7 +41,10 @@ export function isValidPlacement(value: unknown): value is TextPlacement {
   return TEXT_ALIGNMENTS.includes(align as TextAlignment) && inRange(x) && inRange(y);
 }
 
-/** The catalog default: the catalog's line alignment, anchored to match, vertically centered. */
+/**
+ * The catalog default: the catalog's line alignment, anchored to match, vertically
+ * centered. Every current model declares `center`, so the default is the middle preset.
+ */
 export function defaultPlacement(catalogAlign: TextAlignment = DEFAULT_TEXT_ALIGN): TextPlacement {
   return { align: catalogAlign, x: ALIGN_ANCHOR[catalogAlign], y: 0.5 };
 }
@@ -61,18 +69,49 @@ export function effectivePlacement(config: Configuration, catalog: Catalog): Tex
   return resolvePlacement(config.textLayout, catalogTextAlign(plate));
 }
 
-/** A preset sets all three properties: the column's alignment and anchor, and the row (D-044). */
-export function presetPlacement(row: PresetRow, column: PresetColumn): TextPlacement {
-  return { align: column, x: ALIGN_ANCHOR[column], y: ROW_Y[row] };
+/** A preset places the block only; the line alignment is kept (D-059, replacing D-047). */
+export function presetPlacement(
+  row: PresetRow,
+  column: PresetColumn,
+  align: TextAlignment,
+): TextPlacement {
+  return { align, x: COLUMN_X[column], y: ROW_Y[row] };
 }
 
+/** Whether the block sits at a preset position, whatever its line alignment. */
 export function matchesPreset(
   placement: TextPlacement,
   row: PresetRow,
   column: PresetColumn,
 ): boolean {
-  const preset = presetPlacement(row, column);
-  return placement.align === preset.align && placement.x === preset.x && placement.y === preset.y;
+  return placement.x === COLUMN_X[column] && placement.y === ROW_Y[row];
+}
+
+/** Changes the line alignment only; the block stays where it is (D-059). */
+export function alignPlacement(placement: TextPlacement, align: TextAlignment): TextPlacement {
+  return { align, x: placement.x, y: placement.y };
+}
+
+/**
+ * "Redefinir posição": the catalog default position, keeping the chosen line
+ * alignment. `null` (the catalog default) when the alignment is the catalog's too.
+ */
+export function resetPosition(
+  placement: TextPlacement,
+  catalogAlign: TextAlignment = DEFAULT_TEXT_ALIGN,
+): TextPlacement | null {
+  if (placement.align === catalogAlign) return null;
+  const { x, y } = defaultPlacement(catalogAlign);
+  return { align: placement.align, x, y };
+}
+
+/** Whether the block is away from the catalog default position. */
+export function isDefaultPosition(
+  placement: TextPlacement,
+  catalogAlign: TextAlignment = DEFAULT_TEXT_ALIGN,
+): boolean {
+  const { x, y } = defaultPlacement(catalogAlign);
+  return placement.x === x && placement.y === y;
 }
 
 export function clampUnit(value: number): number {

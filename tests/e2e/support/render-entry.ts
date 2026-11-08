@@ -9,3 +9,4 @@ export { composePreview } from '../../../src/preview/composition';
 export { createTextMeasurer, drawScene, fontFor } from '../../../src/preview/draw';
 export { DEBOSS } from '../../../src/preview/deboss';
 export { buildScene } from '../../../src/preview/scene';
+export { MARK_INK, SIGNATURE, WATERMARK_SRC } from '../../../src/preview/watermark';

@@ -45,7 +45,8 @@ function blockerMessage(blocker: ExportBlocker, sizePending: boolean): string {
 }
 
 /**
- * "Exportar imagem" (FR-07, D-008). The button stays focusable while export
+ * "Exportar imagem" (FR-07, D-008), the last action of the page (D-058): what
+ * still blocks it is listed just above the button. The button stays focusable while export
  * is blocked (`aria-disabled`) so the reasons listed below it can be reached;
  * activation by click or keyboard does nothing until they are resolved.
  */
@@ -74,16 +75,29 @@ export function ExportControls({
       downloadBlob(blob, fileName);
       setResult({ scene, outcome: { status: 'done', fileName } });
     } catch (error) {
+      const reason = error instanceof ExportError ? error.reason : undefined;
       const message =
-        error instanceof ExportError && error.reason === 'invalid-size'
+        reason === 'invalid-size'
           ? EXPORT_MESSAGES.invalidSize
-          : EXPORT_MESSAGES.failed;
+          : reason === 'no-watermark'
+            ? EXPORT_MESSAGES.noWatermark
+            : EXPORT_MESSAGES.failed;
       setResult({ scene, outcome: { status: 'error', message } });
     }
   };
 
   return (
     <div className="export">
+      {blocked && (
+        <div className="export__reasons" id="export-reasons">
+          <p className="field__info">Para exportar a imagem:</p>
+          <ul className="export__list">
+            {reasons.map((reason) => (
+              <li key={reason}>{reason}</li>
+            ))}
+          </ul>
+        </div>
+      )}
       <button
         type="button"
         className="button export__button"
@@ -95,16 +109,6 @@ export function ExportControls({
       >
         Exportar imagem
       </button>
-      {blocked && (
-        <div className="export__reasons" id="export-reasons">
-          <p className="field__info">Para exportar a imagem:</p>
-          <ul className="export__list">
-            {reasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        </div>
-      )}
       <p className="field__info" aria-live="polite">
         {outcome?.status === 'working' && EXPORT_MESSAGES.working}
         {outcome?.status === 'done' && `${EXPORT_MESSAGES.done} ${outcome.fileName}`}

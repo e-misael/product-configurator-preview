@@ -2,10 +2,12 @@ import { composePreview } from '../../../src/preview/composition';
 import { FALLBACK_TEXT_COLOR } from '../../../src/preview/text-style';
 import {
   buildScene,
+  placeBlock,
   type ImageSize,
   type ImageState,
   type Scene,
 } from '../../../src/preview/scene';
+import { WATERMARK_SRC } from '../../../src/preview/watermark';
 import { config, previewCatalog, previewSizes, validate } from './fixtures';
 
 interface TestImage extends ImageSize {
@@ -40,12 +42,12 @@ const order = (scene: Scene<TestImage>) => scene.layers.map((layer) => layer.kin
 const SQUARE_NUDE = '/catalog/plates/test-plate-square/beige.webp';
 
 describe('buildScene: standalone plate', () => {
-  it('uses the plate image size and draws the plate, then the text', () => {
+  it('uses the plate image size and draws the plate, then the text, then the signature', () => {
     const scene = sceneFor();
 
     expect(scene.width).toBe(400);
     expect(scene.height).toBe(400);
-    expect(order(scene)).toEqual(['image', 'text']);
+    expect(order(scene)).toEqual(['image', 'text', 'signature']);
     expect(scene.layers[0]).toMatchObject({ rect: { x: 0, y: 0, width: 400, height: 400 } });
     expect(scene.description).toBe('Square');
   });
@@ -102,6 +104,30 @@ describe('buildScene: image states', () => {
 
   it('keeps the catalog-pending state distinct from a load error', () => {
     expect(sceneFor({ plateId: 'test-plate-pending' }).notices).toEqual(['plate-image-pending']);
+  });
+});
+
+describe('buildScene: Taavi signature (D-060)', () => {
+  it('carries the official mark image as the last layer', () => {
+    const scene = sceneFor();
+    const last = scene.layers.at(-1);
+
+    expect(last?.kind === 'signature' && last.image.src).toBe(WATERMARK_SRC);
+    expect(scene.notices).toEqual([]);
+  });
+
+  it('draws nothing while the mark is loading, as for the photograph', () => {
+    const scene = sceneFor({}, states({ [WATERMARK_SRC]: { status: 'loading' } }));
+
+    expect(scene.layers).toEqual([]);
+    expect(scene.notices).toEqual(['plate-image-loading']);
+  });
+
+  it('shows the piece without a signature, and reports it, when the mark fails', () => {
+    const scene = sceneFor({}, states({ [WATERMARK_SRC]: { status: 'error' } }));
+
+    expect(order(scene)).toEqual(['image', 'text']);
+    expect(scene.notices).toEqual(['watermark-error']);
   });
 });
 
@@ -168,14 +194,14 @@ describe('buildScene: text', () => {
   it('has no text layer, and keeps the notice, when the lettering size is pending', () => {
     const scene = sceneFor({ plateId: 'test-plate-size-pending' });
 
-    expect(order(scene)).toEqual(['image']);
+    expect(order(scene)).toEqual(['image', 'signature']);
     expect(scene.notices).toEqual(['text-size-pending']);
   });
 
   it('has no text layer, and keeps the notice, when the area is not calibrated', () => {
     const scene = sceneFor({ plateId: 'test-plate-rectangle' });
 
-    expect(order(scene)).toEqual(['image']);
+    expect(order(scene)).toEqual(['image', 'signature']);
     expect(scene.notices).toEqual(['text-area-pending']);
   });
 });
@@ -261,6 +287,50 @@ describe('buildScene: text placement (D-044)', () => {
 
     expect(right.bounds).toEqual(left.bounds);
     expect([left.align, right.align]).toEqual(['left', 'right']);
+  });
+
+  describe('independent line alignment (D-059)', () => {
+    const ALIGNS = ['left', 'center', 'right'] as const;
+    // Lines of different lengths: 3 and 11 characters (60 and 220 wide at font 40).
+    const text = 'Ana\nCasa da Ana';
+
+    it.each([
+      [0, 0],
+      [0.3, 0.5],
+      [1, 1],
+    ])('never moves the block at position (%s, %s), whatever the alignment', (x, y) => {
+      const blocks = ALIGNS.map((align) =>
+        textBlock(sceneFor({ text, textLayout: { align, x, y } })),
+      );
+      const [first] = blocks;
+
+      for (const block of blocks) expect(block.bounds).toEqual(first?.bounds);
+      expect(blocks.map((block) => block.align)).toEqual(ALIGNS);
+      expect(first?.bounds.width).toBe(220);
+    });
+
+    it('a preset column places the block the same way for every alignment', () => {
+      for (const x of [0, 0.5, 1]) {
+        const xs = ALIGNS.map(
+          (align) => textBlock(sceneFor({ text, textLayout: { align, x, y: 0 } })).bounds.x,
+        );
+        expect(new Set(xs).size).toBe(1);
+        expect(xs[0]).toBe(AREA.x + x * (AREA.width - 220));
+      }
+    });
+
+    it('keeps an overflowing block in place when only the alignment changes', () => {
+      // Words wrap, so a block wider than its area is rare; placeBlock still handles it.
+      for (const x of [0, 0.5, 1]) {
+        const blocks = ALIGNS.map((align) => placeBlock(AREA, [320, 60], 400, { align, x, y: 0 }));
+        const [first] = blocks;
+        expect(first?.slack).toEqual({ x: -80, y: -240 });
+        for (const block of blocks) expect(block.bounds).toEqual(first?.bounds);
+        // Horizontally by the stored position, vertically centered.
+        expect(first?.bounds.x).toBeCloseTo(AREA.x + x * -80);
+        expect(first?.bounds.y).toBe(AREA.y - 120);
+      }
+    });
   });
 
   it('keeps the same relative position on a model with a different safe area', () => {

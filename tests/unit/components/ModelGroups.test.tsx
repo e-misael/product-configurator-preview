@@ -10,6 +10,8 @@ import {
 } from '../../../src/components/configurator/model-groups';
 import { demoCatalog, demoModelGroups } from '../../../src/demo/demo-catalog';
 import type { Catalog } from '../../../src/domain';
+import { WATERMARK_SRC } from '../../../src/preview/watermark';
+import { contextOf, type FakeContext } from '../support/fake-canvas';
 import { FakeImage, installFakeImages } from '../support/fake-image';
 
 /** Bandeja ondulada M and G grouped as one option with a "Tamanho" choice (D-057). */
@@ -23,7 +25,7 @@ beforeEach(() => {
       plate.image ? [[plate.image.image.src, { width: 1060, height: 1060 }]] : [],
     ),
   );
-  installFakeImages(sizes);
+  installFakeImages({ ...sizes, [WATERMARK_SRC]: { width: 1262, height: 1246 } });
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -39,12 +41,102 @@ const group = (name: string) => screen.getByRole('group', { name });
 const models = () => within(group('Modelo'));
 const sizes = () => screen.queryByRole('group', { name: 'Tamanho' });
 const preview = () => screen.getByRole('region', { name: 'Pré-visualização' });
+const review = () => screen.getByRole('region', { name: 'Revisar personalização' });
 const configStatus = () => screen.getByRole('region', { name: 'Situação da configuração' });
 const exportButton = () => screen.getByRole('button', { name: 'Exportar imagem' });
 /** The summary value for a term, e.g. "Modelo". */
 const summary = (term: string) =>
-  within(preview()).getByText(term, { selector: 'dt' }).nextElementSibling?.textContent;
+  within(review()).getByText(`${term}:`, { selector: 'dt' }).nextElementSibling?.textContent;
 const settle = () => act(() => FakeImage.loadAll());
+
+/** Photographs (by file) and text runs painted on the preview canvas, without the signature. */
+function painted(): string[] {
+  const element = preview().querySelector('canvas');
+  if (!element) return [];
+  const ctx: FakeContext = contextOf(element);
+  return ctx.drawn.flatMap((call) => {
+    if (call.op === 'fillText') return call.text === '© Taavi' ? [] : [`text:${call.font}`];
+    const { src } = call.image as { src?: string };
+    return src?.startsWith('/catalog/') ? [src] : [];
+  });
+}
+
+describe('illustrative tray preview before the size (M4.6)', () => {
+  const PHOTO_M = '/catalog/plates/bandeja-ondulada-m-8/bege.jpg';
+  const PHOTO_G = '/catalog/plates/bandeja-ondulada-g-11/bege.jpg';
+  const notice = 'Selecione o tamanho para visualizar a personalização.';
+
+  it('shows the shared photograph at once, without lettering, and blocks export', async () => {
+    const { user } = setup();
+    await user.type(screen.getByLabelText('Texto'), 'Ana');
+    await user.click(within(group('Cor do texto')).getByRole('radio', { name: 'Azul' }));
+
+    await user.click(models().getByRole('radio', { name: 'Bandeja ondulada' }));
+    settle();
+
+    expect(painted()).toEqual([PHOTO_M]);
+    expect(within(preview()).getByRole('img')).toHaveAccessibleName(
+      'Bandeja ondulada bege, sem texto',
+    );
+    expect(within(preview()).getByText(notice)).toBeInTheDocument();
+    // No size is chosen or stored, and the size choice stays required.
+    expect(within(group('Tamanho')).queryByRole('radio', { checked: true })).toBeNull();
+    expect(summary('Tamanho')).toBe('Não escolhido');
+    expect(configStatus()).toHaveTextContent('Falta escolher: Tamanho.');
+    expect(exportButton()).toHaveAttribute('aria-disabled', 'true');
+    expect(exportButton()).toHaveAccessibleDescription(/Falta escolher: Tamanho/);
+    // Without lettering there is nothing to position yet.
+    expect(screen.queryByRole('group', { name: 'Posição do texto' })).toBeNull();
+  });
+
+  it('draws the lettering at the chosen size once M or G is selected, and switches with it', async () => {
+    const { user } = setup();
+    await user.type(screen.getByLabelText('Texto'), 'Ana');
+    await user.click(within(group('Cor do texto')).getByRole('radio', { name: 'Azul' }));
+    await user.click(models().getByRole('radio', { name: 'Bandeja ondulada' }));
+    settle();
+
+    await user.click(within(group('Tamanho')).getByRole('radio', { name: 'G — 11 × 11 cm' }));
+    settle();
+    // G: 0.0851 of the 1060 px photograph; M: 0.117.
+    expect(painted()).toEqual([PHOTO_G, expect.stringMatching(/^text:(?:\D*)90\.20\d*px /)]);
+    expect(within(preview()).queryByText(notice)).toBeNull();
+    expect(exportButton()).toHaveAttribute('aria-disabled', 'false');
+
+    await user.click(within(group('Tamanho')).getByRole('radio', { name: 'M — 8 × 8 cm' }));
+    settle();
+    expect(painted()).toEqual([PHOTO_M, expect.stringMatching(/^text:(?:\D*)124\.0\d*px /)]);
+    expect(exportButton()).toHaveAttribute('aria-disabled', 'false');
+  });
+
+  it('loads each photograph once: no reload when going back to a size', async () => {
+    const { user } = setup();
+    await user.click(models().getByRole('radio', { name: 'Bandeja ondulada' }));
+    settle();
+    // The illustration is M's photograph: choosing M requests nothing new.
+    await user.click(within(group('Tamanho')).getByRole('radio', { name: 'M — 8 × 8 cm' }));
+    expect(FakeImage.requestedSources).not.toContain(PHOTO_M);
+    expect(painted()[0]).toBe(PHOTO_M);
+
+    await user.click(within(group('Tamanho')).getByRole('radio', { name: 'G — 11 × 11 cm' }));
+    expect(FakeImage.requestedSources).toContain(PHOTO_G);
+    settle();
+    // Back to M: the loaded photograph is reused, without a new request.
+    await user.click(within(group('Tamanho')).getByRole('radio', { name: 'M — 8 × 8 cm' }));
+    expect(FakeImage.requestedSources).toEqual([]);
+    expect(painted()[0]).toBe(PHOTO_M);
+  });
+
+  it('keeps the other models as they were: no illustration, their own lettering', async () => {
+    const { user } = setup();
+    await user.type(screen.getByLabelText('Texto'), 'Ana');
+    await user.click(models().getByRole('radio', { name: 'Placa cerâmica — 10 × 10 cm' }));
+    settle();
+
+    expect(painted()).toHaveLength(2);
+    expect(within(preview()).queryByText(notice)).toBeNull();
+  });
+});
 
 describe('model groups (D-057)', () => {
   describe('grouping table', () => {
@@ -129,9 +221,9 @@ describe('model groups (D-057)', () => {
 
       expect(configStatus()).toHaveTextContent('Falta escolher: Tamanho, Texto, Cor do texto.');
       expect(exportButton()).toHaveAttribute('aria-disabled', 'true');
-      expect(within(preview()).getByText('Falta escolher: Tamanho.')).toBeInTheDocument();
+      expect(within(review()).getByText('Falta escolher: Tamanho.')).toBeInTheDocument();
       expect(
-        within(preview()).getByText('Escolha o tamanho para ver a pré-visualização.'),
+        within(preview()).getByText('Selecione o tamanho para visualizar a personalização.'),
       ).toBeInTheDocument();
       expect(summary('Modelo')).toBe('Bandeja ondulada');
       expect(summary('Tamanho')).toBe('Não escolhido');
@@ -139,7 +231,7 @@ describe('model groups (D-057)', () => {
       await user.click(within(group('Tamanho')).getByRole('radio', { name: 'M — 8 × 8 cm' }));
 
       expect(configStatus()).toHaveTextContent('Falta escolher: Texto, Cor do texto.');
-      expect(within(preview()).queryByText('Falta escolher: Tamanho.')).toBeNull();
+      expect(within(review()).queryByText('Falta escolher: Tamanho.')).toBeNull();
       expect(summary('Modelo')).toBe('Bandeja ondulada');
       expect(summary('Tamanho')).toBe('M — 8 × 8 cm');
     });

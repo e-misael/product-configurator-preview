@@ -5,13 +5,16 @@
  * come from the `measure` function. `drawScene` (draw.ts) paints the result
  * for both the preview and the PNG export (D-008).
  *
- * Layer order (D-037, revised by D-046): the model's photograph, then the text.
+ * Layer order (D-037, revised by D-046 and D-060): the model's photograph, the
+ * text, then the Taavi signature. The signature's image is required: while it
+ * loads nothing is drawn, and when it fails the scene says so and export is blocked.
  */
 
-import { ALIGN_ANCHOR, type FontFamily, type NormalizedBox, type TextAlignment } from '../domain';
+import type { FontFamily, NormalizedBox, TextAlignment } from '../domain';
 import type { Composition, PlateLayer, PreviewNoticeCode } from './composition';
 import { layoutText, type MeasureText } from './text-fit';
 import { FALLBACK_TEXT_COLOR, segmentLine, type TextSegment, type TextStyle } from './text-style';
+import { WATERMARK_SRC } from './watermark';
 
 export interface Rect {
   readonly x: number;
@@ -56,7 +59,9 @@ export interface TextBlock {
 
 export type SceneLayer<I extends ImageSize> =
   | { readonly kind: 'image'; readonly image: I; readonly rect: Rect }
-  | { readonly kind: 'text'; readonly block: TextBlock };
+  | { readonly kind: 'text'; readonly block: TextBlock }
+  /** The Taavi signature (D-060); geometry from `signatureBox`, painted last. */
+  | { readonly kind: 'signature'; readonly image: I };
 
 export interface Scene<I extends ImageSize = HTMLImageElement> {
   /** Logical size: the natural pixel size of the base image. Zero when nothing is drawn. */
@@ -79,12 +84,12 @@ function scaleBox(box: NormalizedBox, width: number, height: number, origin: Rec
 }
 
 /**
- * Places the text block inside the area (D-044). With free space on an axis,
- * the position is that fraction of the free space, so the block never leaves
- * the area. Without free space (overflow), the block keeps the established
- * overflow placement: anchored by its alignment horizontally, centered
- * vertically. The catalog default (`x` = the alignment's anchor, `y` = 0.5)
- * therefore draws exactly what earlier versions drew.
+ * Places the text block inside the area (D-044). The block is the widest line
+ * by all lines; its position is that fraction of the free space on each axis,
+ * so with free space it never leaves the area. Without free space (overflow)
+ * it is placed by its position horizontally (the free space is then negative)
+ * and centered vertically. The line alignment plays no part: it arranges the
+ * lines inside the block (D-059), so changing it never moves the block.
  */
 export function placeBlock(
   area: Rect,
@@ -94,7 +99,7 @@ export function placeBlock(
 ): Pick<TextBlock, 'x' | 'y' | 'slack' | 'bounds'> {
   const width = Math.max(0, ...lineWidths);
   const slack = { x: area.width - width, y: area.height - blockHeight };
-  const tx = slack.x >= 0 ? placement.x : ALIGN_ANCHOR[placement.align];
+  const tx = placement.x;
   const ty = slack.y >= 0 ? placement.y : 0.5;
   return {
     x: placement.x,
@@ -135,13 +140,22 @@ export function buildScene<I extends ImageSize>(
     notices.push('plate-image-error');
     return empty();
   }
+  const markState = images.get(WATERMARK_SRC) ?? { status: 'loading' };
+  if (markState.status === 'loading') {
+    notices.push('plate-image-loading');
+    return empty();
+  }
+  // Without the signature the product is still shown, but it cannot be exported (D-060).
+  if (markState.status !== 'loaded') notices.push('watermark-error');
+  const mark = markState.status === 'loaded' ? markState.image : undefined;
 
-  return assemble(plate, plateState.image, composition, notices, measure);
+  return assemble(plate, plateState.image, mark, composition, notices, measure);
 }
 
 function assemble<I extends ImageSize>(
   plate: PlateLayer,
   plateImage: I,
+  mark: I | undefined,
   composition: Composition,
   notices: PreviewNoticeCode[],
   measure: MeasureText,
@@ -181,6 +195,8 @@ function assemble<I extends ImageSize>(
       },
     });
   }
+
+  if (mark !== undefined) layers.push({ kind: 'signature', image: mark });
 
   return { width, height, layers, notices, description: plate.alt };
 }

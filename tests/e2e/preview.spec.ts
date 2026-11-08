@@ -1,4 +1,5 @@
 import { expect, test, type Locator, type Page } from '@playwright/test';
+import { chooseModel, openStep, step, textField } from './support/steps';
 
 /**
  * Preview checks against the demo build's synthetic images (D-036). Pixels are
@@ -17,22 +18,13 @@ const WOOD: readonly Rgba[] = [
 
 const canvas = (page: Page) => page.locator('.preview__canvas');
 const preview = (page: Page) => page.getByRole('region', { name: 'Pré-visualização' });
-const model = (page: Page, name: RegExp) =>
-  page.getByRole('group', { name: 'Modelo' }).getByRole('radio', { name });
 
 const CERAMIC_PLATE = /Placa cerâmica/;
 const QUADRO = /Quadro — 20/;
 
 /** Chooses a demo Bandeja size under its grouped option (D-057). */
 async function chooseTray(page: Page, size: 'M' | 'G') {
-  await page
-    .getByRole('group', { name: 'Modelo' })
-    .getByRole('radio', { name: /Bandeja ondulada$/ })
-    .check();
-  await page
-    .getByRole('group', { name: 'Tamanho' })
-    .getByRole('radio', { name: new RegExp(`^${size} — `) })
-    .check();
+  await chooseModel(page, /Bandeja ondulada$/, new RegExp(`^${size} — `));
 }
 
 async function sample(page: Page, x: number, y: number): Promise<Rgba> {
@@ -160,11 +152,11 @@ test.describe('exact image selection', () => {
   test('paints the image of the chosen model @smoke', async ({ page }) => {
     await expect(canvas(page)).toHaveCount(0);
 
-    await model(page, CERAMIC_PLATE).check();
+    await chooseModel(page, CERAMIC_PLATE);
     await expectPixel(page, 0.5, 0.8, BEGE);
     await expect(canvas(page)).toHaveAttribute('aria-label', /Placa cerâmica 10 × 10 cm/);
 
-    await model(page, QUADRO).check();
+    await chooseModel(page, QUADRO);
     await expectPixel(page, 0.5, 0.75, BEGE);
     await expect(canvas(page)).toHaveAttribute('aria-label', /Quadro 20 × 20 cm/);
 
@@ -177,7 +169,7 @@ test.describe('exact image selection', () => {
   });
 
   test('labels the demonstration images for assistive technology', async ({ page }) => {
-    await model(page, CERAMIC_PLATE).check();
+    await chooseModel(page, CERAMIC_PLATE);
 
     await expect(canvas(page)).toHaveAttribute('aria-label', /imagem sintética de demonstração/);
   });
@@ -185,7 +177,7 @@ test.describe('exact image selection', () => {
 
 test.describe('model shapes', () => {
   test('keeps the Quadro square', async ({ page }) => {
-    await model(page, QUADRO).check();
+    await chooseModel(page, QUADRO);
     await expectPixel(page, 0.5, 0.75, BEGE);
 
     const box = await boxOf(canvas(page));
@@ -212,7 +204,7 @@ test.describe('assembled Quadro (D-046)', () => {
     page.on('request', (request) => {
       if (request.url().includes('/catalog/')) requested.push(new URL(request.url()).pathname);
     });
-    await model(page, QUADRO).check();
+    await chooseModel(page, QUADRO);
 
     // The wooden frame is part of the photograph; the ceramic sits inside it.
     await expectPixel(page, 0.14, 0.5, WOOD);
@@ -222,8 +214,9 @@ test.describe('assembled Quadro (D-046)', () => {
   });
 
   test('keeps the Quadro text inside the ceramic, clear of the frame', async ({ page }) => {
-    await model(page, QUADRO).check();
-    await page.getByLabel('Texto', { exact: true }).fill('HHHHHHHHHHHH');
+    await chooseModel(page, QUADRO);
+    await (await textField(page)).fill('HHHHHHHHHHHH');
+    await openStep(page, 'Posição do texto');
     await page
       .getByRole('group', { name: 'Posição do texto' })
       .getByRole('button', { name: 'Superior à esquerda', exact: true })
@@ -239,14 +232,14 @@ test.describe('personalized text', () => {
   test('draws the typed text inside the plate text area, one line per line break', async ({
     page,
   }) => {
-    await model(page, CERAMIC_PLATE).check();
+    await chooseModel(page, CERAMIC_PLATE);
     await expectPixel(page, 0.5, 0.8, BEGE);
     await expect.poll(async () => (await textRuns(page)).runs).toBe(0);
 
-    await page.getByLabel('Texto', { exact: true }).fill('HHH');
+    await (await textField(page)).fill('HHH');
     await expect.poll(async () => (await textRuns(page)).runs).toBe(1);
 
-    await page.getByLabel('Texto', { exact: true }).fill('HHH\nHHH');
+    await (await textField(page)).fill('HHH\nHHH');
     await expect.poll(async () => (await textRuns(page)).runs).toBe(2);
 
     // Centered within the area (0.2–0.8) and not spilling past it.
@@ -257,8 +250,8 @@ test.describe('personalized text', () => {
   });
 
   test('paints the chosen lettering color and font', async ({ page }) => {
-    await model(page, CERAMIC_PLATE).check();
-    await page.getByLabel('Texto', { exact: true }).fill('HHH');
+    await chooseModel(page, CERAMIC_PLATE);
+    await (await textField(page)).fill('HHH');
     const BLUE = [0x1f, 0x4e, 0x8c] as const;
     await expect.poll(() => textPixels(page, BLUE)).toBe(0);
     const provisional = preview(page).getByText(/cor provisória/);
@@ -280,8 +273,8 @@ test.describe('personalized text', () => {
   });
 
   test('paints the selected characters in the second color', async ({ page }) => {
-    await model(page, CERAMIC_PLATE).check();
-    const field = page.getByLabel('Texto', { exact: true });
+    await chooseModel(page, CERAMIC_PLATE);
+    const field = await textField(page);
     await field.fill('HHHH');
     await page
       .getByRole('group', { name: 'Cor do texto' })
@@ -306,15 +299,16 @@ test.describe('personalized text', () => {
   });
 
   test('warns about text that does not fit instead of clipping it', async ({ page }) => {
-    await model(page, CERAMIC_PLATE).check();
+    await chooseModel(page, CERAMIC_PLATE);
 
-    await page
-      .getByLabel('Texto', { exact: true })
-      .fill(Array.from({ length: 40 }, (_, i) => `linha ${i}`).join('\n'));
+    await (
+      await textField(page)
+    ).fill(Array.from({ length: 40 }, (_, i) => `linha ${i}`).join('\n'));
 
     await expect(preview(page)).toContainText('O texto não cabe na área do modelo');
-    // The full text is still kept and summarized.
-    await expect(preview(page).locator('.preview__text')).toContainText('linha 39');
+    // The full text is still kept and summarized in the review.
+    const review = await step(page, 'Revisar personalização');
+    await expect(review.locator('.review__text')).toContainText('linha 39');
   });
 });
 
@@ -404,10 +398,18 @@ test.describe('text position (D-044)', () => {
     position(page).getByRole('button', { name, exact: true });
 
   async function withText(page: Page, text = 'HHH') {
-    await model(page, CERAMIC_PLATE).check();
-    await page.getByLabel('Texto', { exact: true }).fill(text);
-    await expect(position(page)).toBeEnabled();
+    await chooseModel(page, CERAMIC_PLATE);
+    await (await textField(page)).fill(text);
+    await openStep(page, 'Posição do texto');
+    await expect(position(page)).toBeVisible();
   }
+  const alignment = (page: Page, name: string) =>
+    position(page)
+      .getByRole('group', { name: 'Alinhamento das linhas' })
+      .getByRole('radio', { name, exact: true });
+  /** "Escolher posição" (presets) or "Ajustar manualmente" (arrow pad and dragging). */
+  const mode = (page: Page, name: 'Escolher posição' | 'Ajustar manualmente') =>
+    position(page).getByRole('radio', { name, exact: true }).check();
 
   const EDGE = 0.025;
   const near = (a: number, b: number, tolerance = EDGE) => Math.abs(a - b) <= tolerance;
@@ -441,12 +443,23 @@ test.describe('text position (D-044)', () => {
     expect(seen.size).toBe(9);
   });
 
-  test('aligns multiline text by the preset column, with no separate alignment control', async ({
+  test('aligns multiline text independently of the block position (D-059) @smoke', async ({
     page,
   }) => {
     await withText(page, 'HHHHHH\nHH');
-    await expect(page.getByRole('group', { name: 'Alinhamento das linhas' })).toHaveCount(0);
+    await expect(alignment(page, 'Centralizar texto')).toBeChecked();
 
+    const lines = async () => {
+      let result: [Box, Box] | undefined;
+      await expect
+        .poll(async () => {
+          const [long, short] = await textLines(page);
+          result = long && short ? [long, short] : undefined;
+          return result !== undefined;
+        })
+        .toBe(true);
+      return result as [Box, Box];
+    };
     const check = async (accept: (long: Box, short: Box) => boolean) => {
       await expect
         .poll(async () => {
@@ -456,25 +469,42 @@ test.describe('text position (D-044)', () => {
         .toBe(true);
     };
 
+    // A preset places the block; the lines stay centered in it.
     await preset(page, 'Superior à esquerda').click();
     await check(
       (long, short) =>
         near(long.left, SQUARE_AREA.x0) &&
-        near(short.left, long.left, 0.006) &&
-        short.right < long.right - 0.05,
+        near((short.left + short.right) / 2, (long.left + long.right) / 2, 0.006),
     );
-    await preset(page, 'Superior à direita').click();
+    const [placed] = await lines();
+
+    // Right alignment: both lines end at the same edge, and the block does not move.
+    await alignment(page, 'Alinhar à direita').check();
     await check(
       (long, short) =>
-        near(long.right, SQUARE_AREA.x1) &&
         near(short.right, long.right, 0.006) &&
-        short.left > long.left + 0.05,
+        short.left > long.left + 0.05 &&
+        near(long.left, placed.left, 0.004),
     );
-    await preset(page, 'Centro').click();
-    await check((long, short) =>
-      near((short.left + short.right) / 2, (long.left + long.right) / 2, 0.006),
+    await expect(preset(page, 'Superior à esquerda')).toHaveAttribute('aria-pressed', 'true');
+
+    // Left alignment, then keyboard: arrow keys move through the three options.
+    await alignment(page, 'Alinhar à esquerda').check();
+    await check(
+      (long, short) => near(short.left, long.left, 0.006) && short.right < long.right - 0.05,
     );
-    await expect(position(page).getByText('Posição: Centro.')).toBeVisible();
+    await alignment(page, 'Alinhar à esquerda').focus();
+    await page.keyboard.press('ArrowRight');
+    await expect(alignment(page, 'Centralizar texto')).toBeChecked();
+
+    // Another preset keeps the chosen alignment.
+    await alignment(page, 'Alinhar à direita').check();
+    await preset(page, 'Inferior à direita').click();
+    await check(
+      (long, short) => near(long.right, SQUARE_AREA.x1) && near(short.right, long.right, 0.006),
+    );
+    await expect(alignment(page, 'Alinhar à direita')).toBeChecked();
+    await expect(position(page).getByText('Posição: Inferior à direita.')).toBeVisible();
   });
 
   test('drags the text with the mouse, changing only its position', async ({ page, isMobile }) => {
@@ -482,6 +512,7 @@ test.describe('text position (D-044)', () => {
     await withText(page);
     await preset(page, 'Superior à esquerda').click();
     const before = await settledBox(page, (b) => near(b.left, SQUARE_AREA.x0));
+    await mode(page, 'Ajustar manualmente');
     // The controls are below the preview; the pointer can only reach what is on screen.
     await canvas(page).scrollIntoViewIfNeeded();
     const rect = await boxOf(canvas(page));
@@ -496,11 +527,12 @@ test.describe('text position (D-044)', () => {
     const after = await settledBox(page, (b) => b.left > before.left + 0.1);
     expect(after.left - before.left).toBeCloseTo(0.15, 1);
     expect(after.top - before.top).toBeCloseTo(0.1, 1);
-    await expect(preset(page, 'Superior à esquerda')).toHaveAttribute('aria-pressed', 'false');
     await expect(position(page).getByRole('status')).toContainText('Posição personalizada:');
+    await mode(page, 'Escolher posição');
+    await expect(preset(page, 'Superior à esquerda')).toHaveAttribute('aria-pressed', 'false');
   });
 
-  test('moves with touch only after "Mover texto" is turned on', async ({
+  test('drags by touch only in "Ajustar manualmente", then scrolls again', async ({
     page,
     browserName,
     hasTouch,
@@ -541,11 +573,21 @@ test.describe('text position (D-044)', () => {
     expect(unchanged.left).toBeCloseTo(before.left, 3);
     await expect(position(page).getByRole('status')).toHaveText('Posição: Superior à esquerda.');
 
-    await position(page).getByRole('button', { name: 'Mover texto' }).click();
+    await mode(page, 'Ajustar manualmente');
+    await expect(position(page).getByRole('group', { name: 'Posições predefinidas' })).toHaveCount(
+      0,
+    );
     await expect(canvas(page)).toHaveCSS('touch-action', 'none');
     await touchDrag();
     const moved = await settledBox(page, (b) => b.left > before.left + 0.15);
     expect(moved.left - before.left).toBeCloseTo(0.2, 1);
+
+    // Back to the presets: touch scrolls the page again, and the position is kept.
+    await mode(page, 'Escolher posição');
+    await expect(position(page).getByRole('group', { name: 'Ajuste fino' })).toHaveCount(0);
+    await expect(canvas(page)).toHaveCSS('touch-action', 'auto');
+    const kept = await settledBox(page, () => true);
+    expect(kept.left).toBeCloseTo(moved.left, 2);
   });
 
   test('moves by 2% steps with the arrow keys and 10% with Shift', async ({ page }) => {
@@ -553,6 +595,7 @@ test.describe('text position (D-044)', () => {
     await preset(page, 'Superior à esquerda').click();
     const start = await settledBox(page, (b) => near(b.left, SQUARE_AREA.x0));
     const right = position(page).getByRole('button', { name: 'Mover para a direita' });
+    await mode(page, 'Ajustar manualmente');
 
     await right.focus();
     for (let i = 0; i < 5; i += 1) await page.keyboard.press('ArrowRight');
@@ -561,8 +604,10 @@ test.describe('text position (D-044)', () => {
     );
     const fiveSteps = await settledBox(page, (b) => b.left > start.left + 0.01);
 
+    await mode(page, 'Escolher posição');
     await preset(page, 'Superior à esquerda').click();
     await settledBox(page, (b) => near(b.left, start.left, 0.002));
+    await mode(page, 'Ajustar manualmente');
     await right.focus();
     await page.keyboard.press('Shift+ArrowRight');
     await expect(position(page)).toContainText(
@@ -582,6 +627,7 @@ test.describe('text position (D-044)', () => {
     await settledBox(page, (b) => near(b.right, SQUARE_AREA.x1));
 
     await chooseTray(page, 'G');
+    await openStep(page, 'Posição do texto');
 
     await expect(preset(page, 'Inferior à direita')).toHaveAttribute('aria-pressed', 'true');
     const box = await settledBox(
@@ -593,17 +639,21 @@ test.describe('text position (D-044)', () => {
     expect(box.left).toBeGreaterThanOrEqual(TRAY_AREA.x0);
   });
 
-  test('resets alignment and position to the catalog default', async ({ page }) => {
+  test('resets the position to the catalog default, keeping the alignment', async ({ page }) => {
     await withText(page);
     const initial = await settledBox(page, (b) => near((b.left + b.right) / 2, 0.5, 0.015));
+    await alignment(page, 'Alinhar à direita').check();
     await preset(page, 'Inferior à esquerda').click();
     await settledBox(page, (b) => near(b.left, SQUARE_AREA.x0));
 
     await position(page).getByRole('button', { name: 'Redefinir posição' }).click();
 
-    const reset = await settledBox(page, (b) => near(b.left, initial.left, 0.002));
-    expect(reset.top).toBeCloseTo(initial.top, 3);
+    // One line: the block and the line coincide, so it is back where it started.
+    // Within a pixel: on phones the canvas is resized while the preview band expands.
+    const reset = await settledBox(page, (b) => near(b.left, initial.left, 0.004));
+    expect(reset.top).toBeCloseTo(initial.top, 2);
     await expect(preset(page, 'Centro')).toHaveAttribute('aria-pressed', 'true');
+    await expect(alignment(page, 'Alinhar à direita')).toBeChecked();
     await expectNoHorizontalScroll(page);
   });
 });
@@ -614,20 +664,20 @@ test.describe('missing and broken images', () => {
   }) => {
     await page.route('**/catalog/plates/demo-placa-ceramica/bege.png', (route) => route.abort());
 
-    await model(page, CERAMIC_PLATE).check();
+    await chooseModel(page, CERAMIC_PLATE);
 
     await expect(preview(page)).toContainText('Não foi possível carregar a imagem do modelo.');
     await expect(canvas(page)).toHaveCount(0);
 
     // Another model still loads normally.
-    await model(page, QUADRO).check();
+    await chooseModel(page, QUADRO);
     await expectPixel(page, 0.5, 0.75, BEGE);
   });
 });
 
 test.describe('responsive layout', () => {
   test('fits the viewport and keeps the image aspect ratio', async ({ page }) => {
-    await model(page, CERAMIC_PLATE).check();
+    await chooseModel(page, CERAMIC_PLATE);
     await expectPixel(page, 0.5, 0.8, BEGE);
 
     const viewport = page.viewportSize();
@@ -641,7 +691,7 @@ test.describe('responsive layout', () => {
   test('keeps the canvas sharp on high-density screens without exceeding the source size', async ({
     page,
   }) => {
-    await model(page, CERAMIC_PLATE).check();
+    await chooseModel(page, CERAMIC_PLATE);
     await expectPixel(page, 0.5, 0.8, BEGE);
 
     const width = await canvas(page).evaluate((element) =>

@@ -1,25 +1,39 @@
+/*
+ * Taavi identity (D-058): the store's sand and warm neutrals, Red Hat Display
+ * for the interface (self-hosted, OFL-1.1). Lettering fonts on the canvas are
+ * separate and unchanged (src/preview/text-style.ts). Contrast, on --color-bg /
+ * --color-surface: text 13.3 / 12.2, muted 6.9 / 6.3, strong border 3.8 / 3.5.
+ */
 :root {
-  --color-text: #1a1a1a;
-  --color-muted: #5c5c5c;
-  --color-background: #ffffff;
-  --color-surface: #f6f5f3;
-  --color-border: #d9d6d1;
-  --color-focus: #1a1a1a;
+  --color-bg: #faf8f5;
+  --color-surface: #f4ede6;
+  --color-sand: #e6d8cb;
+  --color-text: #302a26;
+  --color-muted: #5f554d;
+  /* Decorative dividers. */
+  --color-border: #e6d8cb;
+  /* Boundaries of controls (3:1 non-text contrast). */
+  --color-border-strong: #8c7b6b;
+  --color-field: #ffffff;
+  --color-focus: #302a26;
   --color-error: #a3261b;
   --color-error-surface: #fbefed;
   --color-success: #2f5d3a;
+  --font-ui: 'Red Hat Display', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --space-gutter: 1rem;
   --space-section: 1.5rem;
-  --radius: 0.5rem;
+  --radius: 5px;
   --touch-target: 2.75rem;
+  /* Displayed edge of the preview on phones: compact, and while positioning text. */
+  --preview-compact: clamp(150px, 28svh, 230px);
+  --preview-large: clamp(200px, 45svh, 420px);
+  --preview-reduced: clamp(110px, 20svh, 170px);
+  /* Band height beyond the image: title, notices, padding. */
+  --preview-chrome: 7.5rem;
 
   color: var(--color-text);
-  background-color: var(--color-background);
-  font-family:
-    system-ui,
-    -apple-system,
-    'Segoe UI',
-    sans-serif;
+  background-color: var(--color-bg);
+  font-family: var(--font-ui);
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
 }
@@ -33,6 +47,19 @@
 body {
   margin: 0;
   min-width: 0;
+  background-color: var(--color-bg);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
 }
 
 :focus-visible {
@@ -43,17 +70,17 @@ body {
 .app {
   max-width: 64rem;
   margin: 0 auto;
-  padding: 1.5rem var(--space-gutter) 3rem;
+  padding: 1rem var(--space-gutter) 3rem;
 }
 
 .app__header {
-  margin-bottom: var(--space-section);
+  margin-bottom: 1rem;
 }
 
 .app__title {
-  margin: 0 0 0.25rem;
-  font-size: 1.5rem;
-  font-weight: 500;
+  margin: 0 0 0.125rem;
+  font-size: 1.375rem;
+  font-weight: 700;
   letter-spacing: 0.01em;
 }
 
@@ -65,7 +92,7 @@ body {
 
 .app__layout {
   display: grid;
-  gap: var(--space-section);
+  gap: 1rem;
 }
 
 .app__layout > * {
@@ -75,6 +102,7 @@ body {
 @media (min-width: 48rem) {
   .app__layout {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: var(--space-section);
     align-items: start;
   }
 
@@ -93,33 +121,338 @@ body {
   color: var(--color-muted);
 }
 
-/* Preview: canvas composed from real product images (FR-08) */
+/*
+ * Preview (D-058). Phones: a compact band, first on the page, that stays at
+ * the top once a model is chosen and grows while the text is positioned.
+ * Its height is reserved from the start, so choosing a model does not shift
+ * the page. Wide screens: the full-width preview beside the steps.
+ */
+.preview {
+  padding: 0.75rem;
+  border-radius: var(--radius);
+  background: var(--color-surface);
+}
+
 .preview__title {
   margin: 0 0 0.5rem;
   font-size: 1rem;
   font-weight: 500;
 }
 
+.preview__stage {
+  display: flex;
+  justify-content: center;
+}
+
 .preview__canvas {
   display: block;
   width: 100%;
   height: auto;
-  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-field);
+}
+
+.preview__empty {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  min-height: 12rem;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-bg);
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.preview__notices {
+  min-height: 0;
+}
+
+.preview__notice-list {
+  margin: 0.5rem 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+@media (max-width: 47.99rem) {
+  .preview {
+    padding: 0.5rem 0.75rem;
+  }
+
+  .preview__title {
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+  }
+
+  .preview__empty {
+    min-height: var(--preview-compact);
+  }
+
+  /* Square photographs: the width caps the height too. */
+  .preview__canvas {
+    width: min(100%, var(--preview-compact));
+  }
+
+  .preview--active {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin-inline: calc(-1 * var(--space-gutter));
+    border-radius: 0;
+    box-shadow:
+      0 1px 0 var(--color-border),
+      0 6px 12px -10px rgb(48 42 38 / 35%);
+  }
+
+  .preview--expanded .preview__canvas {
+    width: min(100%, var(--preview-large));
+  }
+
+  /* With the text step open, the virtual keyboard takes half the screen. */
+  .preview--reduced .preview__canvas {
+    width: min(100%, var(--preview-reduced));
+  }
+
+  /* Long notice lists scroll inside the band instead of pushing the steps away. */
+  .preview--active .preview__notices {
+    max-height: 4.5rem;
+    overflow-y: auto;
+  }
+}
+
+/* Steps (D-058): collapsible on phones, plain sections on wide screens. */
+.form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.step {
   border-radius: var(--radius);
   background: var(--color-surface);
 }
 
-/* Text position (D-044) */
-.position {
-  margin-top: 1rem;
+.step__heading {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
 }
 
-.position__controls {
+.step__heading > .step__label {
+  padding: 1rem 1rem 0;
+}
+
+.step__toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: var(--touch-target);
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-radius: var(--radius);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.step__label {
+  display: grid;
+  flex: 1;
+  min-width: 0;
+}
+
+.step__title {
+  font-weight: 700;
+}
+
+.step__summary {
+  overflow: hidden;
+  font-size: 0.8125rem;
+  font-weight: 400;
+  color: var(--color-muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.step__state {
+  font-weight: 500;
+}
+
+.step__chevron {
+  flex: none;
+  width: 0.625rem;
+  height: 0.625rem;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: translateY(-25%) rotate(45deg);
+}
+
+.step__toggle[aria-expanded='true'] .step__chevron {
+  transform: translateY(25%) rotate(225deg);
+}
+
+.step__body {
+  padding: 0.5rem 1rem 1.25rem;
+}
+
+.step__body[hidden] {
+  display: none;
+}
+
+.step__body > * + * {
+  margin-top: 1.25rem;
+}
+
+/*
+ * Whatever is scrolled into view (a focused control, an opened step) stops
+ * below the sticky band, never under it (WCAG 2.4.11).
+ */
+@media (max-width: 47.99rem) {
+  html:has(.preview--active) {
+    scroll-padding-top: calc(var(--preview-compact) + var(--preview-chrome));
+  }
+
+  html:has(.preview--expanded) {
+    scroll-padding-top: calc(var(--preview-large) + var(--preview-chrome));
+  }
+}
+
+/* Line alignment (D-059) */
+.alignment__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.alignment__option {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--touch-target);
+  height: var(--touch-target);
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-field);
+  color: var(--color-text);
+  cursor: pointer;
+}
+
+/* Visually hidden but still the focusable, native radio (named by aria-label). */
+.alignment__option input,
+.segmented__option input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: 0;
+  opacity: 0;
+}
+
+.alignment__option:has(input:focus-visible),
+.segmented__option:has(input:focus-visible) {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Selected: inverted, not by color alone. */
+.alignment__option:has(input:checked) {
+  border: 2px solid var(--color-text);
+  background: var(--color-text);
+  color: var(--color-bg);
+}
+
+/* The usual alignment icon: four lines of alternating length. */
+.alignment__glyph {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  width: 1.25rem;
+}
+
+.alignment__glyph span {
+  height: 2px;
+  border-radius: 1px;
+  background: currentColor;
+}
+
+.alignment__glyph span:nth-child(odd) {
+  width: 100%;
+}
+
+.alignment__glyph span:nth-child(even) {
+  width: 60%;
+}
+
+.alignment__glyph--left {
+  align-items: flex-start;
+}
+
+.alignment__glyph--center {
+  align-items: center;
+}
+
+.alignment__glyph--right {
+  align-items: flex-end;
+}
+
+/* Two exclusive modes as a segmented control. */
+.segmented {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius);
+  background: var(--color-field);
+  overflow: hidden;
+}
+
+.segmented__option {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: var(--touch-target);
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875rem;
+  text-align: center;
+  cursor: pointer;
+}
+
+.segmented__option + .segmented__option {
+  border-left: 1px solid var(--color-border-strong);
+}
+
+.segmented__option:has(input:checked) {
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-weight: 500;
+}
+
+.position__manual {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.75rem 1.25rem;
-  margin-top: 0.25rem;
+  gap: 0.5rem 1rem;
+}
+
+.position__drag {
+  flex: 1 1 10rem;
+  margin: 0;
+}
+
+.position__reset {
+  justify-self: start;
+  margin-top: 0;
+}
+
+.position__hint {
+  margin: 0;
+}
+
+/* Text position (D-044) */
+.position {
+  display: grid;
+  gap: 0.75rem;
 }
 
 .position__presets {
@@ -133,14 +466,14 @@ body {
   width: 2.75rem;
   height: 2.75rem;
   padding: 0.375rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius);
-  background: var(--color-background);
+  background: var(--color-field);
   color: var(--color-muted);
   cursor: pointer;
 }
 
-/* The glyph sits where the text will: rows place it, columns align its lines. */
+/* The glyph sits where the block will: rows and columns place it (D-059). */
 .position__preset--top {
   align-items: flex-start;
 }
@@ -178,15 +511,32 @@ body {
   width: 80%;
 }
 
-.position__preset--left .position__glyph {
+.position__glyph {
+  width: 60%;
+}
+
+.position__preset--left {
+  justify-content: flex-start;
+}
+
+.position__preset--center {
+  justify-content: center;
+}
+
+.position__preset--right {
+  justify-content: flex-end;
+}
+
+/* Its lines follow the chosen line alignment. */
+.position[data-align='left'] .position__glyph {
   align-items: flex-start;
 }
 
-.position__preset--center .position__glyph {
+.position[data-align='center'] .position__glyph {
   align-items: center;
 }
 
-.position__preset--right .position__glyph {
+.position[data-align='right'] .position__glyph {
   align-items: flex-end;
 }
 
@@ -194,7 +544,7 @@ body {
 .position__preset[aria-pressed='true'] {
   border: 2px solid var(--color-text);
   background: var(--color-text);
-  color: var(--color-background);
+  color: var(--color-bg);
 }
 
 .position__preset:disabled,
@@ -204,7 +554,7 @@ body {
 }
 
 .position__current {
-  margin-top: 0.5rem;
+  margin: 0;
 }
 
 /* A compact arrow pad beside the presets; full touch targets on touch screens. */
@@ -251,15 +601,30 @@ body {
   box-shadow: inset 0 0 0 1px var(--color-text);
 }
 
-/* Export (D-008) */
+/* Export (D-008): the last action of the page. */
 .export {
-  margin-top: 1rem;
+  margin-top: 0;
+}
+
+.export__button {
+  width: 100%;
+  border-color: var(--color-text);
+  background: var(--color-text);
+  color: var(--color-bg);
+  font-weight: 500;
 }
 
 .export__button[aria-disabled='true'] {
-  border-color: var(--color-border);
+  border-color: var(--color-border-strong);
+  background: var(--color-field);
   color: var(--color-muted);
   cursor: not-allowed;
+}
+
+@media (min-width: 48rem) {
+  .export__button {
+    width: auto;
+  }
 }
 
 .export__list {
@@ -269,54 +634,38 @@ body {
   color: var(--color-muted);
 }
 
-.preview__empty {
+/* Review (D-058) */
+.review {
   display: grid;
-  place-items: center;
-  min-height: 12rem;
-  border: 1px dashed var(--color-border);
-  border-radius: var(--radius);
-  background: var(--color-surface);
-  font-size: 0.875rem;
-  color: var(--color-muted);
+  gap: 1rem;
 }
 
-.preview__notices {
-  min-height: 0;
+.review > * + * {
+  margin-top: 0;
 }
 
-.preview__notice-list {
-  margin: 0.75rem 0 0;
-  padding-left: 1.25rem;
-  font-size: 0.875rem;
-  color: var(--color-muted);
-}
-
-.preview__summary {
+.review__summary {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   gap: 0.25rem 1rem;
-  margin: 1rem 0 0;
-}
-
-.preview__summary dt {
-  color: var(--color-muted);
-}
-
-.preview__summary dd {
   margin: 0;
+}
+
+.review__summary dt {
+  font-weight: 700;
+}
+
+.review__summary dd {
+  margin: 0;
+  font-weight: 400;
   overflow-wrap: anywhere;
 }
 
-.preview__text {
+.review__text {
   white-space: pre-wrap;
 }
 
 /* Form */
-.form {
-  display: grid;
-  gap: var(--space-section);
-}
-
 .field {
   min-width: 0;
   margin: 0;
@@ -362,13 +711,20 @@ body {
   gap: 0.75rem;
   min-height: var(--touch-target);
   padding: 0.5rem 0.75rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius);
+  background: var(--color-field);
   cursor: pointer;
+}
+
+.choice input {
+  accent-color: var(--color-text);
 }
 
 .choice:has(input:checked) {
   border-color: var(--color-text);
+  box-shadow: inset 0 0 0 1px var(--color-text);
+  background: var(--color-sand);
 }
 
 .choice:has(input:disabled) {
@@ -427,7 +783,7 @@ body {
   padding: 0.5rem 1rem;
   border: 1px solid var(--color-text);
   border-radius: var(--radius);
-  background: var(--color-background);
+  background: var(--color-field);
   color: var(--color-text);
   font: inherit;
   cursor: pointer;
@@ -439,9 +795,13 @@ body {
   min-height: 6rem;
   margin-top: 0.5rem;
   padding: 0.75rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   border-radius: var(--radius);
+  background: var(--color-field);
+  color: inherit;
+  /* 16px or more: iOS does not zoom into the field. */
   font: inherit;
+  font-size: max(1rem, 16px);
   resize: vertical;
 }
 
@@ -459,8 +819,9 @@ body {
   gap: 0.5rem;
   min-height: var(--touch-target);
   padding: 0.25rem 0.75rem 0.25rem 0.375rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   border-radius: 999px;
+  background: var(--color-field);
   cursor: pointer;
 }
 
@@ -495,7 +856,7 @@ body {
   place-items: center;
   width: 2rem;
   height: 2rem;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--color-border-strong);
   border-radius: 50%;
 }
 
@@ -505,7 +866,7 @@ body {
   width: 1.125rem;
   height: 1.125rem;
   border-radius: 50%;
-  background: var(--color-background);
+  background: var(--color-field);
   color: var(--color-text);
   font-size: 0.75rem;
   font-weight: 700;
@@ -545,6 +906,9 @@ body {
 .disclaimer {
   display: grid;
   gap: 0.5rem;
+  padding: 0.75rem;
+  border-left: 3px solid var(--color-sand);
+  background: var(--color-bg);
   font-size: 0.875rem;
   color: var(--color-muted);
 }
@@ -558,11 +922,19 @@ body {
   margin: 0;
 }
 
+.status__notice {
+  margin: 0;
+}
+
+/* Kept rendered while empty, so the live region announces; it takes no room. */
+.status__notice:empty {
+  margin-top: 0;
+}
+
 .status__notice:not(:empty) {
-  margin-bottom: 0.5rem;
   padding: 0.5rem 0.75rem;
   border-radius: var(--radius);
-  background: var(--color-surface);
+  background: var(--color-bg);
 }
 
 .status__summary {

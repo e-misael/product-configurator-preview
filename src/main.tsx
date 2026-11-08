@@ -4,6 +4,10 @@ import { App } from './App';
 import { getCatalog } from './catalog';
 import type { ModelGroup } from './components/configurator/model-groups';
 import type { Catalog } from './domain';
+// Red Hat Display, self-hosted (OFL-1.1; D-058): Latin covers pt-BR, the weights in use only.
+import '@fontsource/red-hat-display/latin-400.css';
+import '@fontsource/red-hat-display/latin-500.css';
+import '@fontsource/red-hat-display/latin-700.css';
 import './index.css';
 
 const root = document.getElementById('root');

@@ -9,6 +9,7 @@ import {
 } from '../../../src/preview/draw';
 import { DEBOSS, DEBOSS_MIN_FONT_PX } from '../../../src/preview/deboss';
 import { buildScene, type ImageState } from '../../../src/preview/scene';
+import { MARK_INK, SIGNATURE, WATERMARK_SRC } from '../../../src/preview/watermark';
 import { contextOf, FakeContext, installFakeCanvas, type PaintCall } from '../support/fake-canvas';
 import { config, previewCatalog, previewSizes, validate } from './fixtures';
 
@@ -38,6 +39,16 @@ function paint(
 
 const srcOf = (call: unknown) => (call as { image: { src: string } }).image.src;
 const isLayer = (call: unknown) => (call as { image: unknown }).image instanceof HTMLCanvasElement;
+const isSignature = (call: PaintCall) =>
+  (call.op === 'fillText' && call.text === SIGNATURE.text) ||
+  (call.op === 'drawImage' && (call.image as { src?: string }).src === WATERMARK_SRC);
+/** Everything but the Taavi signature (D-060), which has its own tests. */
+const lettering = (calls: readonly PaintCall[]) => calls.filter((call) => !isSignature(call));
+/** The text runs of the customer's lettering. */
+const lines = (ctx: FakeContext) =>
+  lettering(ctx.calls).filter(
+    (call): call is Extract<PaintCall, { op: 'fillText' }> => call.op === 'fillText',
+  );
 
 describe('chooseBackingWidth', () => {
   it('follows the displayed width times the pixel ratio', () => {
@@ -71,11 +82,12 @@ describe('drawScene', () => {
   it('paints the photograph, then the text, then its deboss shading (D-046, D-052)', () => {
     const { ctx } = paint({}, 400);
     const order = ctx.drawn.map((call) => {
+      if (isSignature(call)) return 'signature';
       if (call.op === 'fillText') return 'text';
       return isLayer(call) ? 'deboss' : srcOf(call).split('/').at(-1);
     });
 
-    expect(order).toEqual(['beige.webp', 'text', 'deboss']);
+    expect(order).toEqual(['beige.webp', 'text', 'deboss', 'signature', 'signature']);
   });
 
   it('scales logical units to the canvas width, then clears to opaque white', () => {
@@ -96,12 +108,12 @@ describe('drawScene', () => {
 
   it('draws one text line per line, centered on the text area', () => {
     const { ctx } = paint({ text: 'Casa\nAna' }, 400);
-    const lines = ctx.calls.filter((call) => call.op === 'fillText');
+    const drawnLines = lines(ctx);
 
     // Text area: x 80..320, y 120..280 → center x 200, vertical center 200.
-    expect(lines.map((call) => call.text)).toEqual(['Casa', 'Ana']);
-    expect(lines.every((call) => call.x === 200 && call.textAlign === 'center')).toBe(true);
-    const [first, second] = lines;
+    expect(drawnLines.map((call) => call.text)).toEqual(['Casa', 'Ana']);
+    expect(drawnLines.every((call) => call.x === 200 && call.textAlign === 'center')).toBe(true);
+    const [first, second] = drawnLines;
     expect(((first?.y ?? 0) + (second?.y ?? 0)) / 2).toBeCloseTo(200);
     expect((second?.y ?? 0) - (first?.y ?? 0)).toBeGreaterThan(0);
   });
@@ -128,18 +140,49 @@ describe('drawScene', () => {
     const text = scene.layers.find((layer) => layer.kind === 'text');
     if (text?.kind !== 'text') throw new Error('No text layer');
     const { bounds, lineHeight } = text.block;
-    const lines = ctx.calls.filter((call) => call.op === 'fillText');
+    const drawnLines = lines(ctx);
 
     expect(bounds.x).toBe(80);
     expect(bounds.y).toBe(120);
     // Right-aligned lines share the block's right edge, which is not the area's.
-    expect(lines.map((call) => [call.x, call.textAlign])).toEqual([
+    expect(drawnLines.map((call) => [call.x, call.textAlign])).toEqual([
       [80 + bounds.width, 'right'],
       [80 + bounds.width, 'right'],
     ]);
     expect(80 + bounds.width).toBeLessThan(320);
-    expect(lines[0]?.y).toBeCloseTo(120 + lineHeight / 2);
+    expect(drawnLines[0]?.y).toBeCloseTo(120 + lineHeight / 2);
   });
+
+  it.each([
+    ['left', 0],
+    ['center', 0.5],
+    ['right', 1],
+  ] as const)(
+    'aligns lines of different lengths %s inside the unmoved block (D-059)',
+    (align, anchor) => {
+      const { ctx, scene } = paint(
+        { text: 'Ana\nCasa da Ana', textLayout: { align, x: 0.3, y: 0.5 } },
+        400,
+      );
+      const text = scene.layers.find((layer) => layer.kind === 'text');
+      if (text?.kind !== 'text') throw new Error('No text layer');
+      const { bounds } = text.block;
+      const drawnLines = lines(ctx);
+      const edge = bounds.x + bounds.width * anchor;
+
+      // Same block as center alignment: 220 wide at x 80 + 0.3 × 20.
+      expect(bounds).toMatchObject({ x: 86, width: 220 });
+      expect(drawnLines.map((call) => [call.text, call.x, call.textAlign])).toEqual([
+        ['Ana', edge, align],
+        ['Casa da Ana', edge, align],
+      ]);
+      // Both lines share the aligned edge: left starts, centers, or right ends.
+      const measure = (value: string) => [...value].length * 20;
+      const offsets = drawnLines.map((call) => call.x - measure(call.text) * anchor);
+      expect(offsets[0]).toBeGreaterThanOrEqual(bounds.x);
+      expect((offsets[0] ?? 0) + measure('Ana')).toBeLessThanOrEqual(bounds.x + bounds.width);
+    },
+  );
 
   it('uses the chosen font family and primary color', () => {
     const serif = paint({ fontFamily: 'serif', textColorId: 'test-text-color-a' }, 400);
@@ -161,7 +204,7 @@ describe('drawScene', () => {
       },
       400,
     );
-    const runs = ctx.calls.filter((call) => call.op === 'fillText');
+    const runs = lines(ctx);
 
     expect(runs.map((run) => [run.text, run.fillStyle])).toEqual([
       ['a', '#112233'],
@@ -192,6 +235,90 @@ describe('drawScene', () => {
     expect(ctx.filter).toBe('none');
     expect(ctx.globalCompositeOperation).toBe('source-over');
     expect(ctx.globalAlpha).toBe(1);
+    // Only the signature's own pill and mark are translucent; the photograph never is.
+    const photo = ctx.calls.find((call) => call.op === 'drawImage');
+    expect(photo).toMatchObject({ alpha: 1, composite: 'source-over' });
+  });
+});
+
+describe('drawScene: Taavi signature (D-060)', () => {
+  beforeEach(() => {
+    installFakeCanvas();
+  });
+
+  const signatureOf = (ctx: FakeContext) => {
+    const pill = ctx.calls.find((call) => call.op === 'roundRect');
+    const fill = ctx.calls.find((call) => call.op === 'fill');
+    const mark = ctx.calls.find(
+      (call): call is Extract<PaintCall, { op: 'drawImage' }> =>
+        call.op === 'drawImage' && isSignature(call),
+    );
+    const text = ctx.calls.find(
+      (call): call is Extract<PaintCall, { op: 'fillText' }> =>
+        call.op === 'fillText' && isSignature(call),
+    );
+    if (pill?.op !== 'roundRect' || fill?.op !== 'fill' || !mark || !text) {
+      throw new Error('No signature drawn');
+    }
+    return { pill: pill.args, fill, mark, text };
+  };
+
+  it('is 10% larger and 20% more transparent than first implemented (M4.6 refinement)', () => {
+    // First values: height 0.05, pill alpha 0.8, ink alpha 0.9; × 1.1 and × 0.8.
+    expect(SIGNATURE.height).toBeCloseTo(0.05 * 1.1, 10);
+    expect(SIGNATURE.fillAlpha).toBeCloseTo(0.8 * 0.8, 10);
+    expect(SIGNATURE.inkAlpha).toBeCloseTo(0.9 * 0.8, 10);
+    // Still below every model's text area (the lowest ends at 0.845).
+    expect(1 - SIGNATURE.margin - SIGNATURE.height).toBeGreaterThan(0.845);
+  });
+
+  it('is painted last, over everything, in its own saved state', () => {
+    const { ctx } = paint({ text: 'Ana' }, 400);
+    const calls = ctx.calls;
+    const pill = calls.findIndex((call) => call.op === 'roundRect');
+    const shading = calls.findIndex((call) => call.op === 'drawImage' && isLayer(call));
+
+    expect(shading).toBeGreaterThan(-1);
+    expect(pill).toBeGreaterThan(shading);
+    expect(calls.at(-1)).toEqual({ op: 'restore' });
+    expect(ctx.drawn.at(-1)).toMatchObject({ op: 'fillText', text: '© Taavi' });
+  });
+
+  it('sits at the bottom-right corner, sized from the scene, not on the text area', () => {
+    const { ctx } = paint({ text: 'Ana' }, 400);
+    const { pill, fill, mark, text } = signatureOf(ctx);
+    const [x = 0, y = 0, width = 0, height = 0, radius] = pill;
+    const margin = SIGNATURE.margin * 400;
+
+    expect(height).toBeCloseTo(SIGNATURE.height * 400);
+    expect(x + width).toBeCloseTo(400 - margin);
+    expect(y + height).toBeCloseTo(400 - margin);
+    expect(radius).toBeCloseTo(height / 2);
+    // Text area of the fixture ends at y 280.
+    expect(y).toBeGreaterThan(280);
+    expect(fill).toMatchObject({ fillStyle: SIGNATURE.fill, alpha: SIGNATURE.fillAlpha });
+    // The mark keeps the logo's aspect ratio and is inside the pill.
+    expect(mark.width / mark.height).toBeCloseTo(MARK_INK.width / MARK_INK.height);
+    expect(mark.x).toBeGreaterThan(x);
+    expect(mark.alpha).toBe(SIGNATURE.inkAlpha);
+    expect(text).toMatchObject({ fillStyle: SIGNATURE.ink, textAlign: 'left' });
+    expect(text.x).toBeGreaterThan(mark.x + mark.width);
+    expect(text.x).toBeLessThan(x + width);
+  });
+
+  it('keeps the same relative geometry at any resolution, so preview and export match', () => {
+    const small = signatureOf(paint({ text: 'Ana' }, 400).ctx).pill;
+    const large = signatureOf(paint({ text: 'Ana' }, 1200).ctx).pill;
+
+    // drawScene works in scene units and scales the transform, so the paths are identical.
+    expect(large).toEqual(small);
+  });
+
+  it('is the same with or without lettering, and with flat lettering', () => {
+    const plain = signatureOf(paint({ text: '' }, 400).ctx).pill;
+    const flat = signatureOf(paint({ text: 'Ana' }, 400, null).ctx).pill;
+
+    expect(plain).toEqual(flat);
   });
 });
 
@@ -217,7 +344,7 @@ describe('drawScene: debossed lettering (D-052)', () => {
     return { draw, layer: contextOf(draw.image as HTMLCanvasElement) };
   };
   const texts = (calls: readonly PaintCall[]) =>
-    calls.filter((call): call is Text => call.op === 'fillText');
+    lettering(calls).filter((call): call is Text => call.op === 'fillText');
   const runsOf = (calls: readonly PaintCall[]) =>
     texts(calls).map((call) => [call.text, call.x, call.y, call.textAlign]);
 

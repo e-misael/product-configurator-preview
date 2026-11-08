@@ -1,5 +1,6 @@
 import { validateCatalog } from '../../../src/domain';
 import { composePreview, compositionSources } from '../../../src/preview/composition';
+import { WATERMARK_SRC } from '../../../src/preview/watermark';
 import { config, previewCatalog, validate } from './fixtures';
 
 function compose(overrides: Parameters<typeof config>[0] = {}) {
@@ -154,8 +155,11 @@ describe('composePreview: lettering style', () => {
 });
 
 describe('compositionSources', () => {
-  it("lists only the model's photograph", () => {
-    expect(compositionSources(compose())).toEqual(['/catalog/plates/test-plate-square/beige.webp']);
+  it("lists the model's photograph and the Taavi mark (D-060)", () => {
+    expect(compositionSources(compose())).toEqual([
+      '/catalog/plates/test-plate-square/beige.webp',
+      WATERMARK_SRC,
+    ]);
   });
 
   it('is empty when nothing is shown', () => {

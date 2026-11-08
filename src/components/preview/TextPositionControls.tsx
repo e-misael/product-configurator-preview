@@ -6,23 +6,42 @@ import {
   PRESET_COLUMNS,
   PRESET_ROWS,
   presetPlacement,
+  TEXT_ALIGNMENTS,
   type PresetColumn,
   type PresetRow,
+  type TextAlignment,
   type TextPlacement,
 } from '../../domain';
 import type { TextBlock } from '../../preview/scene';
 
+/** Presets or manual adjustment: only one set of controls is shown (D-058). */
+export type PositionMode = 'presets' | 'manual';
+
 interface TextPositionControlsProps {
   /** The text block as drawn; undefined when no text is on the image. */
   readonly block: TextBlock | undefined;
-  /** Whether a placement is stored (otherwise the catalog default applies). */
-  readonly customized: boolean;
-  readonly moveMode: boolean;
-  readonly onToggleMoveMode: () => void;
+  /** Whether the block is away from the catalog default position. */
+  readonly moved: boolean;
+  /** "Ajustar manualmente" also enables dragging the text on the preview. */
+  readonly mode: PositionMode;
+  readonly onMode: (mode: PositionMode) => void;
   readonly onPlace: (placement: TextPlacement) => void;
+  readonly onAlign: (align: TextAlignment) => void;
   readonly onNudge: (dx: number, dy: number) => void;
   readonly onReset: () => void;
 }
+
+/** Icon-only options; the names are for assistive technology (D-059). */
+const ALIGNMENT_NAMES: Record<TextAlignment, string> = {
+  left: 'Alinhar à esquerda',
+  center: 'Centralizar texto',
+  right: 'Alinhar à direita',
+};
+
+const MODES: readonly { mode: PositionMode; label: string }[] = [
+  { mode: 'presets', label: 'Escolher posição' },
+  { mode: 'manual', label: 'Ajustar manualmente' },
+];
 
 const ROW_LABELS: Record<PresetRow, string> = {
   top: 'Superior',
@@ -63,18 +82,22 @@ const VECTORS: Record<Direction, readonly [number, number]> = {
 const percent = (value: number) => `${Math.round(value * 100)}%`;
 
 /**
- * Text position (D-044, simplified by D-047): nine presets that set the line
- * alignment and the block position together, 2% / 10% (Shift) directional
- * moves by button or arrow key, the touch "Mover texto" mode, and reset to the
- * catalog default. Disabled while no text is drawn on the image. One status
- * line names the position; the groups are named for assistive technology only (D-057).
+ * Text position and alignment (D-044, D-057, D-058, D-059). The line
+ * alignment (three icon options) arranges the lines inside the block and
+ * never moves it. The block is placed in one of two modes: "Escolher posição"
+ * shows the nine presets; "Ajustar manualmente" shows the 2% / 10% (Shift)
+ * moves by button or arrow key and enables dragging on the preview. Switching
+ * modes keeps the position; "Redefinir posição" works in both. Until text is
+ * drawn on the image only a hint is shown. One status line names the
+ * position; the groups are named for assistive technology.
  */
 export function TextPositionControls({
   block,
-  customized,
-  moveMode,
-  onToggleMoveMode,
+  moved,
+  mode,
+  onMode,
   onPlace,
+  onAlign,
   onNudge,
   onReset,
 }: TextPositionControlsProps) {
@@ -102,14 +125,36 @@ export function TextPositionControls({
     move(direction, event.shiftKey);
   };
 
-  return (
-    <fieldset className="field position" disabled={block === undefined}>
-      <legend className="field__legend">Posição do texto</legend>
-      {block === undefined && (
-        <p className="field__info">Disponível quando o texto aparece na pré-visualização.</p>
-      )}
+  if (block === undefined || placement === undefined) {
+    return (
+      <p className="field__info position__hint">
+        Disponível quando o texto aparece na pré-visualização: escolha o modelo e digite o texto.
+      </p>
+    );
+  }
 
-      <div className="position__controls">
+  return (
+    <fieldset className="field position" data-align={placement.align}>
+      <legend className="visually-hidden">Posição do texto</legend>
+      <fieldset className="field">
+        <legend className="field__legend field__legend--small">Posição do bloco</legend>
+        <div className="segmented">
+          {MODES.map((option) => (
+            <label key={option.mode} className="segmented__option">
+              <input
+                type="radio"
+                name="position-mode"
+                value={option.mode}
+                checked={mode === option.mode}
+                onChange={() => onMode(option.mode)}
+              />
+              <span>{option.label}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+
+      {mode === 'presets' ? (
         <div className="position__presets" role="group" aria-label="Posições predefinidas">
           {PRESET_ROWS.flatMap((row) =>
             PRESET_COLUMNS.map((column) => {
@@ -122,9 +167,9 @@ export function TextPositionControls({
                   aria-label={label}
                   title={label}
                   aria-pressed={current?.row === row && current.column === column}
-                  onClick={() => onPlace(presetPlacement(row, column))}
+                  onClick={() => onPlace(presetPlacement(row, column, placement.align))}
                 >
-                  {/* Three short lines, aligned and placed like the text will be. */}
+                  {/* Three short lines, placed and aligned like the text will be. */}
                   <span className="position__glyph" aria-hidden="true">
                     <span />
                     <span />
@@ -135,62 +180,73 @@ export function TextPositionControls({
             }),
           )}
         </div>
+      ) : (
+        <div className="position__manual">
+          <div
+            className="position__moves"
+            role="group"
+            aria-label="Ajuste fino"
+            aria-describedby="position-keys"
+          >
+            {DIRECTIONS.map(({ direction, label, symbol }) => (
+              <button
+                key={direction}
+                type="button"
+                className={`button position__move position__move--${direction}`}
+                aria-label={label}
+                title={label}
+                disabled={direction === 'up' || direction === 'down' ? !canMove.y : !canMove.x}
+                onClick={(event: MouseEvent<HTMLButtonElement>) => move(direction, event.shiftKey)}
+                onKeyDown={onKeyDown}
+              >
+                <span aria-hidden="true">{symbol}</span>
+              </button>
+            ))}
+          </div>
+          <p className="field__info position__drag">Ou arraste o texto na pré-visualização.</p>
+          {/* Read with the arrow pad; not shown, to keep the section uncluttered. */}
+          <p className="visually-hidden" id="position-keys">
+            Setas do teclado: 2% por passo, 10% com Shift.
+          </p>
+        </div>
+      )}
 
-        <div
-          className="position__moves"
-          role="group"
-          aria-label="Ajuste fino"
-          aria-describedby="position-keys"
-        >
-          {DIRECTIONS.map(({ direction, label, symbol }) => (
-            <button
-              key={direction}
-              type="button"
-              className={`button position__move position__move--${direction}`}
-              aria-label={label}
-              title={label}
-              disabled={direction === 'up' || direction === 'down' ? !canMove.y : !canMove.x}
-              onClick={(event: MouseEvent<HTMLButtonElement>) => move(direction, event.shiftKey)}
-              onKeyDown={onKeyDown}
-            >
-              <span aria-hidden="true">{symbol}</span>
-            </button>
+      <fieldset className="field alignment">
+        <legend className="field__legend field__legend--small">Alinhamento das linhas</legend>
+        <div className="alignment__options">
+          {TEXT_ALIGNMENTS.map((align) => (
+            <label key={align} className="alignment__option" title={ALIGNMENT_NAMES[align]}>
+              <input
+                type="radio"
+                name="text-align"
+                value={align}
+                aria-label={ALIGNMENT_NAMES[align]}
+                checked={placement.align === align}
+                onChange={() => onAlign(align)}
+              />
+              <span className={`alignment__glyph alignment__glyph--${align}`} aria-hidden="true">
+                <span />
+                <span />
+                <span />
+                <span />
+              </span>
+            </label>
           ))}
         </div>
-      </div>
+      </fieldset>
+
       {/* The one position announcement: the preset, or the custom position in percent. */}
       <p className="field__info position__current" role="status">
-        {placement === undefined
-          ? ''
-          : current === undefined
-            ? `Posição personalizada: horizontal ${
-                canMove.x ? percent(placement.x) : 'sem espaço livre'
-              }, vertical ${canMove.y ? percent(placement.y) : 'sem espaço livre'}.`
-            : `Posição: ${presetLabel(current.row, current.column)}.`}
-      </p>
-      <p className="field__info" id="position-keys">
-        Setas do teclado: 2% por passo, 10% com Shift.
+        {current === undefined
+          ? `Posição personalizada: horizontal ${
+              canMove.x ? percent(placement.x) : 'sem espaço livre'
+            }, vertical ${canMove.y ? percent(placement.y) : 'sem espaço livre'}.`
+          : `Posição: ${presetLabel(current.row, current.column)}.`}
       </p>
 
-      <div className="selection-actions__buttons">
-        <button
-          type="button"
-          className="button"
-          aria-pressed={moveMode}
-          aria-describedby="move-mode-hint"
-          onClick={onToggleMoveMode}
-        >
-          Mover texto
-        </button>
-        <button type="button" className="button" disabled={!customized} onClick={onReset}>
-          Redefinir posição
-        </button>
-      </div>
-      <p className="field__info" id="move-mode-hint">
-        {moveMode
-          ? 'Arraste o texto na imagem com o dedo ou o mouse.'
-          : 'Com o mouse, arraste o texto na imagem. Na tela de toque, ative "Mover texto".'}
-      </p>
+      <button type="button" className="button position__reset" disabled={!moved} onClick={onReset}>
+        Redefinir posição
+      </button>
     </fieldset>
   );
 }

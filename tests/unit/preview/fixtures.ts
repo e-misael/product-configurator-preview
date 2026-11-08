@@ -1,5 +1,6 @@
 import type { Catalog, Configuration } from '../../../src/domain';
 import { validateConfiguration } from '../../../src/domain';
+import { WATERMARK_SRC } from '../../../src/preview/watermark';
 import type { Size } from '../support/fake-image';
 
 /**
@@ -88,8 +89,9 @@ export const previewCatalog: Catalog = {
   ],
 };
 
-/** Natural sizes of the fixture's files. */
+/** Natural sizes of the fixture's files, and of the real Taavi signature mark (D-060). */
 export const previewSizes: Record<string, Size> = {
+  [WATERMARK_SRC]: { width: 1262, height: 1246 },
   '/catalog/plates/test-plate-square/beige.webp': { width: 400, height: 400 },
   '/catalog/plates/test-plate-rectangle/beige.webp': { width: 600, height: 400 },
   '/catalog/plates/test-plate-circle/beige.webp': { width: 400, height: 400 },

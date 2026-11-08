@@ -1,0 +1,291 @@
+import { expect, test, type Locator, type Page } from '@playwright/test';
+
+/**
+ * Mobile-first layout (D-058) on the demo build at common phone widths:
+ * preview first and sticky, one step open at a time, export last, nothing
+ * hidden under the preview band, no horizontal scrolling. Runs in Chromium and
+ * WebKit with touch. A real virtual keyboard cannot be emulated; the focused
+ * text field is checked against the band instead.
+ */
+
+const WIDTHS = [320, 375, 393, 430] as const;
+const STEPS = ['Modelo e tamanho', 'Texto e cores', 'Posição do texto', 'Revisar personalização'];
+
+const preview = (page: Page) => page.getByRole('region', { name: 'Pré-visualização' });
+const toggle = (page: Page, title: string) =>
+  page.getByRole('button', { name: title, exact: true });
+
+async function expectNoHorizontalScroll(page: Page) {
+  const overflow = await page.evaluate(
+    () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+  );
+  expect(overflow).toBeLessThanOrEqual(0);
+}
+
+/** The element is on screen and below the sticky preview band, not under it. */
+async function expectNotObscured(locator: Locator) {
+  await locator.scrollIntoViewIfNeeded();
+  const hit = await locator.evaluate((element) => {
+    const rect = element.getBoundingClientRect();
+    const top = document.elementFromPoint(rect.left + rect.width / 2, rect.top + rect.height / 2);
+    return top !== null && (top === element || element.contains(top) || top.contains(element));
+  });
+  expect(hit).toBe(true);
+}
+
+async function open(page: Page, title: string) {
+  const button = toggle(page, title);
+  if ((await button.getAttribute('aria-expanded')) !== 'true') await button.tap();
+  await expect(button).toHaveAttribute('aria-expanded', 'true');
+}
+
+for (const width of WIDTHS) {
+  test.describe(`${width} px wide`, () => {
+    test.use({ viewport: { width, height: width < 375 ? 568 : 760 } });
+
+    test.beforeEach(async ({ page }) => {
+      await page.goto('/');
+      await expect(page.getByText(/Modo demonstração/)).toBeVisible();
+    });
+
+    test('puts the preview first and the steps in order, with export last', async ({ page }) => {
+      const order = await page.evaluate(() =>
+        [...document.querySelectorAll('.preview__title, .step__title')].map(
+          (element) => element.textContent,
+        ),
+      );
+      expect(order).toEqual(['Pré-visualização', ...STEPS]);
+      for (const [index, title] of STEPS.entries()) {
+        await expect(toggle(page, title)).toHaveAttribute(
+          'aria-expanded',
+          index === 0 ? 'true' : 'false',
+        );
+      }
+      // The last control on the page is "Exportar imagem", inside the review.
+      const last = await page.evaluate(() => {
+        const buttons = [...document.querySelectorAll('button')];
+        return buttons.at(-1)?.textContent;
+      });
+      expect(last).toBe('Exportar imagem');
+      await expect(page.getByRole('button', { name: /Continuar/ })).toHaveCount(0);
+      await expectNoHorizontalScroll(page);
+    });
+
+    test('completes a configuration by touch, keeping the preview in view', async ({ page }) => {
+      await page
+        .getByRole('group', { name: 'Modelo' })
+        .getByRole('radio', { name: /Placa cerâmica/ })
+        .tap();
+      await expect(preview(page).getByRole('img')).toBeVisible();
+      await expectNoHorizontalScroll(page);
+
+      await open(page, 'Texto e cores');
+      await expect(toggle(page, 'Modelo e tamanho')).toHaveAttribute('aria-expanded', 'false');
+      const field = page.getByLabel('Texto', { exact: true });
+      await field.fill('O que não cabe\ntransborda.');
+      await page
+        .getByRole('group', { name: 'Cor do texto' })
+        .getByRole('radio', { name: /Letra grafite/ })
+        .check();
+      await expectNoHorizontalScroll(page);
+
+      await open(page, 'Posição do texto');
+      await expect(preview(page)).toHaveClass(/preview--expanded/);
+      const right = page.locator('label', {
+        has: page.getByRole('radio', { name: 'Alinhar à direita' }),
+      });
+      await expectNotObscured(right);
+      await right.tap();
+      await expect(page.getByRole('radio', { name: 'Alinhar à direita' })).toBeChecked();
+      const preset = page.getByRole('button', { name: 'Inferior à direita', exact: true });
+      await expectNotObscured(preset);
+      await preset.tap();
+      await expect(preset).toHaveAttribute('aria-pressed', 'true');
+      await expectNoHorizontalScroll(page);
+
+      await open(page, 'Revisar personalização');
+      await expect(preview(page)).not.toHaveClass(/preview--expanded/);
+      const exportButton = page.getByRole('button', { name: 'Exportar imagem' });
+      await expect(exportButton).toHaveAttribute('aria-disabled', 'false');
+      await expectNotObscured(exportButton);
+      // Scrolled to the end, the preview band is still at the top of the screen.
+      await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+      const band = await preview(page).boundingBox();
+      expect(band?.y ?? -1).toBeGreaterThanOrEqual(-1);
+      expect(band?.y ?? 99).toBeLessThanOrEqual(1);
+      await expect(preview(page).getByRole('img')).toBeInViewport();
+      await expectNoHorizontalScroll(page);
+
+      const [download] = await Promise.all([page.waitForEvent('download'), exportButton.tap()]);
+      expect(download.suggestedFilename()).toBe('taavi-demo-placa-ceramica.png');
+    });
+
+    test('keeps every choice when steps close, and summarizes them', async ({ page }) => {
+      await page
+        .getByRole('group', { name: 'Modelo' })
+        .getByRole('radio', { name: /Quadro/ })
+        .tap();
+      await open(page, 'Texto e cores');
+      await page.getByLabel('Texto', { exact: true }).fill('Ana\nLuz');
+      await page
+        .getByRole('group', { name: 'Cor do texto' })
+        .getByRole('radio', { name: /Letra azul/ })
+        .check();
+      await open(page, 'Posição do texto');
+      await page
+        .locator('label', { has: page.getByRole('radio', { name: 'Alinhar à esquerda' }) })
+        .tap();
+
+      await open(page, 'Modelo e tamanho');
+      await expect(toggle(page, 'Texto e cores')).toHaveAccessibleDescription(
+        /Concluído · “Ana” · .*Letra azul/,
+      );
+      await open(page, 'Texto e cores');
+      await expect(page.getByLabel('Texto', { exact: true })).toHaveValue('Ana\nLuz');
+      await expect(
+        page
+          .getByRole('group', { name: 'Cor do texto' })
+          .getByRole('radio', { name: /Letra azul/ }),
+      ).toBeChecked();
+      await open(page, 'Posição do texto');
+      await expect(page.getByRole('radio', { name: 'Alinhar à esquerda' })).toBeChecked();
+      await open(page, 'Revisar personalização');
+      await expect(
+        page.locator('.review__summary dt', { hasText: 'Alinhamento' }).locator('+ dd'),
+      ).toHaveText('À esquerda');
+    });
+
+    test('keeps the text field clear of the reduced band, which does not move on blur', async ({
+      page,
+    }) => {
+      await page
+        .getByRole('group', { name: 'Modelo' })
+        .getByRole('radio', { name: /Placa cerâmica/ })
+        .tap();
+      await open(page, 'Texto e cores');
+      const field = page.getByLabel('Texto', { exact: true });
+      await field.focus();
+      await field.pressSequentially('Ana');
+      // With the text step open the band is reduced, leaving room for the virtual keyboard.
+      await expect(preview(page)).toHaveClass(/preview--reduced/);
+      await expect
+        .poll(async () => (await preview(page).getByRole('img').boundingBox())?.width ?? 999)
+        .toBeLessThanOrEqual(171);
+      const band = await preview(page).boundingBox();
+      const box = await field.boundingBox();
+      expect((box?.y ?? 0) + 1).toBeGreaterThanOrEqual((band?.y ?? 0) + (band?.height ?? 0));
+      // Leaving the field (a tap on a color) changes nothing in the layout.
+      const swatch = page
+        .getByRole('group', { name: 'Cor do texto' })
+        .getByRole('radio', { name: /Letra azul/ });
+      const onPage = () =>
+        swatch.evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
+      const before = await onPage();
+      await field.blur();
+      expect(await onPage()).toBe(before);
+    });
+  });
+}
+
+test('opens and closes steps with the keyboard', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 760 });
+  await page.goto('/');
+  const step = toggle(page, 'Posição do texto');
+  await step.focus();
+  await page.keyboard.press('Enter');
+  await expect(step).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.getByText(/Disponível quando o texto aparece/)).toBeVisible();
+  await page.keyboard.press('Space');
+  await expect(step).toHaveAttribute('aria-expanded', 'false');
+  await expect(page.getByText(/Disponível quando o texto aparece/)).toBeHidden();
+});
+
+test.describe('accordion focus and scrolling (WAI-ARIA)', () => {
+  test.use({ viewport: { width: 375, height: 667 } });
+
+  /** The header's top is on screen and below the sticky preview band. */
+  async function expectHeaderVisible(page: Page, title: string) {
+    // Polled: without reduced motion the correction scrolls smoothly.
+    await expect
+      .poll(async () => {
+        const band = await preview(page).boundingBox();
+        const header = await toggle(page, title).boundingBox();
+        const bandBottom = (band?.y ?? 0) + (band?.height ?? 0);
+        return (
+          header !== null &&
+          header.y >= Math.max(0, bandBottom) - 1 &&
+          header.y + header.height <= 667
+        );
+      })
+      .toBe(true);
+  }
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/');
+    await page
+      .getByRole('group', { name: 'Modelo' })
+      .getByRole('radio', { name: /Placa cerâmica/ })
+      .tap();
+    await expect(preview(page).getByRole('img')).toBeVisible();
+  });
+
+  test('keeps focus on the tapped header and shows it below the preview', async ({ page }) => {
+    // Scrolled down inside the long model step, then the next step is opened.
+    await toggle(page, 'Texto e cores').scrollIntoViewIfNeeded();
+    await toggle(page, 'Texto e cores').tap();
+    await expect(toggle(page, 'Texto e cores')).toBeFocused();
+    await expect(page.getByLabel('Texto', { exact: true })).not.toBeFocused();
+    await expectHeaderVisible(page, 'Texto e cores');
+
+    await page.getByLabel('Texto', { exact: true }).fill('Ana');
+    await toggle(page, 'Posição do texto').scrollIntoViewIfNeeded();
+    await toggle(page, 'Posição do texto').tap();
+    await expect(toggle(page, 'Posição do texto')).toBeFocused();
+    // The preview grows for positioning; the header still sits below it.
+    await expect(preview(page)).toHaveClass(/preview--expanded/);
+    await expectHeaderVisible(page, 'Posição do texto');
+  });
+
+  test('keeps focus on the header opened with the keyboard', async ({ page }) => {
+    await toggle(page, 'Revisar personalização').focus();
+    await page.keyboard.press('Enter');
+    await expect(toggle(page, 'Revisar personalização')).toHaveAttribute('aria-expanded', 'true');
+    await expect(toggle(page, 'Revisar personalização')).toBeFocused();
+    await expectHeaderVisible(page, 'Revisar personalização');
+    await expect(toggle(page, 'Revisar personalização')).toHaveAttribute(
+      'aria-controls',
+      'step-review-body',
+    );
+  });
+
+  test('does not scroll when the opened header is already in view', async ({ page }) => {
+    await toggle(page, 'Modelo e tamanho').tap();
+    await toggle(page, 'Texto e cores').scrollIntoViewIfNeeded();
+    const before = await page.evaluate(() => window.scrollY);
+    await toggle(page, 'Texto e cores').tap();
+    await expect(toggle(page, 'Texto e cores')).toHaveAttribute('aria-expanded', 'true');
+    expect(await page.evaluate(() => window.scrollY)).toBe(before);
+  });
+
+  test('drags only in manual mode; the presets mode scrolls by touch again', async ({ page }) => {
+    await toggle(page, 'Texto e cores').tap();
+    await page.getByLabel('Texto', { exact: true }).fill('Ana');
+    await toggle(page, 'Posição do texto').tap();
+    const canvas = preview(page).locator('canvas');
+    await expect(canvas).toHaveCSS('touch-action', 'auto');
+
+    await page.getByRole('radio', { name: 'Ajustar manualmente' }).locator('..').tap();
+    await expect(canvas).toHaveCSS('touch-action', 'none');
+    await expect(page.getByRole('group', { name: 'Posições predefinidas' })).toHaveCount(0);
+    await page.getByRole('button', { name: 'Mover para a direita' }).tap();
+    await expect(page.getByText(/^Posição personalizada: horizontal 52%/)).toBeVisible();
+
+    await page.getByRole('radio', { name: 'Escolher posição' }).locator('..').tap();
+    await expect(canvas).toHaveCSS('touch-action', 'auto');
+    await expect(page.getByText(/^Posição personalizada: horizontal 52%/)).toBeVisible();
+    // Closing the step leaves manual mode too.
+    await page.getByRole('radio', { name: 'Ajustar manualmente' }).locator('..').tap();
+    await toggle(page, 'Revisar personalização').tap();
+    await expect(canvas).toHaveCSS('touch-action', 'auto');
+  });
+});

@@ -14,6 +14,11 @@ const plateRadio = (id: string) =>
   within(group('Modelo')).getByRole('radio', { name: new RegExp(`^Test ${id} `) });
 const status = () => screen.getByRole('region', { name: 'Situação da configuração' });
 const preview = () => screen.getByRole('region', { name: 'Pré-visualização' });
+/** "Revisar personalização" holds the summary, the status, the disclaimer, and export (D-058). */
+const review = () => screen.getByRole('region', { name: 'Revisar personalização' });
+/** The formatting announcement, in the text step next to the field. */
+const formattingNotice = () =>
+  within(screen.getByRole('region', { name: 'Texto e cores' })).getByRole('status');
 
 describe('Configurator', () => {
   describe('Modelo', () => {
@@ -53,8 +58,8 @@ describe('Configurator', () => {
         await user.click(plateRadio(id));
         expect(screen.queryByRole('group', { name: /Moldura/ })).not.toBeInTheDocument();
       }
-      expect(within(preview()).queryByText('Moldura')).not.toBeInTheDocument();
-      expect(within(status()).getByRole('status')).toBeEmptyDOMElement();
+      expect(within(review()).queryByText('Moldura')).not.toBeInTheDocument();
+      expect(formattingNotice()).toBeEmptyDOMElement();
     });
   });
 
@@ -67,7 +72,7 @@ describe('Configurator', () => {
 
       expect(field).toHaveValue('  Casa da Ana\nDesde 2024 ');
       expect(field).toHaveAccessibleDescription('As quebras de linha são mantidas.');
-      expect(preview().querySelector('.preview__text')?.textContent).toBe(
+      expect(review().querySelector('.review__text')?.textContent).toBe(
         '  Casa da Ana\nDesde 2024 ',
       );
     });
@@ -116,7 +121,7 @@ describe('Configurator', () => {
       await user.click(font.getByRole('radio', { name: 'Com serifa' }));
 
       expect(font.getByRole('radio', { name: 'Com serifa' })).toBeChecked();
-      expect(within(preview()).getByText('Com serifa')).toBeInTheDocument();
+      expect(within(review()).getByText('Com serifa')).toBeInTheDocument();
     });
 
     it('shows the primary colors as labeled swatch radios, none preselected', async () => {
@@ -135,7 +140,7 @@ describe('Configurator', () => {
 
       await user.click(ink('ink B'));
       expect(ink('ink B')).toBeChecked();
-      expect(within(preview()).getByText('Test ink B')).toBeInTheDocument();
+      expect(within(review()).getByText('Test ink B')).toBeInTheDocument();
     });
 
     it('hides the second color behind "Usar segunda cor" until requested', async () => {
@@ -169,7 +174,7 @@ describe('Configurator', () => {
 
       expect(screen.getByLabelText('Texto')).toHaveValue('Casa da Ana');
       expect(screen.getByText('1 trecho com a segunda cor.')).toBeInTheDocument();
-      expect(within(preview()).getByText(/1 trecho/)).toBeInTheDocument();
+      expect(within(review()).getByText(/1 trecho/)).toBeInTheDocument();
     });
 
     it('removes the second color from a selection but keeps the chosen color', async () => {
@@ -205,7 +210,7 @@ describe('Configurator', () => {
       expect(screen.queryByRole('group', { name: 'Segunda cor' })).not.toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /segunda cor à seleção/ })).toBeNull();
       expect(screen.getByText('Segunda cor em uso: Test ink B (1 trecho).')).toBeInTheDocument();
-      expect(within(preview()).getByText('Test ink B (1 trecho)')).toBeInTheDocument();
+      expect(within(review()).getByText('Test ink B (1 trecho)')).toBeInTheDocument();
 
       await user.click(disclosure());
       expect(secondary('ink B')).toBeChecked();
@@ -223,7 +228,7 @@ describe('Configurator', () => {
       expect(screen.queryByRole('button', { name: /segunda cor à seleção/ })).toBeNull();
       expect(screen.queryByRole('button', { name: 'Remover segunda cor' })).toBeNull();
       expect(disclosure()).toHaveFocus();
-      expect(within(preview()).queryByText(/trecho/)).not.toBeInTheDocument();
+      expect(within(review()).queryByText(/trecho/)).not.toBeInTheDocument();
     });
 
     it('keeps an equal-to-primary second color visible and invalid until changed', async () => {
@@ -253,7 +258,7 @@ describe('Configurator', () => {
 
       expect(field).toHaveValue('aaa');
       expect(screen.getByText('1 trecho com a segunda cor.')).toBeInTheDocument();
-      expect(within(status()).getByRole('status')).toBeEmptyDOMElement();
+      expect(formattingNotice()).toBeEmptyDOMElement();
     });
 
     it('shows the approved three-paragraph disclaimer (D-056)', () => {
@@ -293,9 +298,9 @@ describe('Configurator', () => {
         within(preview()).getByText('A foto deste modelo ainda não está disponível.'),
       ).toBeInTheDocument();
       // Model and size are separate summary rows (D-057).
-      expect(within(preview()).getByText('Test test-plate-square')).toBeInTheDocument();
-      expect(within(preview()).getByText('Test size')).toBeInTheDocument();
-      expect(within(preview()).getByText('Test beige')).toBeInTheDocument();
+      expect(within(review()).getByText('Test test-plate-square')).toBeInTheDocument();
+      expect(within(review()).getByText('Test size')).toBeInTheDocument();
+      expect(within(review()).getByText('Test beige')).toBeInTheDocument();
       // The test catalog registers no images, so nothing is painted and nothing is substituted.
       expect(preview().querySelector('img, svg, canvas')).toBeNull();
     });

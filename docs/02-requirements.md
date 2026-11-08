@@ -90,17 +90,17 @@ Lettering-color controls (M4.2, D-047):
 
 Text alignment and position (M4.1b-2, D-044):
 
-11. "Posição do texto" offers nine presets (Superior/Meio/Inferior × à esquerda/ao centro/à direita; the middle one is "Centro"). A preset sets the line alignment and the block position together: the left column aligns lines left at x = 0, the center column centers them at x = 0.5, the right column aligns them right at x = 1; rows set y = 0, 0.5, 1. Each preset shows a glyph of aligned lines placed where the text will go; the selected one is inverted (`aria-pressed`) and named in the section's one status line ("Posição: Superior à esquerda." or, for any other position, "Posição personalizada: horizontal 34%, vertical 50%."; D-057).
-12. Superseded by D-047 (M4.2): there is no separate "Alinhamento das linhas" control; the alignment is set only by the presets (or the catalog default), and moving or dragging never changes it.
+11. "Posição do texto" offers nine presets (Superior/Meio/Inferior × à esquerda/ao centro/à direita; the middle one is "Centro"), shown in the "Escolher posição" mode (D-059). A preset sets only the block position (columns x = 0, 0.5, 1; rows y = 0, 0.5, 1) and keeps the line alignment. Each preset shows a glyph of aligned lines placed where the text will go; the selected one is inverted (`aria-pressed`) and named in the section's one status line ("Posição: Superior à esquerda." or, for any other position, "Posição personalizada: horizontal 34%, vertical 50%."; D-057).
+12. "Alinhamento das linhas" (D-059, superseding D-047): three icon-only radios, "Alinhar à esquerda", "Centralizar texto", "Alinhar à direita", default the catalog alignment. They align the lines inside the block (left edges, centers, or right edges together) and never move the block; nothing else changes the alignment.
 13. The block position is a fraction of the free space around the block inside the calibrated text area, so the text never leaves that area. The font size does not depend on the position, and the text is not enlarged to fill the area; with free space, every preset gives a different position.
-14. With a mouse or pen, the text is dragged directly on the preview; dragging changes only the position. With touch, dragging works only while "Mover texto" is on, so the page scrolls normally otherwise. The toggle is shown on every device.
-15. Directional buttons ("Mover para cima/baixo/a esquerda/a direita"), in a compact pad beside the presets, and arrow keys on them move 2% of the free space, 10% with Shift; the position is announced in the status line of criterion 11. Buttons for an axis without free space are disabled. The preset and arrow groups are named "Posições predefinidas" and "Ajuste fino" for assistive technology, without visible captions (D-057).
-16. "Redefinir posição" restores the catalog default (alignment and position).
+14. "Ajustar manualmente" (the second mode, exclusive with the presets; D-059) enables dragging the text on the preview with mouse, pen, or touch; dragging changes only the position. In "Escolher posição", or with the step closed, touch scrolls the page. Switching modes keeps the position.
+15. In "Ajustar manualmente", directional buttons ("Mover para cima/baixo/a esquerda/a direita") and arrow keys on them move 2% of the free space, 10% with Shift; the position is announced in the status line of criterion 11. Buttons for an axis without free space are disabled. The groups are named "Posições predefinidas" and "Ajuste fino" for assistive technology, without visible captions (D-057); the arrow-key instructions are a visually hidden description of "Ajuste fino".
+16. "Redefinir posição" restores the catalog default position and keeps the chosen alignment (D-059).
 17. The position is kept across model changes and applies to the destination model's calibrated text area.
 18. Text that cannot fit keeps the established overflow warning and placement; the position controls cannot move it on an axis without free space. Export of overflowing text is blocked (FR-07.6).
-19. The controls are disabled, with a hint, while no text is drawn on the image (no photograph, no calibrated text area, or no text).
+19. While no text is drawn on the image (no photograph, no calibrated text area, no size chosen, or no text), only a hint is shown: "Disponível quando o texto aparece na pré-visualização: escolha o modelo e digite o texto." (D-058).
 
-Status: UI (M2) for criteria 1–4; criterion 5 (M3.1); criteria 6–10 (M4.1b-1); criteria 11–19 (M4.1b-2, criteria 11, 12, and 15 revised by M4.2 and M4.5); criteria 20–23 (M4.2).
+Status: UI (M2) for criteria 1–4; criterion 5 (M3.1); criteria 6–10 (M4.1b-1); criteria 11–19 (M4.1b-2, criteria 11, 12, and 15 revised by M4.2 and M4.5; 11, 12, 14–16, and 19 revised by M4.6); criteria 20–23 (M4.2).
 
 ### FR-06 — Real-time preview
 
@@ -114,6 +114,10 @@ Acceptance criteria:
 6. Layers are painted in this order: the model's photograph, then the personalized text (D-037, revised by D-046).
 7. Each reason an image is not shown — model not selected or invalid, image not yet registered, loading, file failed to load, text area not calibrated, lettering size not yet defined, text too long — is stated in text and distinct from the others; nothing else is substituted.
 8. Text keeps its line breaks, is never altered, truncated, or silently clipped, and is drawn at the model's fixed lettering size whatever its length, wrapping, alignment, or position (D-055); text that does not fit shows a visible warning and cannot be exported. While it overflows, the preview (never the export) outlines the calibrated text area with a dashed line, and for vertical overflow the warning states how many lines are over ("1 linha a mais", "2 linhas a mais"; D-057). A model without an approved lettering size shows no text on the image, says so, and cannot be exported with text.
+
+9. Every composition ends with the Taavi signature at the bottom-right (D-060), identical in the preview and the export.
+10. Before a model group's size is chosen, the group's shared photograph is shown without lettering, with "Selecione o tamanho para visualizar a personalização." (D-061).
+11. On phones the preview comes first and stays at the top once a model is chosen, compact, reduced while editing text, and larger while positioning text (D-058).
 
 Status: UI (M3.1) — implemented and verified with synthetic demonstration images only. Real product images and calibration (M1.3b) and masking of non-rectangular outlines are pending (M3.2).
 
@@ -129,6 +133,7 @@ Acceptance criteria:
 6. Export is blocked while the scene reports any preview notice: an image pending, loading, or failed; a pending text area; the provisional text color; or `text-overflow` (D-044). Selected elements are never silently left out.
 7. While blocked, the button stays focusable (`aria-disabled="true"`) and click or keyboard activation does nothing; the reasons are listed below it ("Para exportar a imagem:"), and preview problems refer to the preview notices, which join the button's accessible description.
 8. Failures (canvas allocation, 2D context, drawing, encoding, object URL, download start) show "Não foi possível gerar a imagem. Tente novamente." (or the dimension message) and leave the button usable; success announces "Imagem exportada: {filename}".
+9. "Exportar imagem" is the last action of "Revisar personalização", after the summary, the status, and the disclaimer (D-058). Export is also blocked while the Taavi signature cannot be loaded, and no PNG is ever written without it (D-060), or while a model group's size is not chosen (D-061).
 
 Status: Done (M4), verified with synthetic demonstration images and the four production photographs. Production export is available with the approved palette (D-056), verified end to end in Chromium and mobile WebKit.
 
