@@ -146,7 +146,7 @@ test.describe('Production build @smoke', () => {
 
     const align = isMobile ? 'center' : 'start';
     await expect(page.getByRole('heading', { level: 1 })).toHaveCSS('text-align', align);
-    await expect(page.getByText('Personalize sua peça de cerâmica.')).toHaveCSS(
+    await expect(page.getByText('Personalize, visualize e compartilhe sua criação.')).toHaveCSS(
       'text-align',
       align,
     );
