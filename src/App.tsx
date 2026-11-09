@@ -43,7 +43,7 @@ export function App({ catalog = getCatalog(), banner, modelGroups = MODEL_GROUPS
     <main className="app">
       {banner}
       <header className="app__header">
-        <h1 className="app__title">TAAVI Configurator</h1>
+        <h1 className="app__title">Crie sua peça com a TAAVI</h1>
         <p className="app__note">Personalize sua peça de cerâmica.</p>
       </header>
       <p className="visually-hidden" role="status">

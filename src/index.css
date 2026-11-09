@@ -84,6 +84,13 @@ body {
   letter-spacing: 0.01em;
 }
 
+@media (max-width: 47.99rem) {
+  .app__title,
+  .app__note {
+    text-align: center;
+  }
+}
+
 .app__note,
 .app__empty {
   margin: 0;

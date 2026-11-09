@@ -112,9 +112,11 @@ test.describe('Production build @smoke', () => {
   test('lists the four models, with no demo data, each with its photograph', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page).toHaveTitle('TAAVI Configurator');
+    await expect(page).toHaveTitle('Crie sua peça com a TAAVI');
     await expect(page.locator('html')).toHaveAttribute('lang', 'pt-BR');
-    await expect(page.getByRole('heading', { level: 1, name: 'TAAVI Configurator' })).toBeVisible();
+    await expect(
+      page.getByRole('heading', { level: 1, name: 'Crie sua peça com a TAAVI' }),
+    ).toBeVisible();
 
     const group = page.getByRole('group', { name: 'Modelo' });
     const options = ['Placa cerâmica — 10 × 10 cm', 'Quadro — 20 × 20 cm', 'Bandeja ondulada'];
@@ -137,6 +139,17 @@ test.describe('Production build @smoke', () => {
 
     await expect(page.getByText(/demonstração/i)).toHaveCount(0);
     await expectNoHorizontalScroll(page);
+  });
+
+  test('centers the heading and subtitle on phones only', async ({ page, isMobile }) => {
+    await page.goto('/');
+
+    const align = isMobile ? 'center' : 'start';
+    await expect(page.getByRole('heading', { level: 1 })).toHaveCSS('text-align', align);
+    await expect(page.getByText('Personalize sua peça de cerâmica.')).toHaveCSS(
+      'text-align',
+      align,
+    );
   });
 
   test('offers the approved lettering colors, and shows the disclaimer', async ({ page }) => {

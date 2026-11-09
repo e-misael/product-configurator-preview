@@ -7,7 +7,7 @@ describe('App shell', () => {
 
     expect(screen.getByRole('main')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { level: 1, name: 'TAAVI Configurator' }),
+      screen.getByRole('heading', { level: 1, name: 'Crie sua peça com a TAAVI' }),
     ).toBeInTheDocument();
   });
 

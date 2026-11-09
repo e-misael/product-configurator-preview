@@ -83,7 +83,7 @@ The pilot site is the production build in `dist/`, uploaded to Cloudflare Pages 
    curl -sI https://beta.crie-com-a-taavi.pages.dev/catalog/plates/placa-ceramica-10/bege.png | grep -iE '^HTTP|content-type'
    ```
 
-   Expected: `200`, `x-robots-tag: noindex`, `nosniff`, `<title>TAAVI Configurator</title>`, `image/png`.
+   Expected: `200`, `x-robots-tag: noindex`, `nosniff`, `<title>Crie sua peça com a TAAVI</title>`, `image/png`.
 
 4. **[Product owner] Real-device acceptance** on the beta address (section G). The beta address is for testing only: never print it or put it in a QR Code.
 
