@@ -8,11 +8,16 @@ interface FontFieldProps {
 
 /**
  * Provisional serif / sans-serif choice (D-042); the real typefaces are pending (P-14).
- * "Sem serifa" is lettered in capitals only (D-068).
+ * "Sem serifa" is lettered in capitals only (D-068); the hint describes the chosen one.
  */
+const FONT_HINTS: Readonly<Record<FontFamily, string>> = {
+  'sans-serif': '"Sem serifa" usa somente letras maiúsculas.',
+  serif: '"Com serifa" mantém maiúsculas e minúsculas como digitadas.',
+};
+
 export function FontField({ fontFamily, onChoose }: FontFieldProps) {
   return (
-    <fieldset className="field" aria-describedby="font-hint">
+    <fieldset className="field font-field" aria-describedby="font-hint">
       <legend className="field__legend">Fonte</legend>
       <div className="field__options">
         <ChoiceOption
@@ -33,8 +38,7 @@ export function FontField({ fontFamily, onChoose }: FontFieldProps) {
         </ChoiceOption>
       </div>
       <p className="field__info" id="font-hint">
-        &quot;Sem serifa&quot; usa somente letras maiúsculas; &quot;Com serifa&quot; mantém
-        maiúsculas e minúsculas como digitadas.
+        {FONT_HINTS[fontFamily]}
       </p>
     </fieldset>
   );

@@ -540,7 +540,9 @@ body {
 
 @media (min-width: 48rem) {
   .export__button {
+    display: block;
     width: auto;
+    margin-inline: auto;
   }
 }
 
@@ -614,6 +616,17 @@ body {
   margin: 0.5rem 0 0;
   font-size: 0.875rem;
   color: var(--color-muted);
+}
+
+/* One line where the field is wide enough; it wraps on narrow phones. */
+.text-hint {
+  font-size: 0.8125rem;
+  font-style: italic;
+}
+
+/* .field resets the step's spacing; the font choice needs it after the text box. */
+.font-field {
+  margin-top: 1.25rem;
 }
 
 .field__error {

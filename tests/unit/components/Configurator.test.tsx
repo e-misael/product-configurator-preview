@@ -71,7 +71,9 @@ describe('Configurator', () => {
       await user.type(field, '  Casa da Ana{Enter}Desde 2024 ');
 
       expect(field).toHaveValue('  Casa da Ana\nDesde 2024 ');
-      expect(field).toHaveAccessibleDescription('As quebras de linha são mantidas.');
+      expect(field).toHaveAccessibleDescription(
+        'Dica: Brinque com as quebras de linha e crie uma composição do seu jeito.',
+      );
       // "Sem serifa" (the default) is lettered in capitals; the stored text is unchanged (D-068).
       expect(field).toHaveClass('textarea--uppercase');
       expect(review().querySelector('.review__text')?.textContent).toBe(
@@ -85,10 +87,16 @@ describe('Configurator', () => {
       const text = () => review().querySelector('.review__text')?.textContent;
       await user.type(field, 'Ação é já');
 
-      expect(group('Fonte')).toHaveAccessibleDescription(/somente letras maiúsculas/);
+      // The hint describes only the chosen font.
+      expect(group('Fonte')).toHaveAccessibleDescription(
+        '"Sem serifa" usa somente letras maiúsculas.',
+      );
       expect(text()).toBe('AÇÃO É JÁ');
 
       await user.click(within(group('Fonte')).getByRole('radio', { name: 'Com serifa' }));
+      expect(group('Fonte')).toHaveAccessibleDescription(
+        '"Com serifa" mantém maiúsculas e minúsculas como digitadas.',
+      );
       expect(field).toHaveValue('Ação é já');
       expect(field).not.toHaveClass('textarea--uppercase');
       expect(text()).toBe('Ação é já');

@@ -54,8 +54,8 @@ export function TextField({
       <label className="field__legend" htmlFor="text">
         Texto
       </label>
-      <p className="field__info" id="text-hint">
-        As quebras de linha são mantidas.
+      <p className="field__info text-hint" id="text-hint">
+        Dica: Brinque com as quebras de linha e crie uma composição do seu jeito.
       </p>
       <textarea
         id="text"
