@@ -37,7 +37,8 @@ const WINE = [0x8c, 0x1f, 0x3d] as const;
 const PLATE_AREA: Area = { x0: 0.2, y0: 0.3, x1: 0.8, y1: 0.7 };
 
 const preview = (page: Page) => page.getByRole('region', { name: 'Pré-visualização' });
-const exportButton = (page: Page) => finalize(page).getByRole('button', { name: 'Baixar imagem' });
+const exportButton = (page: Page) =>
+  finalize(page).getByRole('button', { name: 'Baixar minha criação' });
 
 /** Chooses a demo Bandeja size under its grouped option (D-057). */
 async function chooseTray(page: Page, size: 'M' | 'G') {
@@ -139,7 +140,7 @@ async function analyze(
   );
 }
 
-/** Clicks "Baixar imagem", waits for the real download, and checks the PNG header. */
+/** Clicks "Baixar minha criação", waits for the real download, and checks the PNG header. */
 async function downloadPng(page: Page) {
   const [download] = await Promise.all([page.waitForEvent('download'), exportButton(page).click()]);
   const bytes = await readFile(await download.path());
@@ -182,7 +183,7 @@ test('downloads the standalone plate as a native-size PNG matching the preview @
 
   expect(file.fileName).toBe('taavi-demo-placa-ceramica.png');
   expect([file.width, file.height]).toEqual([400, 400]);
-  await expect(finalize(page)).toContainText('Imagem exportada: taavi-demo-placa-ceramica.png');
+  await expect(finalize(page)).toContainText('Download iniciado: taavi-demo-placa-ceramica.png');
   const points = [
     [0.02, 0.02], // outside the plate photograph: opaque white background
     [0.5, 0.8], // ceramic
@@ -338,7 +339,7 @@ test.describe('blocked export', () => {
     await openStep(page, 'Revisar personalização');
 
     await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'true');
-    await expect(finalize(page)).toContainText('Para exportar a imagem:');
+    await expect(finalize(page)).toContainText('Para finalizar:');
     await expect(finalize(page)).toContainText('Falta escolher: Cor do texto.');
     await expectNoDownload(page);
   });

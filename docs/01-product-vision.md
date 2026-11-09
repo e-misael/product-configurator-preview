@@ -38,7 +38,7 @@ Details and acceptance criteria: [02-requirements.md](02-requirements.md).
 
 ## Out of scope
 
-Customer image uploads (file picker, drag-and-drop, image URLs, image storage or upload APIs), sending orders on the customer's behalf (sharing hands the image and a request to the customer's own share sheet or WhatsApp, D-076; no WhatsApp Business API), Nuvemshop integration, shopping cart, checkout, order management, payments, customer accounts, authentication, database, backend API, cloud storage, inventory, dynamic pricing, AI-generated previews, 3D rendering, admin dashboard, analytics, multi-tenancy, and any commercial SaaS functionality.
+Customer image uploads (file picker, drag-and-drop, image URLs, image storage or upload APIs), sending orders on the customer's behalf (sharing hands the image and a request to the customer's own share sheet or WhatsApp, D-076; no WhatsApp Business API), Nuvemshop integration, shopping cart, checkout, order management, payments, customer accounts, authentication, database, backend API, cloud storage, inventory, dynamic pricing (fixed list prices from the catalog and a quantity in the WhatsApp inquiry are in scope, D-080), discounts, shipping calculation, AI-generated previews, 3D rendering, admin dashboard, analytics, multi-tenancy, and any commercial SaaS functionality.
 
 The long-term goal is to integrate with the existing store **without rebuilding its e-commerce infrastructure**. Future integration must not drive complexity into the current architecture.
 

@@ -31,8 +31,9 @@ function bandejaImage(id: string, fontSize: number): PlateImage {
  *
  * Contains only what Taavi has supplied: the four current models with their
  * customer-facing names, size labels, and confirmed outer dimensions, and the
- * fixed ceramic color "Bege" (D-040, D-041, D-046, P-01), and the approved
- * lettering colors (D-056). The Quadro is one
+ * fixed ceramic color "Bege" (D-040, D-041, D-046, P-01), the approved
+ * lettering colors (D-056), and the list prices in cents (D-080; M and G differ
+ * though they share one photograph). The Quadro is one
  * complete product (a 100 × 100 mm ceramic plate in a 200 × 200 mm wooden
  * frame), photographed assembled; there is no separate frame choice.
  * IDs must never be renamed without a migration note in docs/06-decisions.md
@@ -58,6 +59,7 @@ export const catalogData: Catalog = {
       ceramicColor: 'Bege',
       shape: 'square',
       dimensions: { status: 'defined', widthMm: 100, heightMm: 100 },
+      priceCents: 9800,
       image: {
         image: {
           src: '/catalog/plates/placa-ceramica-10/bege.png',
@@ -87,6 +89,7 @@ export const catalogData: Catalog = {
       shape: 'square',
       // Outside of the frame; the ceramic inside measures 100 × 100 mm.
       dimensions: { status: 'defined', widthMm: 200, heightMm: 200 },
+      priceCents: 27000,
       image: {
         image: {
           src: '/catalog/plates/quadro-20/bege.jpg',
@@ -114,6 +117,7 @@ export const catalogData: Catalog = {
       ceramicColor: 'Bege',
       shape: 'scalloped',
       dimensions: { status: 'defined', widthMm: 80, heightMm: 80 },
+      priceCents: 10000,
       // Not the 7 mm of D-055: Taavi's real M letters "AMIZADES" in one row (D-074).
       // The largest size at which it fits the text area in Quicksand Bold (0.08131),
       // less about 1%: capitals 0.0805 × 0.7046 × 80 / 0.9425 ≈ 4.8 mm (85.3 px).
@@ -127,6 +131,7 @@ export const catalogData: Catalog = {
       ceramicColor: 'Bege',
       shape: 'scalloped',
       dimensions: { status: 'defined', widthMm: 110, heightMm: 110 },
+      priceCents: 11000,
       // Not the 7 mm of D-055: Taavi's real G letters "PROSPERIDADE" in one row
       // (D-073). The largest size at which it fits the text area in Quicksand Bold
       // (0.05367), less about 1%: capitals 0.053 × 0.7046 × 110 / 0.9425 ≈ 4.4 mm (56.2 px).

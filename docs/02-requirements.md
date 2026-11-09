@@ -127,16 +127,16 @@ Status: UI (M3.1) — implemented and verified with synthetic demonstration imag
 
 Acceptance criteria:
 
-1. "Baixar imagem" (named "Exportar imagem" until D-076) downloads the current composition as a PNG.
+1. "Baixar minha criação" (named "Exportar imagem" until D-076, "Baixar imagem" until D-080) downloads the current composition as a PNG.
 2. The exported image is the preview's own scene painted by the same `drawScene` (D-008, D-009): same images, font, colored ranges, alignment, and position.
 3. Size: the model photograph's native pixel size, never upscaled, longest edge capped at 4000 px, aspect ratio preserved; unusable dimensions are reported, not allocated. Background: opaque white (`#ffffff`), the same as the live preview. Filename: `taavi-{plateId}.png`, reduced to `[a-z0-9-]` and at most 60 ID characters; never the customer's text.
 4. The exported image renders the same font family, lettering colors (M4.1b-1), and text alignment and position (M4.1b-2) as the preview, from the same scene (D-039).
 5. Export is offered only for a _valid_ configuration; in particular, a valid primary lettering color is required (the preview's provisional color is never exported, D-043).
 6. Export is blocked while the scene reports any preview notice: an image pending, loading, or failed; a pending text area; the provisional text color; or `text-overflow` (D-044). Selected elements are never silently left out.
-7. While blocked, the button stays focusable (`aria-disabled="true"`) and click or keyboard activation does nothing; the reasons are listed above it ("Para exportar a imagem:") and form the button's accessible description. This list ("Situação da configuração", in "Finalizar personalização") is the one place the status is shown (D-078): the missing choices in one "Falta escolher: …" line, then each invalid choice and preview problem, preview problems in the preview's own words (e.g. "O texto não cabe na área do modelo: 1 linha a mais…"); notices that only restate a missing choice are not repeated (D-063). With nothing blocking it says "Configuração completa." The blocked button looks inactive (dashed border, muted text).
-8. Failures (canvas allocation, 2D context, drawing, encoding, object URL, download start) show "Não foi possível gerar a imagem. Tente novamente." (or the dimension message) and leave the button usable; success announces "Imagem exportada: {filename}".
-9. The lower page is three groups (D-078): "Revisar personalização" (the summary and "Reiniciar configurações", nothing else), "Observação", and "Finalizar personalização" (always open: the disclaimer, the status, then the actions). "Baixar imagem" is the last button of the page (D-058). Export is also blocked while the TAAVI signature cannot be loaded, and no PNG is ever written without it (D-060), or while a model group's size is not chosen (D-061).
-10. An optional "Observação" textarea has its own section, between the review and "Finalizar personalização" (D-076, D-078); on phones it is a collapsible step, closed at first, marked "Opcional", that keeps its text while closed. It is stored exactly as typed, never validated, never required, and never drawn on the preview or the PNG; its hint says so ("Opcional. Não aparece na imagem exportada.", D-062).
+7. While blocked, the button stays focusable (`aria-disabled="true"`) and click or keyboard activation does nothing; the reasons are listed above it ("Para finalizar:") and form the button's accessible description. This list ("Situação da configuração", in "Finalize seu pedido") is the one place the status is shown (D-078): the missing choices in one "Falta escolher: …" line, then each invalid choice and preview problem, preview problems in the preview's own words (e.g. "O texto não cabe na área do modelo: 1 linha a mais…"); notices that only restate a missing choice are not repeated (D-063). With nothing blocking it is not shown; the order lines take its place (D-080). The blocked button looks inactive (dashed border, muted text).
+8. Failures (canvas allocation, 2D context, drawing, encoding, object URL, download start) show "Não foi possível gerar a imagem. Tente novamente." (or the dimension message) and leave the button usable; success announces "Download iniciado: {filename}" and never claims the file was saved (D-080).
+9. The lower page is three groups (D-078): "Revisar personalização" (the summary and "Reiniciar configurações", nothing else), "Observação", the disclaimer on its own (D-080), and "Finalize seu pedido" (always open: the status or the order, then the actions). "Baixar minha criação" is the last button of the page (D-058). Export is also blocked while the TAAVI signature cannot be loaded, and no PNG is ever written without it (D-060), or while a model group's size is not chosen (D-061).
+10. An optional "Observação" textarea has its own section, between the review and the disclaimer before "Finalize seu pedido" (D-076, D-078, D-080); on phones it is a collapsible step, closed at first, marked "Opcional", that keeps its text while closed. It is stored exactly as typed, never validated, never required, and never drawn on the preview or the PNG; its hint says so ("Opcional. Não aparece na imagem exportada.", D-062).
 
 Status: Done (M4), verified with synthetic demonstration images and the four production photographs. Production export is available with the approved palette (D-056), verified end to end in Chromium and mobile WebKit.
 
@@ -172,20 +172,19 @@ Acceptance criteria:
 
 Status: Done — enforced by the catalog-driven image architecture and asset-path integrity; nothing in the UI accepts images.
 
-### FR-10 — Sharing the customization (M5.1, D-076)
+### FR-10 — Sending the request to TAAVI (M5.1, D-076, D-080)
 
 Acceptance criteria:
 
-1. "Finalizar personalização" (D-078) ends with "Compartilhar personalização", "Baixar imagem", and "Prefere enviar pelo WhatsApp?" with two steps and "Abrir WhatsApp da TAAVI".
-2. "Compartilhar personalização" is shown only where `navigator.share` and `navigator.canShare` exist and a PNG file can be shared; otherwise "Baixar imagem" is the main action.
-3. It shares the same watermarked PNG "Baixar imagem" saves, as `taavi-{plateId}.png`, and the order message where the browser accepts text with the file. `navigator.share()` is called directly from the tap; it is never retried automatically, and never followed by WhatsApp.
-4. The PNG is prepared 300 ms after the last change while the configuration is exportable and the section is open, for one export revision (every field but the note); any other change withdraws it at once, "Preparando imagem para compartilhar…" is shown, and the button does nothing until the new PNG is ready. A stale image is never shared.
-5. Order message, plain text: "Olá, TAAVI!", the request line, "Modelo: {model} — {size}", "Texto:" with the lettered text (capitals for "Sem serifa", as typed for "Com serifa") and its line breaks, "Fonte", "Cor principal", and, only when they apply, "Destaque: {color} ({words})", "Alinhamento" and "Posição" (not for the Bandejas, whose lettering is fixed), and "Observação"; then "Preparei uma imagem da personalização como referência." and "Podem confirmar o valor, a disponibilidade e o prazo de produção?". Values are the review's (FR-07 summary). No customer data, no confirmation.
-6. Status messages: completed "Confira no WhatsApp se a imagem e os detalhes foram enviados para a TAAVI."; cancelled "Compartilhamento cancelado. Sua personalização continua aqui."; failed "Não foi possível compartilhar. Você pode baixar a imagem e enviá-la pelo WhatsApp da TAAVI.". Nothing claims that a request was sent, received, or confirmed. The configuration is unchanged after any outcome.
-7. "Abrir WhatsApp da TAAVI" opens `https://wa.me/{number}?text={encoded order message}` in a new tab; no file is attached through the URL; the steps tell the customer to download the image and attach it. Without a valid configured number it is not shown.
-8. The export blockers (FR-07.5–7) apply to all three actions: buttons stay focusable with `aria-disabled` and the reasons as their description; the WhatsApp action is not a link while blocked.
+1. "Finalize seu pedido" (D-080) ends with two numbered steps: (1) "Baixar minha criação", help "Salve a imagem da sua peça."; (2) "Enviar detalhes para a TAAVI", help "Abra nosso WhatsApp e anexe a imagem salva. Os detalhes estarão na mensagem.". No other instructions.
+2. The download is the emphasized (filled) action until a download has started for the current image; then the WhatsApp step is. The page never claims the file was saved. WhatsApp is usable before any download.
+3. "Enviar detalhes para a TAAVI" opens `https://wa.me/{number}?text={encoded order message}` in a new tab; no file is attached through the URL. Without a valid configured number the step is not shown.
+4. Native Share ("Compartilhar personalização", D-076) is not shown; its code (`src/preview/share.ts`, `usePreparedPng`) is kept, and no PNG is prepared in the background.
+5. Order message, plain text: "Olá, TAAVI!", the request line, "Modelo: {model} — {size}", "Quantidade: {n}", "Valor unitário: R$ …" and "Total estimado: R$ …" (or "Valor unitário: a confirmar" without a total, FR-12), "Texto:" with the lettered text (capitals for "Sem serifa", as typed for "Com serifa") and its line breaks, "Fonte", "Cor principal", and, only when they apply, "Destaque: {color} ({words})", "Alinhamento" and "Posição" (not for the Bandejas, whose lettering is fixed), and "Observação"; then "Preparei uma imagem da personalização como referência e vou anexá-la nesta conversa." and "Podem confirmar a disponibilidade, o valor final e o prazo de produção?". Values are the review's (FR-07 summary) and FR-12's. No shipping, customer data, payment, or confirmation.
+6. The message follows every change at once, the quantity and the note included.
+7. The export blockers (FR-07.5–7) apply to both actions: they stay focusable with `aria-disabled` and the reasons as their description; the WhatsApp action is not a link while blocked.
 
-Status: Implemented (M5.1), verified with a stubbed share sheet in Chromium and WebKit; pending manual checks on a real iPhone (Safari) and Android phone (Chrome). TAAVI's number is configured (P-16, `wa.me/5561999237316`).
+Status: Implemented (M5.1, revised by M5.5), verified in Chromium and WebKit; pending manual checks on a real iPhone (Safari) and Android phone (Chrome). TAAVI's number is configured (P-16, `wa.me/5561999237316`).
 
 ### FR-11 — Link to TAAVI's store (D-079)
 
@@ -194,6 +193,18 @@ Status: Implemented (M5.1), verified with a stubbed share sheet in Chromium and 
 3. Centered on every screen, in small muted text: visually secondary to the sharing and download actions.
 
 Status: Implemented, verified in Chromium and WebKit.
+
+### FR-12 — List prices and quantity (M5.5, D-080)
+
+1. Each model and each Bandeja size shows its list price beside its name, from the catalog (`priceCents`, whole cents): Placa cerâmica R$ 98,00, Bandeja ondulada M R$ 100,00, Bandeja ondulada G R$ 110,00, Quadro R$ 270,00. The "Bandeja ondulada" option shows no price of its own. The option's accessible name is unchanged; the price is its description.
+2. For a valid configuration, "Finalize seu pedido" shows the model with its size, "Valor unitário", "Quantidade", "Total estimado" (unit × quantity), and "Frete não incluso. Valor sujeito à confirmação da TAAVI." While anything blocks, these are hidden and only the reasons are shown.
+3. Quantity: default 1, from 1 to 99, by − and + (unavailable but focusable at the limits, at least 44 × 44 px), the arrow keys, or typing digits (two at most). Zero, negative, decimal, or other input is never taken: the last valid quantity stays in use and is restored on leaving the field.
+4. The total and the message follow a quantity change at once; the PNG does not change and is not re-rendered.
+5. The quantity is kept through every edit, including a model change (the price and total follow the model), and goes back to 1 after "Reiniciar configurações".
+6. Amounts are formatted "R$ 1.234,56" by one function for the page and the message. A model without a price shows "a confirmar" and no total.
+7. One design per request; no cart, checkout, payment, shipping, or inventory.
+
+Status: Implemented, verified with unit tests and in Chromium and WebKit (production build for prices, demo build for the flow); pending real-device checks.
 
 ## Non-functional requirements
 
@@ -209,4 +220,4 @@ Status: Implemented, verified in Chromium and WebKit.
 
 - Per-line text-length limit: future rule, no limit defined (P-14).
 - Handmade-product disclaimer near the controls (copy in D-042) and a per-line text-length limit: planned, not implemented.
-- Nuvemshop integration, pricing, and order workflows.
+- Nuvemshop integration, dynamic pricing, shipping, payment, and order workflows; several designs in one request (D-080).

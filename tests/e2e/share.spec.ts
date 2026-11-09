@@ -3,68 +3,18 @@ import { expect, test, type Page } from '@playwright/test';
 import { chooseModel, finalize, openStep, textField } from './support/steps';
 
 /**
- * Sharing against the demo build (D-076). Playwright cannot open a real share
- * sheet, so `navigator.share` is replaced before the page loads: it records
- * the shared PNG (as base64), the text, and whether the call came with user
- * activation, then resolves or fails as each test asks. Real devices are
- * checked by hand (docs/05-backlog.md, M5.1).
+ * "Finalize seu pedido" against the demo build (D-080): download, then the
+ * WhatsApp link, with the quantity in the message. The demo models have no
+ * price (D-028), so the unit price is "a confirmar"; prices are checked on
+ * the production build (production.spec.ts). The WhatsApp chat itself is
+ * never opened: the tests read the link.
  */
 
-interface Shared {
-  name: string;
-  type: string;
-  text: string | undefined;
-  /** `navigator.userActivation.isActive` at the call; null where the API is missing. */
-  active: boolean | null;
-  png: string;
-}
-
-type Mode =
-  { supported: false } | { supported: true; outcome: 'resolve' | 'AbortError' | 'NotAllowedError' };
-
-async function installShare(page: Page, mode: Mode) {
-  await page.addInitScript((mode: Mode) => {
-    const record = window as unknown as { __shares: Shared[] };
-    record.__shares = [];
-    const proto = Navigator.prototype as unknown as Record<string, unknown>;
-    if (!mode.supported) {
-      delete proto.share;
-      delete proto.canShare;
-      return;
-    }
-    Object.defineProperty(Navigator.prototype, 'canShare', {
-      configurable: true,
-      value: (data: ShareData) => (data.files ?? []).every((file) => file.type === 'image/png'),
-    });
-    Object.defineProperty(Navigator.prototype, 'share', {
-      configurable: true,
-      value: async (data: ShareData) => {
-        const activation = (navigator as { userActivation?: { isActive: boolean } }).userActivation;
-        const active = activation ? activation.isActive : null;
-        const file = data.files?.[0];
-        if (!file) throw new TypeError('no file');
-        let binary = '';
-        for (const byte of new Uint8Array(await file.arrayBuffer()))
-          binary += String.fromCharCode(byte);
-        record.__shares.push({
-          name: file.name,
-          type: file.type,
-          text: data.text,
-          active,
-          png: btoa(binary),
-        });
-        if (mode.outcome !== 'resolve') throw new DOMException('stub', mode.outcome);
-      },
-    });
-  }, mode);
-}
-
-const shares = (page: Page) =>
-  page.evaluate(() => (window as unknown as { __shares: Shared[] }).__shares);
-const shareButton = (page: Page) =>
-  finalize(page).getByRole('button', { name: 'Compartilhar personalização' });
 const downloadButton = (page: Page) =>
-  finalize(page).getByRole('button', { name: 'Baixar imagem' });
+  finalize(page).getByRole('button', { name: 'Baixar minha criação' });
+const whatsApp = (page: Page) =>
+  finalize(page).getByRole('link', { name: 'Enviar detalhes para a TAAVI' });
+const quantity = (page: Page) => finalize(page).getByRole('textbox', { name: 'Quantidade' });
 
 async function ready(page: Page, text = 'Casa da Ana') {
   await chooseModel(page, /Placa cerâmica/);
@@ -81,120 +31,132 @@ async function download(page: Page) {
   return (await readFile(await file.path())).toString('base64');
 }
 
-test.describe('Compartilhar personalização (D-076)', () => {
-  test('shares, from the tap, the same PNG "Baixar imagem" saves, with the order message @smoke', async ({
+async function message(page: Page) {
+  const url = new URL((await whatsApp(page).getAttribute('href')) ?? '');
+  return { url, text: url.searchParams.get('text') ?? '' };
+}
+
+test.describe('Finalize seu pedido (D-080)', () => {
+  test('downloads first, then emphasizes WhatsApp, whose message follows the quantity @smoke', async ({
     page,
   }) => {
-    await installShare(page, { supported: true, outcome: 'resolve' });
     await page.goto('/');
     await ready(page);
-    await expect(shareButton(page)).toHaveAttribute('aria-disabled', 'false');
+    await expect(downloadButton(page)).not.toHaveClass(/export__button--secondary/);
+    await expect(whatsApp(page)).toHaveClass(/export__button--secondary/);
 
-    await shareButton(page).click();
-    await expect.poll(async () => (await shares(page)).length).toBe(1);
-    const [shared] = await shares(page);
-    expect(shared?.name).toBe('taavi-demo-placa-ceramica.png');
-    expect(shared?.type).toBe('image/png');
-    // Called while the tap's activation lasts (where the browser exposes it).
-    test.info().annotations.push({ type: 'user-activation', description: String(shared?.active) });
-    expect(shared?.active).not.toBe(false);
-    expect(shared?.text).toMatch(
-      /^Olá, TAAVI!\n\nGostaria de solicitar uma peça personalizada com estas características:\n\nModelo: .+\n\nTexto:\nCASA DA ANA\n\nFonte: Sem serifa\nCor principal: \(demonstração\) Letra grafite\n/,
+    const png = await download(page);
+    await expect(finalize(page)).toContainText('Download iniciado: taavi-demo-placa-ceramica.png');
+    await expect(finalize(page)).not.toContainText(/salva com sucesso|foi salva/i);
+    await expect(whatsApp(page)).not.toHaveClass(/export__button--secondary/);
+    await expect(downloadButton(page)).toHaveClass(/export__button--secondary/);
+
+    await finalize(page).getByRole('button', { name: 'Aumentar quantidade' }).click();
+    await expect(quantity(page)).toHaveValue('2');
+    const { text } = await message(page);
+    expect(text).toMatch(
+      /^Olá, TAAVI!\n\nGostaria de solicitar uma peça personalizada com estas características:\n\nModelo: .+\nQuantidade: 2\nValor unitário: a confirmar\n\nTexto:\nCASA DA ANA\n\nFonte: Sem serifa\nCor principal: \(demonstração\) Letra grafite\n/,
     );
-    expect(shared?.text).toMatch(
-      /\n\nPodem confirmar o valor, a disponibilidade e o prazo de produção\?$/,
-    );
-    await expect(finalize(page)).toContainText(
-      'Confira no WhatsApp se a imagem e os detalhes foram enviados para a TAAVI.',
+    expect(text).toMatch(
+      /\n\nPreparei uma imagem da personalização como referência e vou anexá-la nesta conversa\.\n\nPodem confirmar a disponibilidade, o valor final e o prazo de produção\?$/,
     );
 
-    expect(shared?.png).toBe(await download(page));
+    // The quantity is not in the image: the same PNG as before.
+    expect(await download(page)).toBe(png);
   });
 
-  test('never shares a stale image after a change', async ({ page }) => {
-    await installShare(page, { supported: true, outcome: 'resolve' });
+  test('keeps the quantity through edits and resets it with "Reiniciar configurações"', async ({
+    page,
+  }) => {
     await page.goto('/');
     await ready(page);
-    await expect(shareButton(page)).toHaveAttribute('aria-disabled', 'false');
-    await shareButton(page).click();
-    await expect.poll(async () => (await shares(page)).length).toBe(1);
-
+    await quantity(page).fill('12');
     await (await textField(page)).fill('Casa da Bia');
     await openStep(page, 'Revisar personalização');
-    await expect(shareButton(page)).toHaveAttribute('aria-disabled', 'false');
-    await shareButton(page).click();
-    await expect.poll(async () => (await shares(page)).length).toBe(2);
+    await expect(quantity(page)).toHaveValue('12');
+    expect((await message(page)).text).toContain('Quantidade: 12\n');
+    expect((await message(page)).text).toContain('Texto:\nCASA DA BIA\n');
 
-    const [first, second] = await shares(page);
-    expect(second?.text).toContain('Texto:\nCASA DA BIA\n');
-    expect(second?.png).not.toBe(first?.png);
-    expect(second?.png).toBe(await download(page));
+    await page.getByRole('button', { name: 'Reiniciar configurações' }).click();
+    await page.getByRole('button', { name: 'Sim, reiniciar' }).click();
+    await ready(page);
+    await expect(quantity(page)).toHaveValue('1');
   });
 
-  for (const [outcome, message] of [
-    ['AbortError', 'Compartilhamento cancelado. Sua personalização continua aqui.'],
-    [
-      'NotAllowedError',
-      'Não foi possível compartilhar. Você pode baixar a imagem e enviá-la pelo WhatsApp da TAAVI.',
-    ],
-  ] as const) {
-    test(`keeps the configuration when the share ends in ${outcome}`, async ({ page }) => {
-      await installShare(page, { supported: true, outcome });
-      await page.goto('/');
-      await ready(page);
-      await expect(shareButton(page)).toHaveAttribute('aria-disabled', 'false');
-      await shareButton(page).click();
+  test('refuses an invalid quantity, keeping the last valid one', async ({ page }) => {
+    await page.goto('/');
+    await ready(page);
+    await quantity(page).fill('3');
+    for (const typed of ['0', '', '-2', 'x']) {
+      await quantity(page).fill(typed);
+      expect((await message(page)).text).toContain('Quantidade: 3\n');
+    }
+    await quantity(page).blur();
+    await expect(quantity(page)).toHaveValue('3');
+  });
 
-      await expect(finalize(page)).toContainText(message);
-      expect(await shares(page)).toHaveLength(1);
-      await expect(shareButton(page)).toHaveAttribute('aria-disabled', 'false');
-      await expect(await textField(page)).toHaveValue('Casa da Ana');
+  test('blocks both actions while incomplete, with one list of reasons', async ({ page }) => {
+    await page.goto('/');
+    await chooseModel(page, /Placa cerâmica/);
+    await (await textField(page)).fill('Ana');
+
+    await expect(downloadButton(page)).toHaveAttribute('aria-disabled', 'true');
+    const blocked = finalize(page).getByRole('link', { name: 'Enviar detalhes para a TAAVI' });
+    await expect(blocked).toHaveAttribute('aria-disabled', 'true');
+    await expect(blocked).not.toHaveAttribute('href');
+    await expect(finalize(page)).toContainText('Para finalizar:');
+    await expect(finalize(page).getByText(/Falta escolher/)).toHaveCount(1);
+    await expect(quantity(page)).toHaveCount(0);
+    await expect(finalize(page)).not.toContainText(/Valor unitário|Total estimado/);
+  });
+
+  test('offers no share button, even where the browser can share PNG files', async ({ page }) => {
+    await page.addInitScript(() => {
+      Object.defineProperty(Navigator.prototype, 'canShare', {
+        configurable: true,
+        value: () => true,
+      });
+      Object.defineProperty(Navigator.prototype, 'share', {
+        configurable: true,
+        value: async () => undefined,
+      });
     });
-  }
-
-  test('is not offered without file sharing; download remains', async ({ page }) => {
-    await installShare(page, { supported: false });
     await page.goto('/');
     await ready(page);
 
+    await expect(finalize(page).getByRole('button', { name: /Compartilhar/ })).toHaveCount(0);
+    await expect(finalize(page)).not.toContainText(/Preparando imagem|Prefere enviar/);
     await expect(downloadButton(page)).toHaveAttribute('aria-disabled', 'false');
-    await expect(shareButton(page)).toHaveCount(0);
-    await expect(finalize(page)).not.toContainText('Preparando imagem');
   });
 
-  test('is blocked while the photograph is loading, and prepares nothing', async ({ page }) => {
-    await installShare(page, { supported: true, outcome: 'resolve' });
-    // The photograph never arrives.
-    await page.route('**/catalog/plates/demo-placa-ceramica/**', () => undefined);
+  test('works from the keyboard: quantity, download, then WhatsApp', async ({ page }) => {
     await page.goto('/');
     await ready(page);
-
-    await expect(shareButton(page)).toHaveAttribute('aria-disabled', 'true');
-    await expect(shareButton(page)).toHaveAccessibleDescription(/Carregando imagem…/);
-    await expect(finalize(page)).not.toContainText('Preparando imagem');
-    await shareButton(page).click({ force: true });
-    expect(await shares(page)).toHaveLength(0);
+    await quantity(page).focus();
+    await page.keyboard.press('ArrowUp');
+    await expect(quantity(page)).toHaveValue('2');
+    await page.keyboard.press('Tab');
+    await expect(finalize(page).getByRole('button', { name: 'Aumentar quantidade' })).toBeFocused();
+    await page.keyboard.press('Tab');
+    await expect(downloadButton(page)).toBeFocused();
+    const [file] = await Promise.all([page.waitForEvent('download'), page.keyboard.press('Enter')]);
+    expect(file.suggestedFilename()).toBe('taavi-demo-placa-ceramica.png');
+    await page.keyboard.press('Tab');
+    await expect(whatsApp(page)).toBeFocused();
   });
 });
 
 test('links to TAAVI’s official WhatsApp with the order message (P-16)', async ({ page }) => {
   await page.goto('/');
-  const link = finalize(page).getByRole('link', { name: 'Abrir WhatsApp da TAAVI' });
-  // Blocked while incomplete: not a link to follow.
-  await chooseModel(page, /Placa cerâmica/);
-  await expect(link).toHaveAttribute('aria-disabled', 'true');
-  await expect(link).not.toHaveAttribute('href');
-
   await ready(page);
-  await expect(downloadButton(page)).toHaveAttribute('aria-disabled', 'false');
-  await expect(finalize(page)).toContainText('Prefere enviar pelo WhatsApp?');
-  await expect(finalize(page)).toContainText(
-    'Toque em "Baixar imagem" para salvar a imagem no aparelho.',
-  );
-  const url = new URL((await link.getAttribute('href')) ?? '');
+  // Usable before any download: the customer may already have the image.
+  const { url, text } = await message(page);
   expect(`${url.origin}${url.pathname}`).toBe('https://wa.me/5561999237316');
-  const text = url.searchParams.get('text') ?? '';
   expect(text).toMatch(/^Olá, TAAVI!\n\n/);
+  expect(text).toContain('Quantidade: 1\n');
   expect(text).toContain('Texto:\nCASA DA ANA\n');
-  await expect(link).toHaveAttribute('target', '_blank');
+  await expect(whatsApp(page)).toHaveAttribute('target', '_blank');
+  await expect(whatsApp(page)).toHaveAccessibleDescription(
+    'Abra nosso WhatsApp e anexe a imagem salva. Os detalhes estarão na mensagem.',
+  );
 });

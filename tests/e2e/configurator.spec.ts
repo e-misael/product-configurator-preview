@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { finalize, openStep, step, textField } from './support/steps';
+import { disclaimer, finalize, openStep, step, textField } from './support/steps';
 
 /** Functional flows against the demo build's synthetic catalog (D-028). */
 
@@ -83,14 +83,15 @@ test('completes a configuration @smoke', async ({ page }) => {
   await expect(page.locator('#step-text-summary')).toContainText('Concluído');
 
   const review = await step(page, 'Revisar personalização');
-  await expect(finalize(page).getByText('Configuração completa.')).toBeVisible();
+  // Complete: the order is shown, no reasons (D-080).
+  await expect(finalize(page).getByRole('textbox', { name: 'Quantidade' })).toHaveValue('1');
+  await expect(finalize(page).locator('#export-reasons')).toHaveCount(0);
   // "Sem serifa" is lettered in capitals (D-068).
   await expect(review).toContainText('CASA DA ANA');
   await expect(review).toContainText('Bege');
-  await expect(finalize(page).getByRole('button', { name: 'Baixar imagem' })).toHaveAttribute(
-    'aria-disabled',
-    'false',
-  );
+  await expect(
+    finalize(page).getByRole('button', { name: 'Baixar minha criação' }),
+  ).toHaveAttribute('aria-disabled', 'false');
   const preview = page.getByRole('region', { name: 'Pré-visualização' });
   await expect(preview.getByRole('img')).toBeVisible();
   await expectNoHorizontalScroll(page);
@@ -175,13 +176,15 @@ test('selects repeated words independently and swaps colors on conflict (D-071)'
   await expectNoHorizontalScroll(page);
 });
 
-test('shows the handmade-product disclaimer in "Finalizar", before export (D-078)', async ({
+test('shows the handmade-product disclaimer just before "Finalize seu pedido", outside it (D-080)', async ({
   page,
 }) => {
-  const review = finalize(page);
+  const review = disclaimer(page);
   await expect(await step(page, 'Revisar personalização')).not.toContainText(
     'A pré-visualização é ilustrativa',
   );
+  await expect(finalize(page)).not.toContainText('A pré-visualização é ilustrativa');
+  await expect(review).toHaveCount(1);
   for (const paragraph of [
     /^A pré-visualização é ilustrativa\. Como nossas peças são produzidas artesanalmente/,
     /^As cores também podem variar conforme a iluminação/,
@@ -189,10 +192,9 @@ test('shows the handmade-product disclaimer in "Finalizar", before export (D-078
   ]) {
     await expect(review.getByText(paragraph)).toBeVisible();
   }
-  const disclaimer = review.getByText(/^Todas as solicitações/);
-  const exportButton = review.getByRole('button', { name: 'Baixar imagem' });
-  const [text, button] = [await disclaimer.boundingBox(), await exportButton.boundingBox()];
-  expect((text?.y ?? 0) < (button?.y ?? 0)).toBe(true);
+  const last = review.getByText(/^Todas as solicitações/);
+  const [text, section] = [await last.boundingBox(), await finalize(page).boundingBox()];
+  expect((text?.y ?? 0) + (text?.height ?? 0) <= (section?.y ?? 0)).toBe(true);
 });
 
 test('shows only the selected text color name; the others are chips', async ({ page }) => {
@@ -221,7 +223,7 @@ test('takes an optional "Observação" in its own section, before "Finalizar" (D
     .check();
   const section = await step(page, 'Observação');
   const note = section.getByRole('textbox', { name: 'Observação' });
-  const exportButton = finalize(page).getByRole('button', { name: 'Baixar imagem' });
+  const exportButton = finalize(page).getByRole('button', { name: 'Baixar minha criação' });
   await expect(exportButton).toHaveAttribute('aria-disabled', 'false');
 
   await note.fill('  Entregar até sexta\nObrigada ');

@@ -119,6 +119,38 @@ describe('validateCatalog', () => {
     );
   });
 
+  describe('prices (D-080)', () => {
+    it('accepts whole cents above zero, or no price', () => {
+      expect(validateCatalog(withPlate(0, { priceCents: 9800 }))).toEqual({ status: 'valid' });
+      expect(validateCatalog(buildValidCatalog())).toEqual({ status: 'valid' });
+    });
+
+    it.each([
+      ['zero', 0],
+      ['negative', -100],
+      ['fractional cents', 98.5],
+      ['NaN', Number.NaN],
+      ['Infinity', Number.POSITIVE_INFINITY],
+      ['unsafe', Number.MAX_SAFE_INTEGER + 1],
+    ])('reports a %s price', (_label, priceCents) => {
+      expectOnly(withPlate(0, { priceCents }), {
+        code: 'invalid-price',
+        path: 'plates[0].priceCents',
+        id: 'test-plate-a',
+      });
+    });
+
+    it('reports a price that is not a number', () => {
+      const catalog = buildValidCatalog();
+      Reflect.set(at(catalog.plates, 0), 'priceCents', '98,00');
+      expectOnly(catalog, {
+        code: 'invalid-price',
+        path: 'plates[0].priceCents',
+        id: 'test-plate-a',
+      });
+    });
+  });
+
   describe('dimensions', () => {
     it.each([
       ['zero', 0],

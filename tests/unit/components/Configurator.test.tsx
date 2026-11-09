@@ -16,8 +16,8 @@ const status = () => screen.getByRole('region', { name: 'Situação da configura
 const preview = () => screen.getByRole('region', { name: 'Pré-visualização' });
 /** "Revisar personalização" holds the summary and the reset only (D-078). */
 const review = () => screen.getByRole('region', { name: 'Revisar personalização' });
-/** "Finalizar personalização": the disclaimer, the status, and the actions (D-078). */
-const finalize = () => screen.getByRole('region', { name: 'Finalizar personalização' });
+/** "Finalize seu pedido": the disclaimer, the status, and the actions (D-078). */
+const finalize = () => screen.getByRole('region', { name: 'Finalize seu pedido' });
 /** The formatting announcement, in the text step next to the field. */
 const formattingNotice = () =>
   within(screen.getByRole('region', { name: 'Texto e cores' })).getByRole('status');
@@ -475,7 +475,7 @@ describe('Configurator', () => {
       const { user } = setup();
       const section = screen.getByRole('region', { name: 'Observação' });
       const note = within(section).getByRole('textbox', { name: 'Observação' });
-      const exportButton = within(finalize()).getByRole('button', { name: 'Baixar imagem' });
+      const exportButton = within(finalize()).getByRole('button', { name: 'Baixar minha criação' });
       expect(within(review()).queryByRole('textbox', { name: 'Observação' })).toBeNull();
       expect(within(finalize()).queryByRole('textbox', { name: 'Observação' })).toBeNull();
 

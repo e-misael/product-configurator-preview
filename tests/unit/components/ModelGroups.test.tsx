@@ -43,7 +43,7 @@ const sizes = () => screen.queryByRole('group', { name: 'Tamanho' });
 const preview = () => screen.getByRole('region', { name: 'Pré-visualização' });
 const review = () => screen.getByRole('region', { name: 'Revisar personalização' });
 const configStatus = () => screen.getByRole('region', { name: 'Situação da configuração' });
-const exportButton = () => screen.getByRole('button', { name: 'Baixar imagem' });
+const exportButton = () => screen.getByRole('button', { name: 'Baixar minha criação' });
 /** The summary value for a term, e.g. "Modelo". */
 const summary = (term: string) =>
   within(review()).getByText(`${term}:`, { selector: 'dt' }).nextElementSibling?.textContent;
@@ -285,7 +285,11 @@ describe('model groups (D-057)', () => {
       );
       await user.click(within(group('Cor do texto')).getByRole('radio', { name: /Azul/ }));
       expect(within(preview()).queryByText(/O texto não cabe/)).toBeNull();
-      expect(configStatus()).toHaveTextContent('Configuração completa.');
+      // Nothing blocks: the order is shown, at G's price (D-080).
+      expect(screen.queryByRole('region', { name: 'Situação da configuração' })).toBeNull();
+      expect(screen.getByRole('region', { name: 'Finalize seu pedido' })).toHaveTextContent(
+        'Valor unitárioR$ 110,00',
+      );
 
       await user.click(within(group('Tamanho')).getByRole('radio', { name: 'M — 8 × 8 cm' }));
       settle();

@@ -39,7 +39,12 @@ export async function textField(page: Page) {
   return page.getByLabel('Texto', { exact: true });
 }
 
-/** "Finalizar personalização": always open; the disclaimer, the status, and the actions (D-078). */
+/** "Finalize seu pedido": always open; the order, the status, and the two actions (D-080). */
 export function finalize(page: Page) {
-  return page.getByRole('region', { name: 'Finalizar personalização', exact: true });
+  return page.getByRole('region', { name: 'Finalize seu pedido', exact: true });
+}
+
+/** The approved disclaimer (D-056), between "Observação" and "Finalize seu pedido" (D-080). */
+export function disclaimer(page: Page) {
+  return page.locator('.disclaimer');
 }

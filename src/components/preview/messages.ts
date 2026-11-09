@@ -96,14 +96,16 @@ export function lineLimitMessage(maxLines: number): string {
 export const EXPORT_MESSAGES = {
   empty: 'Não há imagem para exportar.',
   working: 'Gerando a imagem…',
-  done: 'Imagem exportada:',
+  // Only that the download started: the page cannot know the file was saved (D-080).
+  done: 'Download iniciado:',
   failed: 'Não foi possível gerar a imagem. Tente novamente.',
   invalidSize: 'As dimensões da imagem não permitem a exportação.',
   noWatermark: 'A assinatura TAAVI não foi carregada; a imagem não pode ser exportada.',
 } as const;
 
 /**
- * pt-BR wording for sharing (D-076). None of it says the request was sent,
+ * pt-BR wording for sharing (D-076); not shown while Native Share is not
+ * offered (D-080), kept with src/preview/share.ts. None of it says the request was sent,
  * received, or confirmed: the app cannot know.
  */
 export const SHARE_MESSAGES = {

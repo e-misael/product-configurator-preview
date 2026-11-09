@@ -1,13 +1,29 @@
+import { estimatedTotalCents, formatBRL } from '../../domain';
 import type { ReviewSummary } from './review-summary';
 
+/** The quantity asked for and the model's list price, if supplied (D-080). */
+export interface OrderLine {
+  readonly quantity: number;
+  readonly unitPriceCents: number | undefined;
+}
+
 /**
- * The order request sent with the image (D-076), as plain text for the share
- * sheet and the WhatsApp link: the review's values (D-058), the text with its
- * line breaks, and only the fields that apply. It asks TAAVI to confirm price,
- * availability, and lead time; it states no customer data and no confirmation.
- * Meant for a valid configuration.
+ * The order inquiry sent to TAAVI (D-076, D-080), as plain text for the
+ * WhatsApp link: the review's values (D-058), the quantity with the unit price
+ * and estimated total from the catalog, the text with its line breaks, and
+ * only the fields that apply. The customer attaches the image themselves. It
+ * asks TAAVI to confirm availability, final price, and lead time; it states no
+ * customer data, payment, or confirmation. Meant for a valid configuration.
  */
-export function orderMessage(summary: ReviewSummary, note: string): string {
+export function orderMessage(summary: ReviewSummary, note: string, order: OrderLine): string {
+  const { quantity, unitPriceCents } = order;
+  const prices =
+    unitPriceCents === undefined
+      ? ['Valor unitário: a confirmar']
+      : [
+          `Valor unitário: ${formatBRL(unitPriceCents)}`,
+          `Total estimado: ${formatBRL(estimatedTotalCents(unitPriceCents, quantity))}`,
+        ];
   const details = [
     `Fonte: ${summary.font}`,
     `Cor principal: ${summary.textColor}`,
@@ -23,14 +39,16 @@ export function orderMessage(summary: ReviewSummary, note: string): string {
     'Gostaria de solicitar uma peça personalizada com estas características:',
     '',
     `Modelo: ${summary.model} — ${summary.size}`,
+    `Quantidade: ${quantity}`,
+    ...prices,
     '',
     'Texto:',
     summary.text,
     '',
     ...details,
     '',
-    'Preparei uma imagem da personalização como referência.',
+    'Preparei uma imagem da personalização como referência e vou anexá-la nesta conversa.',
     '',
-    'Podem confirmar o valor, a disponibilidade e o prazo de produção?',
+    'Podem confirmar a disponibilidade, o valor final e o prazo de produção?',
   ].join('\n');
 }

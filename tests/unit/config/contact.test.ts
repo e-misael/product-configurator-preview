@@ -23,7 +23,10 @@ describe('TAAVI_WHATSAPP_NUMBER (P-16)', () => {
       text: 'CASA DA ANA\n& CIA #1',
       fixedPlacement: false,
     };
-    const message = orderMessage(summary, 'Entregar em maio?');
+    const message = orderMessage(summary, 'Entregar em maio?', {
+      quantity: 2,
+      unitPriceCents: 9800,
+    });
     const number = whatsAppNumber(TAAVI_WHATSAPP_NUMBER);
     if (number === null) throw new Error('TAAVI_WHATSAPP_NUMBER is not valid');
 
@@ -34,5 +37,6 @@ describe('TAAVI_WHATSAPP_NUMBER (P-16)', () => {
     // Line breaks, accents, and URL characters are all encoded.
     expect(url.split('?text=')[1]).not.toMatch(/[ \n&#?áâêçã]/);
     expect(url).toContain('Ol%C3%A1%2C%20TAAVI!%0A%0A');
+    expect(url).toContain('Total%20estimado%3A%20R%24%20196%2C00%0A');
   });
 });

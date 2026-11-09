@@ -358,6 +358,19 @@ Status: **Implemented** (2026-11-09), pending acceptance.
 - [x] "Visite nossa loja: taavi.lojavirtualnuvem.com.br" footer, centered, new tab, outside every panel
 - [x] Unit test (landmark, link, attributes, placement) and Playwright (desktop Chrome, iPhone WebKit: placement, centering, quieter than the actions, the customization kept after opening the store, stubbed)
 
+### M5.5 — List prices, quantity, and two-step finalization (D-080, FR-10, FR-12)
+
+Status: **Implemented** (2026-11-09), pending acceptance and real-device checks.
+
+- [x] List prices in the catalog (`priceCents`, whole cents), validated (`invalid-price`), shown beside each model and Bandeja size; M and G differ
+- [x] Disclaimer on its own, just before "Finalize seu pedido" (was inside "Finalizar personalização")
+- [x] "Finalize seu pedido": product, unit price, quantity (1–99), estimated total, "Frete não incluso…", only for a valid configuration
+- [x] Two numbered steps: "Baixar minha criação", then "Enviar detalhes para a TAAVI"; emphasis moves to WhatsApp after a download starts; "Download iniciado:" claims no saved file; WhatsApp usable before a download
+- [x] Native Share and the long WhatsApp instructions no longer shown (code kept)
+- [x] Order message with quantity, unit price, and estimated total; no shipping line
+- [x] Tests: pricing (formatting, limits, parsing, totals), catalog prices and validation, order message, component flows (quantity by buttons, keys, typing; reset; model change; PNG not re-rendered; disclaimer placement), Playwright (production prices for all four models, exact encoded message, demo flow, keyboard, 320/375/393/430 px)
+- Remaining (manual): real-device check on iPhone Safari and Android Chrome: quantity control by touch, download then WhatsApp with the image attached by hand, the message with prices.
+
 ### M5.2 — Pilot deployment on Cloudflare Pages (D-077)
 
 Status: **Prepared** (2026-11-09): repository changes and runbook ready; no Cloudflare resource created, nothing deployed.
@@ -379,4 +392,4 @@ Status: **Prepared** (2026-11-09): repository changes and runbook ready; no Clou
 
 Status: Not scheduled.
 
-- Nuvemshop integration, pricing, order workflows.
+- Nuvemshop integration, dynamic pricing, shipping, payment, order workflows; several designs in one request (D-080).

@@ -1,4 +1,5 @@
 import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { App } from '../../src/App';
 
 describe('App shell', () => {
@@ -21,6 +22,32 @@ describe('App shell', () => {
     }
     expect(models.getAllByRole('radio')).toHaveLength(3);
     expect(screen.queryByText(/demonstração/i)).not.toBeInTheDocument();
+  });
+
+  it('shows each model’s list price beside it, and each Bandeja size its own (D-080)', async () => {
+    const user = userEvent.setup();
+    render(<App />);
+
+    const models = within(screen.getByRole('group', { name: 'Modelo' }));
+    // The price describes the choice; it does not change its name.
+    expect(
+      models.getByRole('radio', { name: 'Placa cerâmica — 10 × 10 cm' }),
+    ).toHaveAccessibleDescription('R$ 98,00');
+    expect(models.getByRole('radio', { name: 'Quadro — 20 × 20 cm' })).toHaveAccessibleDescription(
+      'R$ 270,00',
+    );
+    // The Bandeja option has no price of its own: its sizes differ.
+    const bandeja = models.getByRole('radio', { name: 'Bandeja ondulada' });
+    expect(bandeja).toHaveAccessibleDescription('Disponível em dois tamanhos');
+
+    await user.click(bandeja);
+    const sizes = within(screen.getByRole('group', { name: 'Tamanho' }));
+    expect(sizes.getByRole('radio', { name: 'M — 8 × 8 cm' })).toHaveAccessibleDescription(
+      'R$ 100,00',
+    );
+    expect(sizes.getByRole('radio', { name: 'G — 11 × 11 cm' })).toHaveAccessibleDescription(
+      'R$ 110,00',
+    );
   });
 
   it('offers the approved lettering colors in order, highlighting, and the disclaimer', () => {

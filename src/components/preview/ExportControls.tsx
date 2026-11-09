@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { TAAVI_WHATSAPP_NUMBER } from '../../config/contact';
 import type { ValidationResult } from '../../domain';
-import { usePreparedPng } from '../../hooks/usePreparedPng';
 import {
   downloadBlob,
   ExportError,
@@ -13,15 +12,9 @@ import {
 import type { PreviewNoticeCode } from '../../preview/composition';
 import { textBlockOf } from '../../preview/placement';
 import type { Scene } from '../../preview/scene';
-import {
-  canShareFiles,
-  shareFile,
-  whatsAppNumber,
-  whatsAppUrl,
-  type ShareOutcome,
-} from '../../preview/share';
+import { whatsAppNumber, whatsAppUrl } from '../../preview/share';
 import { invalidMessage, missingLabel } from '../configurator/messages';
-import { EXPORT_MESSAGES, noticeMessage, SHARE_MESSAGES } from './messages';
+import { EXPORT_MESSAGES, noticeMessage } from './messages';
 
 interface ExportControlsProps {
   /** The preview's own scene: export paints exactly this (D-009). */
@@ -30,13 +23,9 @@ interface ExportControlsProps {
   readonly plateId: string | null;
   /** A model group is chosen but not its size (D-057). */
   readonly sizePending?: boolean;
-  /** What the image shows (`exportRevision`); the PNG to share is prepared for one. */
-  readonly revision: string;
-  /** The customer is not editing a step: only then is the PNG to share prepared. */
-  readonly active: boolean;
-  /** The order request sent with the image (D-076). */
+  /** The order inquiry the WhatsApp link opens with (D-076, D-080). */
   readonly orderMessage: string;
-  /** TAAVI's WhatsApp number; without a valid one the WhatsApp link is not offered (P-16). */
+  /** TAAVI's WhatsApp number; without a valid one the WhatsApp step is not offered (P-16). */
   readonly whatsApp?: string | null;
 }
 
@@ -75,21 +64,23 @@ function blockerMessage(
 }
 
 /**
- * The finalization actions (D-076): "Compartilhar personalização" where the
- * browser can share PNG files, "Baixar imagem" (FR-07, D-008), and "Abrir
- * WhatsApp da TAAVI" once a number is configured. What still blocks them is
- * listed just above, the one place the configuration's status is shown
- * (D-078; "Configuração completa." once nothing does). Every action stays focusable while blocked
- * (`aria-disabled`) so the reasons can be reached; activation does nothing
- * until they are resolved. Each action starts only from its own tap.
+ * The finalization actions, two numbered steps (D-080): "Baixar minha
+ * criação" (FR-07, D-008), then "Enviar detalhes para a TAAVI", a WhatsApp
+ * link once a number is configured. Downloading comes first and is drawn as
+ * the main action; once a download has started for this image, the WhatsApp
+ * step is (the page cannot know the file was saved, and says only that the
+ * download started). WhatsApp never waits for a download: the customer may
+ * already have the image. What still blocks them is listed just above, the
+ * one place the configuration's status is shown (D-078). Every action stays
+ * focusable while blocked (`aria-disabled`) so the reasons can be reached;
+ * activation does nothing until they are resolved. Native Share (D-076) is not
+ * offered; src/preview/share.ts keeps it.
  */
 export function ExportControls({
   scene,
   validation,
   plateId,
   sizePending = false,
-  revision,
-  active,
   orderMessage,
   whatsApp = TAAVI_WHATSAPP_NUMBER,
 }: ExportControlsProps) {
@@ -111,44 +102,8 @@ export function ExportControls({
   ];
   const blocked = blockers.length > 0 || plateId === null;
   const working = outcome?.status === 'working';
-
-  // Asked once: whether this browser can share PNG files at all.
-  const [shareSupported] = useState(() => canShareFiles());
-  const prepared = usePreparedPng(
-    scene,
-    revision,
-    exportFileName(plateId ?? ''),
-    shareSupported && active && !blocked,
-  );
-  // The prepared file itself may still be refused.
-  const shareable = shareSupported && (prepared.status !== 'ready' || canShareFiles(prepared.file));
-  // The share result belongs to the image it was for.
-  const [shared, setShared] = useState<{
-    revision: string;
-    status: ShareOutcome | 'sharing';
-  } | null>(null);
-  const shareStatus = shared?.revision === revision ? shared.status : undefined;
-  const sharing = shareStatus === 'sharing';
-  const shareReady = !blocked && prepared.status === 'ready' && !sharing;
-
-  // Opens the share sheet from this tap; never retried or chained to WhatsApp.
-  const share = () => {
-    if (!shareReady || prepared.status !== 'ready') return;
-    const pending = shareFile(prepared.file, orderMessage);
-    setShared({ revision, status: 'sharing' });
-    void pending.then((status) => setShared({ revision, status }));
-  };
-  const shareMessage = blocked
-    ? undefined
-    : shareStatus === 'shared'
-      ? SHARE_MESSAGES.shared
-      : shareStatus === 'cancelled'
-        ? SHARE_MESSAGES.cancelled
-        : shareStatus === 'failed' || prepared.status === 'failed'
-          ? SHARE_MESSAGES.failed
-          : prepared.status === 'preparing'
-            ? SHARE_MESSAGES.preparing
-            : undefined;
+  // A download of this very image has started: WhatsApp is next.
+  const downloaded = outcome?.status === 'done';
   const number = whatsAppNumber(whatsApp);
 
   const exportImage = async () => {
@@ -171,92 +126,86 @@ export function ExportControls({
     }
   };
 
+  const describedBy = (hint: string) => (blocked ? `export-reasons ${hint}` : hint);
+
   return (
     <div className="export">
-      <section className="status" aria-label="Situação da configuração">
-        {blocked ? (
+      {blocked && (
+        <section className="status" aria-label="Situação da configuração">
           <div className="export__reasons" id="export-reasons">
-            <p className="field__info">Para exportar a imagem:</p>
+            <p className="field__info">Para finalizar:</p>
             <ul className="export__list">
               {reasons.map((reason) => (
                 <li key={reason}>{reason}</li>
               ))}
             </ul>
           </div>
-        ) : (
-          <p className="status__summary status__summary--valid">Configuração completa.</p>
-        )}
-      </section>
-      {shareable && (
-        <>
-          <button
-            type="button"
-            className="button export__button"
-            aria-disabled={!shareReady}
-            aria-describedby={blocked ? 'export-reasons' : undefined}
-            onClick={share}
-          >
-            Compartilhar personalização
-          </button>
-          <p className="field__info" aria-live="polite">
-            {shareMessage}
-          </p>
-        </>
+        </section>
       )}
-      <button
-        type="button"
-        className={`button export__button${shareable ? ' export__button--secondary' : ''}`}
-        aria-disabled={blocked || working}
-        aria-describedby={blocked ? 'export-reasons' : undefined}
-        onClick={() => void exportImage()}
-      >
-        Baixar imagem
-      </button>
-      <p className="field__info" aria-live="polite">
-        {outcome?.status === 'working' && EXPORT_MESSAGES.working}
-        {outcome?.status === 'done' && `${EXPORT_MESSAGES.done} ${outcome.fileName}`}
-      </p>
-      {outcome?.status === 'error' && (
-        <p className="field__error" role="alert">
-          {outcome.message}
-        </p>
-      )}
-      {number !== null && (
-        <div className="whatsapp">
-          <p className="field__legend field__legend--small" id="whatsapp-title">
-            Prefere enviar pelo WhatsApp?
-          </p>
-          <ol className="whatsapp__steps" id="whatsapp-steps">
-            <li>Toque em &quot;Baixar imagem&quot; para salvar a imagem no aparelho.</li>
-            <li>
-              Abra a conversa com a TAAVI e anexe a imagem baixada; os detalhes já vão escritos na
-              mensagem.
-            </li>
-          </ol>
-          {blocked ? (
-            // Not a link while blocked: an incomplete request cannot be opened.
-            <span
-              role="link"
-              tabIndex={0}
-              className="button export__button whatsapp__link"
-              aria-disabled="true"
-              aria-describedby="export-reasons"
+      <ol className="actions">
+        <li className="actions__step">
+          <span className="actions__number" aria-hidden="true">
+            1
+          </span>
+          <div className="actions__body">
+            <button
+              type="button"
+              className={`button export__button${downloaded ? ' export__button--secondary' : ''}`}
+              aria-disabled={blocked || working}
+              aria-describedby={describedBy('download-hint')}
+              onClick={() => void exportImage()}
             >
-              Abrir WhatsApp da TAAVI
+              Baixar minha criação
+            </button>
+            <p className="field__info" id="download-hint">
+              Salve a imagem da sua peça.
+            </p>
+            <p className="field__info" aria-live="polite">
+              {outcome?.status === 'working' && EXPORT_MESSAGES.working}
+              {outcome?.status === 'done' && `${EXPORT_MESSAGES.done} ${outcome.fileName}`}
+            </p>
+            {outcome?.status === 'error' && (
+              <p className="field__error" role="alert">
+                {outcome.message}
+              </p>
+            )}
+          </div>
+        </li>
+        {number !== null && (
+          <li className="actions__step">
+            <span className="actions__number" aria-hidden="true">
+              2
             </span>
-          ) : (
-            <a
-              className="button export__button export__button--secondary whatsapp__link"
-              href={whatsAppUrl(number, orderMessage)}
-              target="_blank"
-              rel="noopener noreferrer"
-              aria-describedby="whatsapp-steps"
-            >
-              Abrir WhatsApp da TAAVI
-            </a>
-          )}
-        </div>
-      )}
+            <div className="actions__body">
+              {blocked ? (
+                // Not a link while blocked: an incomplete request cannot be opened.
+                <span
+                  role="link"
+                  tabIndex={0}
+                  className="button export__button whatsapp__link"
+                  aria-disabled="true"
+                  aria-describedby={describedBy('whatsapp-hint')}
+                >
+                  Enviar detalhes para a TAAVI
+                </span>
+              ) : (
+                <a
+                  className={`button export__button whatsapp__link${downloaded ? '' : ' export__button--secondary'}`}
+                  href={whatsAppUrl(number, orderMessage)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-describedby="whatsapp-hint"
+                >
+                  Enviar detalhes para a TAAVI
+                </a>
+              )}
+              <p className="field__info" id="whatsapp-hint">
+                Abra nosso WhatsApp e anexe a imagem salva. Os detalhes estarão na mensagem.
+              </p>
+            </div>
+          </li>
+        )}
+      </ol>
     </div>
   );
 }

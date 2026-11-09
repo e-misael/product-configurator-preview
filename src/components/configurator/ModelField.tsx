@@ -1,4 +1,10 @@
-import { isPlacementFixed, type Catalog, type Plate, type ValidationIssue } from '../../domain';
+import {
+  formatBRL,
+  isPlacementFixed,
+  type Catalog,
+  type Plate,
+  type ValidationIssue,
+} from '../../domain';
 import { FIXED_PLACEMENT_HINT } from '../preview/messages';
 import { ChoiceOption } from './ChoiceOption';
 import { InvalidSelection } from './InvalidSelection';
@@ -20,7 +26,8 @@ interface ModelFieldProps {
 /**
  * Model picker. Models sold in several sizes are one option with a required
  * "Tamanho" choice, never preselected (D-057). The ceramic color is a fixed
- * catalog property, shown read-only.
+ * catalog property, shown read-only. Each model and each size shows its
+ * list price (D-080); a group has none of its own, its sizes differ.
  */
 export function ModelField({
   catalog,
@@ -56,6 +63,8 @@ export function ModelField({
               value={choice.plate.id}
               checked={choice.plate.id === plateId}
               onSelect={() => onChoose(choice.plate.id)}
+              description={priceOf(choice.plate)}
+              descriptionKind="price"
             >
               {modelLabel(choice.plate)}
             </ChoiceOption>
@@ -87,6 +96,8 @@ export function ModelField({
                 value={option.id}
                 checked={option.id === plateId}
                 onSelect={() => onChoose(option.id)}
+                description={priceOf(option)}
+                descriptionKind="price"
               >
                 {sizeLabel(groups, option)}
               </ChoiceOption>
@@ -108,3 +119,7 @@ export function ModelField({
     </fieldset>
   );
 }
+
+/** The list price beside a choice; none while not supplied (D-080). */
+const priceOf = (plate: Plate) =>
+  plate.priceCents === undefined ? undefined : formatBRL(plate.priceCents);

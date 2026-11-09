@@ -18,6 +18,7 @@ import { addsLineBeyondCapacity, lineCapacity } from '../../preview/text-fit';
 import { Step } from '../layout/Step';
 import { lineLimitMessage, overflowMessage, presetOf } from '../preview/messages';
 import { TextPositionControls } from '../preview/TextPositionControls';
+import { Disclaimer } from '../review/Disclaimer';
 import { FinalizePanel } from '../review/FinalizePanel';
 import { NoteField } from '../review/NoteField';
 import { ReviewPanel } from '../review/ReviewPanel';
@@ -54,8 +55,8 @@ interface ConfiguratorFormProps {
 /**
  * The customization in four steps, in order (D-058): model and size, text and
  * colors, position and alignment, then the review; then the optional
- * "Observação" and, always open, "Finalizar personalização" with the
- * disclaimer and the sharing and export actions last (D-078).
+ * "Observação", the disclaimer on its own, and, always open, "Finalize seu
+ * pedido" with the price, quantity, and actions last (D-078, D-080).
  */
 export function ConfiguratorForm({
   catalog,
@@ -233,26 +234,26 @@ export function ConfiguratorForm({
         <NoteField note={config.note} onNote={state.setNote} />
       </Step>
 
+      {/* Between the note and the finalization, outside both (D-080). */}
+      <Disclaimer />
+
       {/* Always open, so the actions are always at hand (D-078). */}
       <Step
         id="step-finalize"
         collapsible={false}
         open
         onToggle={() => undefined}
-        title="Finalizar personalização"
+        title="Finalize seu pedido"
         summary=""
         complete={ready}
       >
         <FinalizePanel
           config={config}
+          plate={plate}
           summary={summary}
           validation={validation}
           scene={scene}
           sizePending={model.sizePending}
-          // Not while a step that changes the image is open on a phone (D-076, D-078).
-          active={
-            !collapsible || (openStep !== 'model' && openStep !== 'text' && openStep !== 'position')
-          }
         />
       </Step>
     </form>

@@ -8,7 +8,9 @@ interface ChoiceOptionProps {
   readonly onSelect: () => void;
   readonly children: ReactNode;
   /** Secondary text shown beside the label; it describes the option without naming it. */
-  readonly description?: string;
+  readonly description?: string | undefined;
+  /** A price is drawn lighter than other descriptions (D-080). */
+  readonly descriptionKind?: 'price';
 }
 
 /** A native radio input with a full-width, touch-friendly label. */
@@ -20,6 +22,7 @@ export function ChoiceOption({
   onSelect,
   children,
   description,
+  descriptionKind,
 }: ChoiceOptionProps) {
   const id = useId();
   return (
@@ -37,7 +40,10 @@ export function ChoiceOption({
       <span className="choice__label">
         <span id={`${id}-label`}>{children}</span>
         {description !== undefined && (
-          <span className="choice__detail" id={`${id}-description`}>
+          <span
+            className={`choice__detail${descriptionKind === 'price' ? ' choice__detail--price' : ''}`}
+            id={`${id}-description`}
+          >
             {description}
           </span>
         )}

@@ -7,6 +7,7 @@
  */
 
 import { TEXT_ALIGNMENTS } from './types';
+import { isValidPriceCents } from './pricing';
 import { isAvailable } from './validation';
 import type {
   AssetRef,
@@ -138,6 +139,10 @@ export function validateCatalog(catalog: Catalog): CatalogValidationResult {
       }
     }
     checkDimensions(plate.dimensions, `${path}.dimensions`, plate.id);
+    // Whole cents above zero, or omitted (D-080).
+    if (plate.priceCents !== undefined && !isValidPriceCents(plate.priceCents)) {
+      report('invalid-price', `${path}.priceCents`, plate.id);
+    }
 
     if (plate.image !== undefined) {
       const imagePath = `${path}.image`;

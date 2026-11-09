@@ -1,5 +1,5 @@
 import { createEmptyConfiguration } from '../../../src/domain';
-import { orderMessage } from '../../../src/components/review/order-message';
+import { orderMessage, type OrderLine } from '../../../src/components/review/order-message';
 import { reviewSummary, type ReviewSummary } from '../../../src/components/review/review-summary';
 import { previewCatalog } from '../preview/fixtures';
 
@@ -17,11 +17,15 @@ const summary = (overrides: Partial<ReviewSummary> = {}): ReviewSummary => ({
   ...overrides,
 });
 
-describe('orderMessage (D-076)', () => {
+/** One Placa at its list price. */
+const ONE: OrderLine = { quantity: 1, unitPriceCents: 9800 };
+
+describe('orderMessage (D-076, D-080)', () => {
   it('follows the approved structure, with every field that applies', () => {
     const message = orderMessage(
       summary({ highlight: { color: 'Marrom', words: ['ANA', '2024'] } }),
       'Presente de aniversário',
+      { quantity: 2, unitPriceCents: 9800 },
     );
 
     expect(message).toBe(
@@ -31,6 +35,9 @@ describe('orderMessage (D-076)', () => {
         'Gostaria de solicitar uma peça personalizada com estas características:',
         '',
         'Modelo: Placa cerâmica — 10 × 10 cm',
+        'Quantidade: 2',
+        'Valor unitário: R$ 98,00',
+        'Total estimado: R$ 196,00',
         '',
         'Texto:',
         'CASA DA ANA',
@@ -43,9 +50,9 @@ describe('orderMessage (D-076)', () => {
         'Posição: Centro',
         'Observação: Presente de aniversário',
         '',
-        'Preparei uma imagem da personalização como referência.',
+        'Preparei uma imagem da personalização como referência e vou anexá-la nesta conversa.',
         '',
-        'Podem confirmar o valor, a disponibilidade e o prazo de produção?',
+        'Podem confirmar a disponibilidade, o valor final e o prazo de produção?',
       ].join('\n'),
     );
   });
@@ -54,6 +61,7 @@ describe('orderMessage (D-076)', () => {
     const message = orderMessage(
       summary({ model: 'Bandeja ondulada', size: 'M — 8 × 8 cm', fixedPlacement: true }),
       '  \n ',
+      { quantity: 1, unitPriceCents: 10000 },
     );
 
     expect(message).toContain('Modelo: Bandeja ondulada — M — 8 × 8 cm\n');
@@ -62,15 +70,31 @@ describe('orderMessage (D-076)', () => {
   });
 
   it('keeps line breaks in the note, without its outer spaces', () => {
-    expect(orderMessage(summary(), '  Entregar em maio.\nObrigado!  ')).toContain(
+    expect(orderMessage(summary(), '  Entregar em maio.\nObrigado!  ', ONE)).toContain(
       'Observação: Entregar em maio.\nObrigado!\n\nPreparei',
     );
   });
 
-  it('states no customer data and no confirmation', () => {
-    const message = orderMessage(summary(), '');
-    expect(message).not.toMatch(/enviad|recebid|confirmad|pedido n/i);
-    expect(message).toMatch(/Podem confirmar o valor/);
+  it('states no customer data, payment, confirmation, automatic attachment, or shipping', () => {
+    const message = orderMessage(summary(), '', { quantity: 99, unitPriceCents: 27000 });
+    expect(message).not.toMatch(/enviad|recebid|confirmad|pedido n|pago|pagamento|anexad|frete/i);
+    expect(message).toMatch(/vou anexá-la nesta conversa/);
+    expect(message).toMatch(/Podem confirmar a disponibilidade, o valor final e o prazo/);
+  });
+
+  it('states the quantity, unit price, and estimated total in BRL (D-080)', () => {
+    expect(orderMessage(summary(), '', { quantity: 3, unitPriceCents: 11000 })).toContain(
+      'Modelo: Placa cerâmica — 10 × 10 cm\nQuantidade: 3\nValor unitário: R$ 110,00\nTotal estimado: R$ 330,00\n\nTexto:',
+    );
+    expect(orderMessage(summary(), '', { quantity: 99, unitPriceCents: 27000 })).toContain(
+      'Quantidade: 99\nValor unitário: R$ 270,00\nTotal estimado: R$ 26.730,00\n',
+    );
+  });
+
+  it('leaves the price to TAAVI while the model has none, with no total', () => {
+    const message = orderMessage(summary(), '', { quantity: 2, unitPriceCents: undefined });
+    expect(message).toContain('Quantidade: 2\nValor unitário: a confirmar\n\nTexto:');
+    expect(message).not.toContain('Total estimado');
   });
 });
 
@@ -94,14 +118,14 @@ describe('reviewSummary feeds the message (D-076)', () => {
       false,
     );
 
-    expect(orderMessage(sans, '')).toContain(
+    expect(orderMessage(sans, '', ONE)).toContain(
       'Texto:\nCASA DA ANA\nDESDE 2024\n\nFonte: Sem serifa',
     );
-    expect(orderMessage(serif, '')).toContain(
+    expect(orderMessage(serif, '', ONE)).toContain(
       'Texto:\nCasa da Ana\nDesde 2024\n\nFonte: Com serifa',
     );
-    expect(orderMessage(sans, '')).toContain('Modelo: Test plate square — Test size\n');
-    expect(orderMessage(sans, '')).toContain('Cor principal: Test ink A\n');
+    expect(orderMessage(sans, '', ONE)).toContain('Modelo: Test plate square — Test size\n');
+    expect(orderMessage(sans, '', ONE)).toContain('Cor principal: Test ink A\n');
   });
 
   it('names the highlighted words as lettered, and only while highlighting is on', () => {
@@ -125,7 +149,7 @@ describe('reviewSummary feeds the message (D-076)', () => {
     );
 
     expect(on.highlight).toEqual({ color: 'Test ink B', words: ['ANA'] });
-    expect(orderMessage(on, '')).toContain('Destaque: Test ink B (ANA)\n');
+    expect(orderMessage(on, '', ONE)).toContain('Destaque: Test ink B (ANA)\n');
     expect(off.highlight).toBeNull();
   });
 

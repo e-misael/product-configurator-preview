@@ -4,15 +4,15 @@ import { App } from '../../../src/App';
 import { FakeImage, installFakeImages } from '../support/fake-image';
 import { previewCatalog, previewSizes } from '../preview/fixtures';
 
-/** "Abrir WhatsApp da TAAVI" with the configured number (P-16): no mock of the contact. */
+/** "Enviar detalhes para a TAAVI" with the configured number (P-16): no mock of the contact. */
 
 beforeEach(() => {
   installFakeImages(previewSizes);
 });
 
 const group = (name: string) => screen.getByRole('group', { name });
-const finalize = () => screen.getByRole('region', { name: 'Finalizar personalização' });
-const link = () => within(finalize()).getByRole('link', { name: 'Abrir WhatsApp da TAAVI' });
+const finalize = () => screen.getByRole('region', { name: 'Finalize seu pedido' });
+const link = () => within(finalize()).getByRole('link', { name: 'Enviar detalhes para a TAAVI' });
 
 async function setup({ complete = true } = {}) {
   const user = userEvent.setup();
@@ -27,8 +27,8 @@ async function setup({ complete = true } = {}) {
   return { user };
 }
 
-describe('Abrir WhatsApp da TAAVI, configured (P-16)', () => {
-  it('opens TAAVI’s official chat with the order message, after the two steps', async () => {
+describe('Enviar detalhes para a TAAVI, configured (P-16)', () => {
+  it('opens TAAVI’s official chat with the order message, as step 2', async () => {
     await setup();
 
     const url = new URL(link().getAttribute('href') ?? '');
@@ -37,20 +37,17 @@ describe('Abrir WhatsApp da TAAVI, configured (P-16)', () => {
     expect(text).toMatch(/^Olá, TAAVI!\n\n/);
     expect(text).toContain('Texto:\nCASA DA ANA\n');
     expect(text).toContain('Observação: Presente\n');
-    expect(text).toMatch(/Podem confirmar o valor, a disponibilidade e o prazo de produção\?$/);
+    expect(text).toMatch(
+      /Podem confirmar a disponibilidade, o valor final e o prazo de produção\?$/,
+    );
     expect(link()).toHaveAttribute('target', '_blank');
     expect(link()).toHaveAttribute('rel', 'noopener noreferrer');
-
-    // The two manual steps, unchanged, describe the link.
-    const steps = within(finalize()).getAllByRole('listitem');
-    expect(steps.map((step) => step.textContent)).toEqual(
-      expect.arrayContaining([
-        'Toque em "Baixar imagem" para salvar a imagem no aparelho.',
-        'Abra a conversa com a TAAVI e anexe a imagem baixada; os detalhes já vão escritos na mensagem.',
-      ]),
+    expect(link()).toHaveAccessibleDescription(
+      'Abra nosso WhatsApp e anexe a imagem salva. Os detalhes estarão na mensagem.',
     );
-    expect(link()).toHaveAccessibleDescription(/Baixar imagem.*anexe a imagem baixada/);
-    expect(within(finalize()).getByText('Prefere enviar pelo WhatsApp?')).toBeInTheDocument();
+    // The long manual instructions are gone (D-080).
+    expect(within(finalize()).queryByText('Prefere enviar pelo WhatsApp?')).toBeNull();
+    expect(finalize()).not.toHaveTextContent(/Toque em/);
   });
 
   it('follows a note edit at once', async () => {

@@ -98,6 +98,11 @@ export interface Plate extends CatalogComponentBase {
   readonly ceramicColor: string;
   /** Physical dimensions; `pending` until measured. `sizeLabel` is not a measurement. */
   readonly dimensions: Dimensions;
+  /**
+   * List price of one piece in whole BRL cents, as supplied by TAAVI (D-080);
+   * e.g. 9800 for R$ 98,00. Omitted until supplied: the price is then "a confirmar".
+   */
+  readonly priceCents?: number;
   /** The model's photograph. Omitted while pending. */
   readonly image?: PlateImage;
 }
@@ -204,6 +209,7 @@ export type CatalogIssueCode =
   | 'invalid-id'
   | 'duplicate-id'
   | 'invalid-dimension'
+  | 'invalid-price'
   | 'invalid-asset'
   | 'empty-label'
   | 'invalid-placement'

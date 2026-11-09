@@ -1,6 +1,6 @@
 import { getCatalog } from '../../../src/catalog';
 import { demoCatalog } from '../../../src/demo/demo-catalog';
-import { validateCatalog } from '../../../src/domain';
+import { formatBRL, validateCatalog } from '../../../src/domain';
 import { expectDeeplyFrozen } from './expect-deeply-frozen';
 
 /**
@@ -59,6 +59,26 @@ describe('production catalog', () => {
       expect(color.displayName).not.toMatch(/demonstração|proposta/i);
       expect(demoIds.has(color.id)).toBe(false);
     }
+  });
+
+  it('records the list prices supplied by TAAVI, in cents; M and G differ (D-080)', () => {
+    const { plates } = getCatalog();
+    expect(plates.map(({ id, priceCents }) => [id, priceCents])).toEqual([
+      ['placa-ceramica-10', 9800],
+      ['quadro-20', 27000],
+      ['bandeja-ondulada-m-8', 10000],
+      ['bandeja-ondulada-g-11', 11000],
+    ]);
+    expect(plates.map(({ priceCents }) => formatBRL(priceCents ?? 0))).toEqual([
+      'R$ 98,00',
+      'R$ 270,00',
+      'R$ 100,00',
+      'R$ 110,00',
+    ]);
+  });
+
+  it('gives the demonstration models no price: nothing is invented (D-028, D-080)', () => {
+    expect(demoCatalog.plates.every((plate) => plate.priceCents === undefined)).toBe(true);
   });
 
   it('records the confirmed outer dimensions; every model is Bege and has a photograph', () => {

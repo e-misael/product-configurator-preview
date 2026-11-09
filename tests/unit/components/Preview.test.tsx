@@ -34,8 +34,8 @@ const canvas = () => within(preview()).queryByRole('img');
 const notices = () => preview().querySelector('[aria-live="polite"]');
 /** "Revisar personalização" (D-058, D-078): the summary and the reset. */
 const review = () => screen.getByRole('region', { name: 'Revisar personalização' });
-/** "Finalizar personalização" (D-078): the disclaimer, the status, and export. */
-const finalize = () => screen.getByRole('region', { name: 'Finalizar personalização' });
+/** "Finalize seu pedido" (D-078): the disclaimer, the status, and export. */
+const finalize = () => screen.getByRole('region', { name: 'Finalize seu pedido' });
 const summaryText = () => review().querySelector('.review__text');
 
 async function choose(
@@ -251,10 +251,9 @@ describe('Preview', () => {
         expect(document.getElementById('text-overflow')).toHaveClass('field__error--alert');
         expect(within(preview()).getByText(message)).toHaveClass('preview__notice--error');
         expect(finalize().querySelector('#export-reasons')).toHaveTextContent(message);
-        expect(within(finalize()).getByRole('button', { name: 'Baixar imagem' })).toHaveAttribute(
-          'aria-disabled',
-          'true',
-        );
+        expect(
+          within(finalize()).getByRole('button', { name: 'Baixar minha criação' }),
+        ).toHaveAttribute('aria-disabled', 'true');
 
         await user.type(field(), '{Backspace}'.repeat(9));
         expect(field()).not.toHaveAttribute('aria-invalid');
@@ -343,7 +342,7 @@ describe('Preview', () => {
       expect(painted(currentContext()).some((entry) => entry.startsWith('text:'))).toBe(false);
       expect(summaryText()).toHaveTextContent('ANA');
       // A complete configuration still cannot be exported without an approved size.
-      const exportButton = within(finalize()).getByRole('button', { name: 'Baixar imagem' });
+      const exportButton = within(finalize()).getByRole('button', { name: 'Baixar minha criação' });
       expect(exportButton).toHaveAttribute('aria-disabled', 'true');
       // The reason is named in the export list, not only in the preview (D-063).
       expect(finalize().querySelector('#export-reasons')).toHaveTextContent(message);
@@ -582,7 +581,8 @@ describe('Preview', () => {
   });
 
   describe('export (D-008)', () => {
-    const exportButton = () => within(finalize()).getByRole('button', { name: 'Baixar imagem' });
+    const exportButton = () =>
+      within(finalize()).getByRole('button', { name: 'Baixar minha criação' });
     const reasons = () => finalize().querySelector('#export-reasons');
     let clicked: HTMLAnchorElement[];
 
@@ -618,7 +618,7 @@ describe('Preview', () => {
 
       expect(exportButton()).toHaveAttribute('aria-disabled', 'true');
       expect(exportButton()).not.toBeDisabled();
-      expect(reasons()).toHaveTextContent('Para exportar a imagem:');
+      expect(reasons()).toHaveTextContent('Para finalizar:');
       expect(reasons()).toHaveTextContent('Falta escolher: Texto, Cor do texto.');
 
       await user.click(exportButton());
@@ -643,7 +643,7 @@ describe('Preview', () => {
       await user.click(exportButton());
 
       expect(
-        await within(finalize()).findByText('Imagem exportada: taavi-test-plate-square.png'),
+        await within(finalize()).findByText('Download iniciado: taavi-test-plate-square.png'),
       ).toBeInTheDocument();
       expect(clicked.map((link) => link.download)).toEqual(['taavi-test-plate-square.png']);
       expect(reasons()).toBeNull();
@@ -664,7 +664,7 @@ describe('Preview', () => {
       toBlob.mockRestore();
       installFakeCanvas();
       await user.click(exportButton());
-      expect(await within(finalize()).findByText(/Imagem exportada:/)).toBeInTheDocument();
+      expect(await within(finalize()).findByText(/Download iniciado:/)).toBeInTheDocument();
       expect(within(finalize()).queryByRole('alert')).toBeNull();
     });
 

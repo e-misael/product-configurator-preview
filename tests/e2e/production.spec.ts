@@ -173,14 +173,14 @@ test.describe('Production build @smoke', () => {
     await expect(footer).toHaveCSS('text-align', 'center');
     await expect(link).toHaveAttribute('href', 'https://taavi.lojavirtualnuvem.com.br/');
     await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
-    // Below "Finalizar personalização", and quieter than its actions.
+    // Below "Finalize seu pedido", and quieter than its actions.
     const actions = await finalize(page).boundingBox();
     const box = await footer.boundingBox();
     expect((box?.y ?? 0) >= (actions?.y ?? 0) + (actions?.height ?? 0)).toBe(true);
     const fontSize = (locator: Locator) =>
       locator.evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
     expect(await fontSize(link)).toBeLessThan(
-      await fontSize(finalize(page).getByRole('button', { name: 'Baixar imagem' })),
+      await fontSize(finalize(page).getByRole('button', { name: 'Baixar minha criação' })),
     );
 
     // A new tab: this one keeps the customization.
@@ -218,10 +218,13 @@ test.describe('Production build @smoke', () => {
       page.getByRole('switch', { name: 'Destacar parte(s) do texto' }),
     ).not.toBeChecked();
     await expect(page.getByRole('group', { name: 'Cor de destaque' })).toHaveCount(0);
-    // The disclaimer opens "Finalizar personalização", before export (D-078).
-    for (const paragraph of DISCLAIMER) {
-      await expect(finalize(page).getByText(paragraph)).toBeVisible();
-    }
+    // The disclaimer stands just before "Finalize seu pedido", outside it (D-080).
+    const disclaimer = page.locator('.disclaimer');
+    await expect(disclaimer).toHaveCount(1);
+    await expect(disclaimer.locator('p')).toHaveText(DISCLAIMER);
+    await expect(finalize(page)).not.toContainText('ilustrativa');
+    const [text, section] = [await disclaimer.boundingBox(), await finalize(page).boundingBox()];
+    expect((text?.y ?? 0) + (text?.height ?? 0) <= (section?.y ?? 0)).toBe(true);
   });
 
   test('starts with Marrom; export waits only for the text (D-064)', async ({ page }) => {
@@ -229,7 +232,7 @@ test.describe('Production build @smoke', () => {
     await chooseModel(page, 'Placa cerâmica — 10 × 10 cm');
 
     const review = await step(page, 'Revisar personalização');
-    const button = finalize(page).getByRole('button', { name: 'Baixar imagem' });
+    const button = finalize(page).getByRole('button', { name: 'Baixar minha criação' });
     await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(finalize(page)).toContainText('Falta escolher: Texto.');
     await expect(finalize(page)).not.toContainText('Cor do texto.');
@@ -291,6 +294,110 @@ test.describe('Production build @smoke', () => {
   });
 });
 
+/** TAAVI's list prices (D-080), by model as listed in `MODELS`. */
+const PRICES: Record<string, string> = {
+  'Placa cerâmica — 10 × 10 cm': 'R$ 98,00',
+  'Quadro — 20 × 20 cm': 'R$ 270,00',
+  'Bandeja ondulada M — 8 × 8 cm': 'R$ 100,00',
+  'Bandeja ondulada G — 11 × 11 cm': 'R$ 110,00',
+};
+
+test.describe('Prices and quantity (D-080)', () => {
+  test('shows each list price beside its choice; M and G differ', async ({ page }) => {
+    await page.goto('/');
+    const models = page.getByRole('group', { name: 'Modelo' });
+    await expect(
+      models.getByRole('radio', { name: 'Placa cerâmica — 10 × 10 cm' }),
+    ).toHaveAccessibleDescription('R$ 98,00');
+    await expect(
+      models.getByRole('radio', { name: 'Quadro — 20 × 20 cm' }),
+    ).toHaveAccessibleDescription('R$ 270,00');
+    await expect(
+      models.getByRole('radio', { name: 'Bandeja ondulada' }),
+    ).toHaveAccessibleDescription('Disponível em dois tamanhos');
+    await models.getByRole('radio', { name: 'Bandeja ondulada' }).check();
+    const sizes = page.getByRole('group', { name: 'Tamanho' });
+    await expect(sizes.getByRole('radio', { name: 'M — 8 × 8 cm' })).toHaveAccessibleDescription(
+      'R$ 100,00',
+    );
+    await expect(sizes.getByRole('radio', { name: 'G — 11 × 11 cm' })).toHaveAccessibleDescription(
+      'R$ 110,00',
+    );
+    await expectNoHorizontalScroll(page);
+  });
+
+  for (const name of MODELS) {
+    test(`${name}: the unit price, quantity, total, and message agree`, async ({ page }) => {
+      await page.goto('/');
+      await chooseModel(page, name);
+      await (await textField(page)).fill('Ana');
+      await openStep(page, 'Revisar personalização');
+
+      const order = finalize(page);
+      await expect(order).toContainText(`Valor unitário${PRICES[name]}`);
+      await expect(order).toContainText(`Total estimado${PRICES[name]}`);
+      await order.getByRole('button', { name: 'Aumentar quantidade' }).click();
+      await expect(order.getByRole('textbox', { name: 'Quantidade' })).toHaveValue('2');
+      const total = ((Number(PRICES[name]?.replace(/\D/g, '')) * 2) / 100)
+        .toFixed(2)
+        .replace('.', ',');
+      await expect(order).toContainText(`Total estimadoR$ ${total}`);
+      await expect(order).toContainText('Frete não incluso. Valor sujeito à confirmação da TAAVI.');
+
+      const href = await order
+        .getByRole('link', { name: 'Enviar detalhes para a TAAVI' })
+        .getAttribute('href');
+      const text = new URL(href ?? '').searchParams.get('text') ?? '';
+      expect(text).toContain(
+        `\nQuantidade: 2\nValor unitário: ${PRICES[name]}\nTotal estimado: R$ ${total}\n\nTexto:\n`,
+      );
+      expect(text).not.toMatch(/frete|pago|confirmado/i);
+    });
+  }
+
+  test('a Placa, quantity 2: the exact message, encoded', async ({ page }) => {
+    await page.goto('/');
+    await chooseModel(page, 'Placa cerâmica — 10 × 10 cm');
+    await (await textField(page)).fill('Casa da Ana');
+    await openStep(page, 'Observação');
+    await page.getByRole('textbox', { name: 'Observação' }).fill('Para presente & #1?');
+    const order = finalize(page);
+    await order.getByRole('textbox', { name: 'Quantidade' }).fill('2');
+
+    const href =
+      (await order
+        .getByRole('link', { name: 'Enviar detalhes para a TAAVI' })
+        .getAttribute('href')) ?? '';
+    expect(href.startsWith('https://wa.me/5561999237316?text=')).toBe(true);
+    expect(href.split('?text=')[1]).not.toMatch(/[ \n&#?áâêçã$]/);
+    expect(new URL(href).searchParams.get('text')).toBe(
+      [
+        'Olá, TAAVI!',
+        '',
+        'Gostaria de solicitar uma peça personalizada com estas características:',
+        '',
+        'Modelo: Placa cerâmica — 10 × 10 cm',
+        'Quantidade: 2',
+        'Valor unitário: R$ 98,00',
+        'Total estimado: R$ 196,00',
+        '',
+        'Texto:',
+        'CASA DA ANA',
+        '',
+        'Fonte: Sem serifa',
+        'Cor principal: Marrom',
+        'Alinhamento: Centralizado',
+        'Posição: Centro',
+        'Observação: Para presente & #1?',
+        '',
+        'Preparei uma imagem da personalização como referência e vou anexá-la nesta conversa.',
+        '',
+        'Podem confirmar a disponibilidade, o valor final e o prazo de produção?',
+      ].join('\n'),
+    );
+  });
+});
+
 test.describe('Production customization to PNG export (D-056)', () => {
   test('two colors, preview, and export agree; turning highlighting off', async ({ page }) => {
     await page.goto('/');
@@ -330,7 +437,7 @@ test.describe('Production customization to PNG export (D-056)', () => {
     const shown = await colorCounts(page, 'preview', [green, red]);
 
     const review = await step(page, 'Revisar personalização');
-    const button = finalize(page).getByRole('button', { name: 'Baixar imagem' });
+    const button = finalize(page).getByRole('button', { name: 'Baixar minha criação' });
     await expect(button).toHaveAttribute('aria-disabled', 'false');
     const [download] = await Promise.all([page.waitForEvent('download'), button.click()]);
     expect(download.suggestedFilename()).toBe('taavi-placa-ceramica-10.png');
@@ -535,7 +642,7 @@ test.describe('Bandeja ondulada sizes (D-057)', () => {
     const models = page.getByRole('group', { name: 'Modelo' });
     const preview = page.getByRole('region', { name: 'Pré-visualização' });
     const review = page.getByRole('region', { name: 'Revisar personalização' });
-    const button = finalize(page).getByRole('button', { name: 'Baixar imagem' });
+    const button = finalize(page).getByRole('button', { name: 'Baixar minha criação' });
     const summary = (term: string) => review.locator('dt', { hasText: term }).locator('+ dd');
     const bandeja = models.getByRole('radio', { name: 'Bandeja ondulada' });
     await expect(bandeja).toHaveAccessibleDescription('Disponível em dois tamanhos');
@@ -650,7 +757,7 @@ test.describe('Bandeja ondulada before its size (M4.6)', () => {
       page.getByRole('group', { name: 'Tamanho' }).getByRole('radio', { checked: true }),
     ).toHaveCount(0);
     await openStep(page, 'Revisar personalização');
-    const button = finalize(page).getByRole('button', { name: 'Baixar imagem' });
+    const button = finalize(page).getByRole('button', { name: 'Baixar minha criação' });
     await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(finalize(page)).toContainText('Falta escolher: Tamanho.');
     await expect(button).toHaveAccessibleDescription(/Falta escolher: Tamanho/);
@@ -719,7 +826,7 @@ test.describe('Overflow at the fixed lettering size (D-057)', () => {
         .check();
       const preview = page.getByRole('region', { name: 'Pré-visualização' });
       // Export state is read from the button's attributes ("Finalizar" is always open).
-      const button = finalize(page).getByRole('button', { name: 'Baixar imagem' });
+      const button = finalize(page).getByRole('button', { name: 'Baixar minha criação' });
       await expect(preview.getByRole('img')).toBeVisible();
 
       await field.fill(lines(area.lines));

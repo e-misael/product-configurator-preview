@@ -16,7 +16,7 @@ const STEPS = [
   'Revisar personalização',
   'Observação',
 ];
-const FINALIZE = 'Finalizar personalização';
+const FINALIZE = 'Finalize seu pedido';
 
 const preview = (page: Page) => page.getByRole('region', { name: 'Pré-visualização' });
 const toggle = (page: Page, title: string) =>
@@ -74,7 +74,7 @@ for (const width of WIDTHS) {
         const buttons = [...document.querySelectorAll('button')];
         return buttons.at(-1)?.textContent;
       });
-      expect(last).toBe('Baixar imagem');
+      expect(last).toBe('Baixar minha criação');
       await expect(page.getByRole('button', { name: /Continuar/ })).toHaveCount(0);
       await expectNoHorizontalScroll(page);
     });
@@ -113,7 +113,7 @@ for (const width of WIDTHS) {
 
       await open(page, 'Revisar personalização');
       await expect(preview(page)).not.toHaveClass(/preview--expanded/);
-      const exportButton = page.getByRole('button', { name: 'Baixar imagem' });
+      const exportButton = page.getByRole('button', { name: 'Baixar minha criação' });
       await expect(exportButton).toHaveAttribute('aria-disabled', 'false');
       await expectNotObscured(exportButton);
       // Scrolled to the end, the preview band is still at the top of the screen.
@@ -128,16 +128,20 @@ for (const width of WIDTHS) {
       expect(download.suggestedFilename()).toBe('taavi-demo-placa-ceramica.png');
     });
 
-    test('separates the review, the note, and "Finalizar" (D-078)', async ({ page }) => {
+    test('separates the review, the note, the disclaimer, and "Finalize seu pedido" (D-078, D-080)', async ({
+      page,
+    }) => {
       const finalize = page.getByRole('region', { name: FINALIZE, exact: true });
       const review = page.getByRole('region', { name: 'Revisar personalização', exact: true });
-      // "Finalizar" needs no step opened: disclaimer, status, then the actions.
-      await expect(finalize.getByText(/^A pré-visualização é ilustrativa/)).toBeVisible();
+      // The disclaimer stands between the note and "Finalize seu pedido", outside both.
+      await expect(page.getByText(/^A pré-visualização é ilustrativa/)).toBeVisible();
+      await expect(finalize).not.toContainText('ilustrativa');
+      // "Finalize seu pedido" needs no step opened: the status, then the actions.
       await expect(
         finalize.getByRole('region', { name: 'Situação da configuração' }),
       ).toBeVisible();
-      await expect(finalize.getByRole('button', { name: 'Baixar imagem' })).toBeVisible();
-      await expectNotObscured(finalize.getByRole('button', { name: 'Baixar imagem' }));
+      await expect(finalize.getByRole('button', { name: 'Baixar minha criação' })).toBeVisible();
+      await expectNotObscured(finalize.getByRole('button', { name: 'Baixar minha criação' }));
       // The review ends with "Reiniciar configurações".
       await open(page, 'Revisar personalização');
       await expect(review.getByRole('button')).toHaveText([
@@ -161,6 +165,47 @@ for (const width of WIDTHS) {
       await expect(toggle(page, 'Observação')).toBeFocused();
       await open(page, 'Observação');
       await expect(note).toHaveValue('Presente\nde aniversário');
+      await expectNoHorizontalScroll(page);
+    });
+
+    test('lays out "Finalize seu pedido" by touch: quantity, then download, then WhatsApp (D-080)', async ({
+      page,
+    }) => {
+      await page
+        .getByRole('group', { name: 'Modelo' })
+        .getByRole('radio', { name: /Placa cerâmica/ })
+        .tap();
+      await open(page, 'Texto e cores');
+      await page.getByLabel('Texto', { exact: true }).fill('Ana');
+      await page
+        .getByRole('group', { name: 'Cor do texto' })
+        .getByRole('radio', { name: /Letra grafite/ })
+        .check();
+      await toggle(page, 'Texto e cores').tap();
+
+      const finalize = page.getByRole('region', { name: FINALIZE, exact: true });
+      const quantity = finalize.getByRole('textbox', { name: 'Quantidade' });
+      const more = finalize.getByRole('button', { name: 'Aumentar quantidade' });
+      const less = finalize.getByRole('button', { name: 'Diminuir quantidade' });
+      const download = finalize.getByRole('button', { name: 'Baixar minha criação' });
+      const whatsApp = finalize.getByRole('link', { name: 'Enviar detalhes para a TAAVI' });
+      for (const control of [less, quantity, more, download, whatsApp]) {
+        await expectNotObscured(control);
+        const box = await control.boundingBox();
+        // Touch targets of at least 44 × 44 CSS px.
+        expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+        expect(box?.width ?? 0).toBeGreaterThanOrEqual(44);
+      }
+      await more.tap();
+      await expect(quantity).toHaveValue('2');
+      await expect(finalize).toContainText(
+        'Frete não incluso. Valor sujeito à confirmação da TAAVI.',
+      );
+
+      const [first, second] = [await download.boundingBox(), await whatsApp.boundingBox()];
+      expect((first?.y ?? 0) + (first?.height ?? 0) <= (second?.y ?? 0)).toBe(true);
+      await expect(finalize.getByText('1', { exact: true })).toBeVisible();
+      await expect(finalize.getByText('2', { exact: true })).toBeVisible();
       await expectNoHorizontalScroll(page);
     });
 

@@ -39,7 +39,7 @@ const STEPS = [
   'Revisar personalização',
   'Observação',
 ];
-const FINALIZE = 'Finalizar personalização';
+const FINALIZE = 'Finalize seu pedido';
 const toggle = (title: string) => screen.getByRole('button', { name: title });
 const region = (name: string) => screen.getByRole('region', { name });
 const body = (title: string) => {
@@ -51,11 +51,14 @@ const body = (title: string) => {
 const settle = () => act(() => FakeImage.loadAll());
 
 describe('layout (D-058)', () => {
-  it('puts the preview first, then the steps, the note, and "Finalizar" with export last', () => {
+  it('puts the preview first, then the steps, the note, the disclaimer, and "Finalize seu pedido" with export last', () => {
     setup();
+    const disclaimer = screen.getByText(/A pré-visualização é ilustrativa/).parentElement;
+    if (!disclaimer) throw new Error('Missing disclaimer');
     const sections = [
       region('Pré-visualização'),
       ...STEPS.map((title) => region(title)),
+      disclaimer,
       region(FINALIZE),
     ];
 
@@ -67,13 +70,13 @@ describe('layout (D-058)', () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
       );
     }
-    // "Finalizar" (D-078): the disclaimer, then the status, then export, the last control.
+    // "Finalize seu pedido" (D-080): the status, then export, the last control.
     const finalize = region(FINALIZE);
-    const exportButton = within(finalize).getByRole('button', { name: 'Baixar imagem' });
+    const exportButton = within(finalize).getByRole('button', { name: 'Baixar minha criação' });
     const controls = screen.getAllByRole('button', { hidden: true });
     expect(controls.at(-1)).toBe(exportButton);
+    expect(finalize.contains(disclaimer)).toBe(false);
     const order = [
-      within(finalize).getByText(/A pré-visualização é ilustrativa/),
       within(finalize).getByRole('region', { name: 'Situação da configuração' }),
       exportButton,
     ];
@@ -99,7 +102,9 @@ describe('layout (D-058)', () => {
     expect(body('Texto e cores')).not.toBeVisible();
     // "Finalizar" is always open, with a plain heading (D-078).
     expect(screen.queryByRole('button', { name: FINALIZE })).toBeNull();
-    expect(within(region(FINALIZE)).getByRole('button', { name: 'Baixar imagem' })).toBeVisible();
+    expect(
+      within(region(FINALIZE)).getByRole('button', { name: 'Baixar minha criação' }),
+    ).toBeVisible();
 
     await user.click(toggle('Texto e cores'));
     expect(toggle('Modelo e tamanho')).toHaveAttribute('aria-expanded', 'false');
@@ -164,10 +169,9 @@ describe('layout (D-058)', () => {
     expect(toggle('Revisar personalização')).toHaveAccessibleDescription(
       'Concluído · pronta para exportar',
     );
-    expect(within(region(FINALIZE)).getByRole('button', { name: 'Baixar imagem' })).toHaveAttribute(
-      'aria-disabled',
-      'false',
-    );
+    expect(
+      within(region(FINALIZE)).getByRole('button', { name: 'Baixar minha criação' }),
+    ).toHaveAttribute('aria-disabled', 'false');
   });
 
   it('keeps "Observação" collapsed at first, and its text while it closes and opens (D-078)', async () => {

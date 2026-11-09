@@ -8,6 +8,8 @@ import { FONT_FAMILIES, type Catalog } from './domain';
 import '@fontsource/red-hat-display/latin-400.css';
 import '@fontsource/red-hat-display/latin-500.css';
 import '@fontsource/red-hat-display/latin-700.css';
+// Light italic: the list prices beside the model options (D-080).
+import '@fontsource/red-hat-display/latin-300-italic.css';
 import './index.css';
 import { loadLetteringFont } from './preview/font-loading';
 

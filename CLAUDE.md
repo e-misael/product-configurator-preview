@@ -17,8 +17,8 @@ Visual configurator for TAAVI's handmade ceramics: the customer picks a model (M
 
 ## MVP boundaries
 
-In scope: model (fixed shape classification: square, rectangle, circle, scalloped), fixed read-only ceramic color, text with font family, up to two lettering colors, position presets that also set the alignment (M4.1b, M4.2), live preview, PNG image export (M4), sharing the PNG and an order request through the device's share sheet or a WhatsApp link (M5.1, D-076).
-Out of scope: a separately chosen frame (Moldura) or frame layers (D-046), customer image uploads of any kind (file picker, drag-and-drop, image URLs, image storage or upload APIs; images are curated by TAAVI in the catalog only, FR-09, D-045), Nuvemshop integration, cart, checkout, orders, payments, accounts, auth, database, backend, cloud storage, inventory, pricing, AI previews, 3D, admin, analytics. Do not add these or abstractions for them.
+In scope: model (fixed shape classification: square, rectangle, circle, scalloped), fixed read-only ceramic color, text with font family, up to two lettering colors, position presets that also set the alignment (M4.1b, M4.2), live preview, PNG image export (M4), an order request through a WhatsApp link after the customer saves the PNG (M5.1, D-076, D-080), fixed list prices from the catalog (`priceCents`) with a quantity of one design (M5.5, D-080).
+Out of scope: a separately chosen frame (Moldura) or frame layers (D-046), customer image uploads of any kind (file picker, drag-and-drop, image URLs, image storage or upload APIs; images are curated by TAAVI in the catalog only, FR-09, D-045), Nuvemshop integration, cart, several designs per request, checkout, orders, payments, shipping, accounts, auth, database, backend, cloud storage, inventory, dynamic pricing or discounts, AI previews, 3D, admin, analytics. Do not add these or abstractions for them.
 
 ## Stack
 

@@ -613,6 +613,7 @@ Status values:
 - **Scope:** no backend, no WhatsApp Business API, no Nuvemshop, no stored state; the order message is a request for a quote, not order management (out of scope, 01-product-vision). TAAVI is spelled in capitals in the UI, messages, and documentation (product owner, 2026-11-09); the signature drawn on the preview and the PNG reads "© TAAVI" (was "© Taavi", D-060, D-065; product owner, 2026-11-09), with the same mark, size, and opacity. Internal identifiers (e.g. the "Taavi Lettering Sans" font family name, `taavi-` file names) are unchanged.
 - **Supersedes:** "Exportar imagem" as the last action of the page (D-058, FR-07.9): "Baixar imagem" is the last button, followed by the WhatsApp link when configured.
 - **Status:** Approved (product owner, 2026-11-09). Implemented; release subject to manual checks on a real iPhone (Safari) and Android phone (Chrome) (05-backlog, M5.1).
+- **Update (D-080):** Native Share is no longer shown (its code is kept); the WhatsApp link is step 2, "Enviar detalhes para a TAAVI", without the two written steps, and the message adds the quantity and prices.
 
 ### D-077 — Pilot hosting on Cloudflare Pages by Direct Upload (M5.2, 2026-11-09)
 
@@ -632,6 +633,7 @@ Status values:
 - **Preparing the PNG to share:** D-076 prepared it only while the review was open on phones. "Finalizar" is now always open, so on phones the PNG is prepared while no step that changes the image (model, text, position) is open: not while typing. Wide screens are unchanged (always). A note edit still never re-renders the PNG.
 - **Unchanged:** catalog, calibration, typography, text positioning and highlighting, rendering and watermark, PNG export, Native Share, the order message, and every validation rule.
 - **Status:** Approved (product owner, 2026-11-09). Implementation pending acceptance.
+- **Update (D-080):** the third group is "Finalize seu pedido"; the disclaimer moved out of it, just before it; its status shows only blockers ("Para finalizar:"); the PNG is no longer prepared in the background.
 
 ### D-079 — Footer link to TAAVI's store (2026-11-09)
 
@@ -639,6 +641,21 @@ Status values:
 - **Look:** centered on phones and wide screens, 0.875rem, muted color (existing tokens), underlined link in the same color; quieter than every action. The page's bottom padding went from 3rem to 1.5rem, since the footer now ends the page.
 - **Scope:** a plain link only. No Nuvemshop integration (no product, cart, or order data is passed, and nothing is read from the store); out-of-scope rules are unchanged.
 - **Status:** Approved (product owner, 2026-11-09). Implementation pending acceptance.
+
+### D-080 — List prices, quantity, and a two-step finalization (M5.5, 2026-11-09)
+
+- **Context:** customers asked what a piece costs before contacting TAAVI, and the finalization offered three actions with long instructions. A `wa.me` link cannot attach an image, so the customer saves the PNG and attaches it in the chat.
+- **Prices (supplied by the product owner, 2026-11-09):** Placa cerâmica 10 × 10 cm R$ 98,00; Bandeja ondulada M 8 × 8 cm R$ 100,00; Bandeja ondulada G 11 × 11 cm R$ 110,00; Quadro 20 × 20 cm R$ 270,00. Stored once, in the catalog, as `Plate.priceCents` (whole BRL cents: 9800, 10000, 11000, 27000); M and G keep their own prices though they share one photograph. `validateCatalog` reports `invalid-price` for anything but a whole number above zero; an omitted price means not supplied ("a confirmar"), never a guess. The demo catalog has none. `src/domain/pricing.ts` formats ("R$ 1.234,56", built by hand with a plain space so every browser and the message agree) and computes the estimated total (unit × quantity, in cents).
+- **Model choice:** each model and each Bandeja size shows its price beside its name, in Red Hat Display Light Italic (300, self-hosted), as the option’s description (its accessible name is unchanged). The "Bandeja ondulada" option has no price of its own; its sizes show theirs.
+- **Page order:** the configuration and preview, "Revisar personalização", "Observação", the disclaimer (D-056, wording unchanged) on its own, outside every step, then "Finalize seu pedido" (the former "Finalizar personalização"), then the store footer (D-079). No second heading inside the section.
+- **Finalize seu pedido, when the configuration is valid:** the model with its size, "Valor unitário", "Quantidade", "Total estimado", and "Frete não incluso. Valor sujeito à confirmação da TAAVI."; then two numbered steps: (1) "Baixar minha criação", help "Salve a imagem da sua peça." (the existing watermarked PNG, FR-07); (2) "Enviar detalhes para a TAAVI", help "Abra nosso WhatsApp e anexe a imagem salva. Os detalhes estarão na mensagem." (the configured `wa.me` link, P-16). While anything blocks, the order lines are hidden and one "Para finalizar:" list gives the reasons (D-078); both actions stay focusable, disabled, and described by the reasons. "Configuração completa." is gone: the order lines take its place.
+- **Emphasis:** the download is filled and WhatsApp outlined; once a download has started for the current image the two swap. The page says only "Download iniciado: {file}" (was "Imagem exportada:"): it cannot know the file was saved. WhatsApp never waits for a download (the customer may already have the image).
+- **Quantity:** 1 to 99, default 1. − and + buttons (unavailable at the limits but still focusable), the arrow keys, or typing (digits only, two at most); anything else is never repaired: the last valid quantity stays in use and is restored when the field is left. **Maximum 99** (product owner, 2026-11-09): two digits keep the field compact; larger orders are arranged with TAAVI directly. The quantity belongs to the inquiry, not the design: it is not in `Configuration`, the review, or the PNG, so changing it never re-renders or invalidates the image. It is kept through every edit, including a model change (the unit price and total follow the new model) and while the configuration is briefly incomplete; "Reiniciar configurações" brings it back to 1.
+- **Order message (FR-10):** after "Modelo: …", the lines "Quantidade: N", "Valor unitário: R$ …", and "Total estimado: R$ …" (or "Valor unitário: a confirmar" and no total while a model has no price); the image line now reads "Preparei uma imagem da personalização como referência e vou anexá-la nesta conversa." and the closing "Podem confirmar a disponibilidade, o valor final e o prazo de produção?" (approved). The message does not mention shipping (product owner: not needed there; the page states it). It claims no payment, confirmation, or automatic attachment.
+- **Native Share:** no longer shown. `src/preview/share.ts`, `usePreparedPng`, their tests, and the share messages are kept; nothing prepares a PNG in the background now.
+- **Scope:** one configured design with a quantity. No cart, several designs, checkout, payment, shipping calculation, inventory, or backend; no hidden multi-item state. Prices change only by editing the catalog and redeploying.
+- **Amends:** D-056 (the disclaimer's place), D-076 (Native Share hidden; the WhatsApp step and message), D-078 (the section's title, order, and status text), and the out-of-scope "pricing" (CLAUDE.md, 01-product-vision, 02-requirements), which now excludes only dynamic pricing, discounts, shipping, and payment.
+- **Status:** Approved (product owner, 2026-11-09). Implemented; release subject to the real-device checks (M5.1, M5.5).
 
 ## Proposed
 
@@ -674,4 +691,4 @@ Status values:
 - **P-13:** Resolved by D-046: no model takes an optional frame.
 - **P-15:** Resolved (2026-11-08): with the confirmed dimensions (P-01), the Quadro (0.0424), Bandeja ondulada M (0.1170, now 0.0805 by D-074), and Bandeja ondulada G (0.0851, now 0.053 by D-073) have fixed lettering sizes (D-055). The 7 mm letter height stays a provisional estimate; a measured letter height of TAAVI's molds would replace it.
 - **P-14:** Typefaces resolved by D-072. Still open: the per-line text-length limit.
-- **P-16:** Resolved (product owner, 2026-11-09): TAAVI's official WhatsApp number is +55 61 99923-7316, configured as `5561999237316` in `src/config/contact.ts`; "Abrir WhatsApp da TAAVI" is offered (D-076).
+- **P-16:** Resolved (product owner, 2026-11-09): TAAVI's official WhatsApp number is +55 61 99923-7316, configured as `5561999237316` in `src/config/contact.ts`; "Abrir WhatsApp da TAAVI" is offered (D-076), now "Enviar detalhes para a TAAVI" (D-080).

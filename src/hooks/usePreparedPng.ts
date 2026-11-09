@@ -18,7 +18,7 @@ export type PreparedPng =
  * photograph, and signature loaded, in the open finalization section), the
  * scene is rendered `PREPARE_DELAY_MS` after the last change of `revision`. A
  * file is returned only for the current revision, so a stale image is never
- * offered; the export path is the same `renderPng` as "Baixar imagem".
+ * offered; the export path is the same `renderPng` as "Baixar minha criação".
  */
 export function usePreparedPng(
   scene: Scene,

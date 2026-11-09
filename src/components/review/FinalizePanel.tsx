@@ -1,58 +1,54 @@
-import type { Configuration, ValidationResult } from '../../domain';
-import { exportRevision } from '../../preview/export';
+import { useState } from 'react';
+import { MIN_QUANTITY, type Configuration, type Plate, type ValidationResult } from '../../domain';
 import type { Scene } from '../../preview/scene';
 import { ExportControls } from '../preview/ExportControls';
 import { orderMessage } from './order-message';
+import { OrderSummary } from './OrderSummary';
 import type { ReviewSummary } from './review-summary';
 
 interface FinalizePanelProps {
   readonly config: Configuration;
+  readonly plate: Plate | undefined;
   readonly summary: ReviewSummary;
   readonly validation: ValidationResult;
   readonly scene: Scene;
   readonly sizePending: boolean;
-  /** The PNG to share may be prepared now (see ExportControls). */
-  readonly active: boolean;
 }
 
 /**
- * "Finalizar personalização" (D-078): the approved disclaimer (D-056, wording
- * unchanged but TAAVI in capitals), then what still blocks the actions, and
- * the sharing and export actions last (D-076).
+ * "Finalize seu pedido" (D-080): for a valid configuration, the model, its
+ * price, the quantity, and the estimated total; then the two actions. The
+ * quantity is part of the inquiry, not of the design: it is not in the
+ * configuration or the image, so changing it never re-renders the PNG. It is
+ * kept through every edit, and the price follows a model change; a restart
+ * remounts the panel, back to 1.
  */
 export function FinalizePanel({
   config,
+  plate,
   summary,
   validation,
   scene,
   sizePending,
-  active,
 }: FinalizePanelProps) {
+  const [quantity, setQuantity] = useState(MIN_QUANTITY);
+  const unitPriceCents = plate?.priceCents;
   return (
     <div className="review">
-      {/* Approved copy (D-056). */}
-      <div className="disclaimer">
-        <p>
-          A pré-visualização é ilustrativa. Como nossas peças são produzidas artesanalmente, o
-          produto final pode apresentar pequenas variações de formato, textura, acabamento,
-          posicionamento das letras e tonalidade das cores em relação à imagem exibida na tela.
-        </p>
-        <p>
-          As cores também podem variar conforme a iluminação, as características da cerâmica e as
-          configurações de cada dispositivo.
-        </p>
-        <p>
-          Todas as solicitações de personalização estão sujeitas à análise e aprovação da TAAVI.
-        </p>
-      </div>
+      {validation.status === 'valid' && (
+        <OrderSummary
+          product={`${summary.model} — ${summary.size}`}
+          unitPriceCents={unitPriceCents}
+          quantity={quantity}
+          onQuantity={setQuantity}
+        />
+      )}
       <ExportControls
         scene={scene}
         validation={validation}
         plateId={config.plateId}
         sizePending={sizePending}
-        revision={exportRevision(config)}
-        active={active}
-        orderMessage={orderMessage(summary, config.note)}
+        orderMessage={orderMessage(summary, config.note, { quantity, unitPriceCents })}
       />
     </div>
   );

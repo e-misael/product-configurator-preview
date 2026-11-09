@@ -63,9 +63,12 @@ A product model. Placa cerâmica, Quadro, Bandeja ondulada M, and Bandeja ondula
 | `sizeLabel`    | yes      | Customer-facing size exactly as supplied, e.g. `10 × 10 cm` or `8 × 8 cm` (nominal; handmade pieces vary). Display only. |
 | `ceramicColor` | yes      | Fixed color of the piece, e.g. `Bege`. Shown read-only as "Cor da peça"; the customer never chooses it (D-041).          |
 | `dimensions`   | yes      | `Dimensions` (may be `pending`).                                                                                         |
+| `priceCents`   | no       | List price of one piece in whole BRL cents, as supplied by TAAVI (D-080), e.g. `9800` = R$ 98,00. Omitted: not supplied. |
 | `image`        | no       | `PlateImage`; omitted while the photograph is pending.                                                                   |
 
 The option label shown to customers is `displayName — sizeLabel`, e.g. "Bandeja ondulada M — 8 × 8 cm" (D-046).
+
+The quantity of the order inquiry (1–99, default 1, D-080) is not catalog data and not part of `Configuration`: it lives in the finalization panel, is never drawn, and is reset by "Reiniciar configurações". `src/domain/pricing.ts` holds its limits and parsing, `formatBRL`, and the estimated total (unit × quantity, in cents).
 
 The current production IDs are **provisional** until TAAVI confirms them: `placa-ceramica-10`, `quadro-20`, `bandeja-ondulada-m-8`, `bandeja-ondulada-g-11`. An ID must not be renamed without a migration note in [06-decisions.md](06-decisions.md); `bandeja-ondulada-m-11` → `bandeja-ondulada-g-11` is recorded in D-046 (nothing persisted the old ID).
 
@@ -181,10 +184,11 @@ Unlike configuration validation, **every** issue is reported. Order is determini
 | `invalid-color`     | A text color's `hex` is `#rrggbb` (D-043)                                                                                                                                    | `textColors[i].hex`                                                          |
 | `unknown-reference` | `defaultTextColorId`, when set, names an available text color (D-064)                                                                                                        | `defaultTextColorId`                                                         |
 | `invalid-dimension` | Defined `widthMm` and `heightMm` are finite and > 0 (each reported separately)                                                                                               | `plates[i].dimensions.widthMm` / `.heightMm`                                 |
+| `invalid-price`     | A model's `priceCents`, when present, is a safe whole number > 0 (D-080)                                                                                                     | `plates[i].priceCents`                                                       |
 | `invalid-asset`     | `src` matches the asset path allowlist in the owner's folder (D-031); `widthPx`/`heightPx` both present and positive integers when either is (each side reported)            | `plates[i].image.image.src`, `.widthPx` / `.heightPx`                        |
 | `invalid-placement` | Boxes have finite values, `x, y ≥ 0`, `width, height > 0`, and fit in the image; `text.align` is known; `text.area` lies inside `objectBounds` when both set (`relatedPath`) | `plates[i].image.objectBounds` / `.text.area` / `.text.align`                |
 
-Allowed (not issues): an empty catalog; `pending` dimensions; no `image`, intrinsic sizes, or placement metadata; one file referenced by several entries; any shape classification. Equal sides for squares and circles are not checked until real measurements exist.
+Allowed (not issues): an empty catalog; `pending` dimensions; no `priceCents`; no `image`, intrinsic sizes, or placement metadata; one file referenced by several entries; any shape classification. Equal sides for squares and circles are not checked until real measurements exist.
 
 Frame-only codes (`duplicate-entry`, `unknown-reference`, `unreachable-compatibility`, `empty-list`, `frame-capability-conflict`, `unsupported-frame-shape`, `duplicate-variation`) were removed with frames (D-046).
 
