@@ -5,8 +5,8 @@ The pilot site is the production build in `dist/`, uploaded to Cloudflare Pages 
 | Item               | Value                                                                                                                      |
 | ------------------ | -------------------------------------------------------------------------------------------------------------------------- |
 | Cloudflare account | Owned or controlled by TAAVI                                                                                               |
-| Project            | `crie-com-a-taavi`                                                                                                         |
-| Production branch  | `main` → `https://crie-com-a-taavi.pages.dev` (subject to availability, step A3)                                           |
+| Project            | `crie-com-a-taavi`, classic Pages, no Git provider (created 2026-11-09, see A3)                                            |
+| Production branch  | `main` → `https://crie-com-a-taavi.pages.dev` (confirmed 2026-11-09)                                                       |
 | Beta branch        | `beta` → `https://beta.crie-com-a-taavi.pages.dev`                                                                         |
 | Wrangler           | `wrangler@4.153.0`, pinned; always run through `npx --yes wrangler@4.153.0`                                                |
 | Node               | 24 (`.nvmrc`, `engines`)                                                                                                   |
@@ -32,11 +32,17 @@ The pilot site is the production build in `dist/`, uploaded to Cloudflare Pages 
 3. **[Product owner authorizes; Claude Code runs] Create the project and confirm the address.**
 
    ```bash
-   npx --yes wrangler@4.153.0 pages project create crie-com-a-taavi --production-branch=main
+   npx --yes wrangler@4.153.0 pages project create crie-com-a-taavi --production-branch=main --force
    npx --yes wrangler@4.153.0 pages project list
    ```
 
+   **`--force` is required when Claude Code (or any AI agent) runs the create.** Wrangler 4.153.0 detects agent sessions and, for a project that does not exist yet, hands `pages project create` over to Cloudflare Workers (Static Assets) instead: it deploys a Worker and rewrites the repository for Workers. The hidden `--force` flag (not shown in `--help`; confirmed in Wrangler's source) skips that hand-over and makes a single API call that creates an empty Pages project, uploading nothing. Once the project exists, `pages deploy` is not handed over, so the deploy script needs no `--force`.
+
    The list shows the project's `*.pages.dev` address. **[Product owner] Confirm it is exactly `crie-com-a-taavi.pages.dev`.** If Cloudflare added a suffix because the name is taken elsewhere, stop: choose between the suffixed address, another name, or a TAAVI subdomain, before anything is printed or deployed.
+
+**Done (2026-11-09).** Pages project `crie-com-a-taavi` exists on the TAAVI account, production branch `main`, address `https://crie-com-a-taavi.pages.dev` (no suffix), no Git provider, no deployment yet.
+
+**Setup incident (2026-11-09, resolved).** The first create, run without `--force`, was handed over to Workers: it published a Worker `crie-com-a-taavi` (one version, a 0.34 KiB upload serving an HTML page, at `https://crie-com-a-taavi.taavi-configurator.workers.dev`; the account's `taavi-configurator.workers.dev` subdomain dates from the same run, and its name matches the generated `wrangler.jsonc`), and changed the repository (`@cloudflare/vite-plugin` in `vite.config.ts`, Wrangler and the plugin in `package.json` and `package-lock.json`, `preview` and `deploy` scripts, `.gitignore` lines, a new `wrangler.jsonc`), with no app files uploaded. With the owner's authorization: the Worker was identified and deleted (`wrangler delete`, without `--force`; Cloudflare now reports it does not exist), the Pages project was created with `--force`, and the five files were restored from the last commit (`git restore`, `wrangler.jsonc` removed, `npm ci`). Afterwards `npm run check` and Playwright passed, and the production build's fingerprint equals the one before the incident. The `taavi-configurator.workers.dev` subdomain was left in place.
 
 ## B. Release candidate (Claude Code)
 
@@ -145,6 +151,7 @@ Production is approved only when checks 1–5 and 7–11 pass on both phones (ch
 
 One row per deployment or rollback. The fingerprint comes from `release:verify` and from each deploy run; the deployment ID from `pages deployment list`.
 
-| Date | Environment | Commit | Build fingerprint | Deployment ID | URL | Authorized by | Verified by | Notes |
-| ---- | ----------- | ------ | ----------------- | ------------- | --- | ------------- | ----------- | ----- |
-|      |             |        |                   |               |     |               |             |       |
+| Date       | Environment         | Commit | Build fingerprint | Deployment ID                                         | URL                                                       | Authorized by                           | Verified by | Notes                                                           |
+| ---------- | ------------------- | ------ | ----------------- | ----------------------------------------------------- | --------------------------------------------------------- | --------------------------------------- | ----------- | --------------------------------------------------------------- |
+| 2026-11-09 | Worker (unintended) | —      | —                 | Worker version `99896dff-b4be-4213-97c9-fad8bf680c8d` | `https://crie-com-a-taavi.taavi-configurator.workers.dev` | Not intended (create without `--force`) | Claude Code | 0.34 KiB upload, no app files; Worker deleted the same day (A3) |
+|            |                     |        |                   |                                                       |                                                           |                                         |             |                                                                 |
