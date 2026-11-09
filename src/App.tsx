@@ -8,6 +8,10 @@ import { useConfiguration } from './hooks/useConfiguration';
 import { usePreviewScene } from './hooks/usePreviewScene';
 import { useWideLayout } from './hooks/useWideLayout';
 
+/** TAAVI's online store, as supplied by the product owner (D-079). */
+const STORE_URL = 'https://taavi.lojavirtualnuvem.com.br/';
+const STORE_DOMAIN = 'taavi.lojavirtualnuvem.com.br';
+
 interface AppProps {
   /** Defaults to the production catalog; demo mode and tests pass their own. */
   readonly catalog?: Catalog;
@@ -25,6 +29,9 @@ interface AppProps {
  * input, and open section returns to its initial state, except the note,
  * which is kept (D-070); then the first step gets focus and the reset is
  * announced.
+ *
+ * Below the page, outside every panel, a footer links to TAAVI's store in a
+ * new tab, so the customization stays open here (D-079).
  */
 export function App({ catalog = getCatalog(), banner, modelGroups = MODEL_GROUPS }: AppProps) {
   const [run, setRun] = useState(0);
@@ -40,30 +47,45 @@ export function App({ catalog = getCatalog(), banner, modelGroups = MODEL_GROUPS
   }, [run]);
 
   return (
-    <main className="app">
-      {banner}
-      <header className="app__header">
-        <h1 className="app__title">Crie sua peça com a TAAVI</h1>
-        <p className="app__note">Personalize, visualize e compartilhe sua criação.</p>
-      </header>
-      <p className="visually-hidden" role="status">
-        {run > 0 ? 'Configurações reiniciadas.' : ''}
-      </p>
-      {catalog.plates.length === 0 ? (
-        <p className="app__empty">Nenhum modelo disponível no momento.</p>
-      ) : (
-        <Configurator
-          key={run}
-          catalog={catalog}
-          modelGroups={modelGroups}
-          note={keptNote}
-          onRestart={(note) => {
-            setKeptNote(note);
-            setRun((count) => count + 1);
-          }}
-        />
-      )}
-    </main>
+    <>
+      <main className="app">
+        {banner}
+        <header className="app__header">
+          <h1 className="app__title">Crie sua peça com a TAAVI</h1>
+          <p className="app__note">Personalize, visualize e compartilhe sua criação.</p>
+        </header>
+        <p className="visually-hidden" role="status">
+          {run > 0 ? 'Configurações reiniciadas.' : ''}
+        </p>
+        {catalog.plates.length === 0 ? (
+          <p className="app__empty">Nenhum modelo disponível no momento.</p>
+        ) : (
+          <Configurator
+            key={run}
+            catalog={catalog}
+            modelGroups={modelGroups}
+            note={keptNote}
+            onRestart={(note) => {
+              setKeptNote(note);
+              setRun((count) => count + 1);
+            }}
+          />
+        )}
+      </main>
+      <footer className="app__footer">
+        <p>
+          Visite nossa loja:{' '}
+          <a
+            href={STORE_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={`${STORE_DOMAIN} (abre em nova aba)`}
+          >
+            {STORE_DOMAIN}
+          </a>
+        </p>
+      </footer>
+    </>
   );
 }
 

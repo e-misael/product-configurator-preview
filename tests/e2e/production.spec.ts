@@ -1,5 +1,5 @@
 import { readFile } from 'node:fs/promises';
-import { expect, test, type Page } from '@playwright/test';
+import { expect, test, type Locator, type Page } from '@playwright/test';
 import { finalize, openStep, step, textField } from './support/steps';
 
 async function expectNoHorizontalScroll(page: Page) {
@@ -150,6 +150,46 @@ test.describe('Production build @smoke', () => {
       'text-align',
       align,
     );
+  });
+
+  test('links to TAAVI’s store below everything, keeping the customization (D-079)', async ({
+    page,
+    context,
+  }) => {
+    // The store itself is never contacted by the tests.
+    await context.route('https://taavi.lojavirtualnuvem.com.br/**', (route) =>
+      route.fulfill({ contentType: 'text/html', body: '<title>Loja</title>' }),
+    );
+    await page.goto('/');
+    await chooseModel(page, 'Placa cerâmica — 10 × 10 cm');
+    const field = await textField(page);
+    await field.fill('Casa da Ana');
+
+    const footer = page.getByRole('contentinfo');
+    const link = footer.getByRole('link', {
+      name: 'taavi.lojavirtualnuvem.com.br (abre em nova aba)',
+    });
+    await expect(footer).toHaveText('Visite nossa loja: taavi.lojavirtualnuvem.com.br');
+    await expect(footer).toHaveCSS('text-align', 'center');
+    await expect(link).toHaveAttribute('href', 'https://taavi.lojavirtualnuvem.com.br/');
+    await expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    // Below "Finalizar personalização", and quieter than its actions.
+    const actions = await finalize(page).boundingBox();
+    const box = await footer.boundingBox();
+    expect((box?.y ?? 0) >= (actions?.y ?? 0) + (actions?.height ?? 0)).toBe(true);
+    const fontSize = (locator: Locator) =>
+      locator.evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
+    expect(await fontSize(link)).toBeLessThan(
+      await fontSize(finalize(page).getByRole('button', { name: 'Baixar imagem' })),
+    );
+
+    // A new tab: this one keeps the customization.
+    const [store] = await Promise.all([context.waitForEvent('page'), link.click()]);
+    await store.waitForLoadState();
+    expect(store.url()).toBe('https://taavi.lojavirtualnuvem.com.br/');
+    await page.bringToFront();
+    await expect(field).toHaveValue('Casa da Ana');
+    await expectNoHorizontalScroll(page);
   });
 
   test('offers the approved lettering colors, and shows the disclaimer', async ({ page }) => {

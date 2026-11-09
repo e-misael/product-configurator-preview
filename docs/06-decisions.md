@@ -633,6 +633,13 @@ Status values:
 - **Unchanged:** catalog, calibration, typography, text positioning and highlighting, rendering and watermark, PNG export, Native Share, the order message, and every validation rule.
 - **Status:** Approved (product owner, 2026-11-09). Implementation pending acceptance.
 
+### D-079 — Footer link to TAAVI's store (2026-11-09)
+
+- **Decision (approved by the product owner, 2026-11-09):** a footer after the page's main content (its own `contentinfo` landmark, outside every step and "Finalizar personalização") reads "Visite nossa loja:" with the store's domain as the visible link: `taavi.lojavirtualnuvem.com.br` → `https://taavi.lojavirtualnuvem.com.br/`, as supplied by the product owner. New tab with `noopener noreferrer`, so the customization stays where it is; the accessible name adds "(abre em nova aba)" after the visible domain (WCAG 2.5.3).
+- **Look:** centered on phones and wide screens, 0.875rem, muted color (existing tokens), underlined link in the same color; quieter than every action. The page's bottom padding went from 3rem to 1.5rem, since the footer now ends the page.
+- **Scope:** a plain link only. No Nuvemshop integration (no product, cart, or order data is passed, and nothing is read from the store); out-of-scope rules are unchanged.
+- **Status:** Approved (product owner, 2026-11-09). Implementation pending acceptance.
+
 ## Proposed
 
 ### D-066 — Lettering font evaluation: Georgia Bold and Century Gothic Bold (2026-11-08)

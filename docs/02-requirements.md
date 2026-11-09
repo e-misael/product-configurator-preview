@@ -187,6 +187,14 @@ Acceptance criteria:
 
 Status: Implemented (M5.1), verified with a stubbed share sheet in Chromium and WebKit; pending manual checks on a real iPhone (Safari) and Android phone (Chrome). TAAVI's number is configured (P-16, `wa.me/5561999237316`).
 
+### FR-11 — Link to TAAVI's store (D-079)
+
+1. A footer below the page, outside every step and panel, reads "Visite nossa loja:" followed by the store's domain, `taavi.lojavirtualnuvem.com.br`, as the link to `https://taavi.lojavirtualnuvem.com.br/`.
+2. It opens in a new tab (`target="_blank"`, `rel="noopener noreferrer"`), so the customization stays open in its own tab; its accessible name says so ("… (abre em nova aba)").
+3. Centered on every screen, in small muted text: visually secondary to the sharing and download actions.
+
+Status: Implemented, verified in Chromium and WebKit.
+
 ## Non-functional requirements
 
 | ID     | Requirement                                                                                                                                         |

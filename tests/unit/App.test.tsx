@@ -45,6 +45,24 @@ describe('App shell', () => {
     expect(screen.getByText(/sujeitas à análise e aprovação da TAAVI/)).toBeVisible();
   });
 
+  it('links to TAAVI’s store in a footer below the page, in a new tab (D-079)', () => {
+    render(<App />);
+
+    const footer = screen.getByRole('contentinfo');
+    expect(footer).toHaveTextContent('Visite nossa loja: taavi.lojavirtualnuvem.com.br');
+    const link = within(footer).getByRole('link', {
+      name: 'taavi.lojavirtualnuvem.com.br (abre em nova aba)',
+    });
+    expect(link).toHaveAttribute('href', 'https://taavi.lojavirtualnuvem.com.br/');
+    expect(link).toHaveAttribute('target', '_blank');
+    expect(link).toHaveAttribute('rel', 'noopener noreferrer');
+    // Outside the page's content and every panel, after it.
+    const main = screen.getByRole('main');
+    expect(main.contains(footer)).toBe(false);
+    expect(main.compareDocumentPosition(footer) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(footer.closest('section, form')).toBeNull();
+  });
+
   it('handles an empty catalog', () => {
     render(<App catalog={{ plates: [], textColors: [] }} />);
 

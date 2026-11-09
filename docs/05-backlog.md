@@ -351,6 +351,13 @@ Status: **Implemented** (2026-11-09), pending acceptance.
 - [x] Unit and Playwright tests (320, 375, 393, 430 px, Chromium and WebKit)
 - Remaining (manual): real-device check of the new layout on iPhone Safari and Android Chrome.
 
+### M5.4 — Footer link to TAAVI's store (D-079)
+
+Status: **Implemented** (2026-11-09), pending acceptance.
+
+- [x] "Visite nossa loja: taavi.lojavirtualnuvem.com.br" footer, centered, new tab, outside every panel
+- [x] Unit test (landmark, link, attributes, placement) and Playwright (desktop Chrome, iPhone WebKit: placement, centering, quieter than the actions, the customization kept after opening the store, stubbed)
+
 ### M5.2 — Pilot deployment on Cloudflare Pages (D-077)
 
 Status: **Prepared** (2026-11-09): repository changes and runbook ready; no Cloudflare resource created, nothing deployed.

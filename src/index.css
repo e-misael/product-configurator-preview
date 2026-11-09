@@ -70,11 +70,30 @@ body {
 .app {
   max-width: 64rem;
   margin: 0 auto;
-  padding: 1rem var(--space-gutter) 3rem;
+  padding: 1rem var(--space-gutter) 1.5rem;
 }
 
 .app__header {
   margin-bottom: 1rem;
+}
+
+/* The store link (D-079): below everything, centered, secondary to the actions. */
+.app__footer {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 0 var(--space-gutter) 2rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  text-align: center;
+}
+
+.app__footer p {
+  margin: 0;
+}
+
+.app__footer a {
+  color: inherit;
+  overflow-wrap: anywhere;
 }
 
 .app__title {
