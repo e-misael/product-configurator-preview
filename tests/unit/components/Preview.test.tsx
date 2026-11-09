@@ -1,7 +1,13 @@
 import { act, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { App } from '../../../src/App';
-import { contextOf, installFakeCanvas, strokesOf, type FakeContext } from '../support/fake-canvas';
+import {
+  contextOf,
+  fontSizeOf,
+  installFakeCanvas,
+  strokesOf,
+  type FakeContext,
+} from '../support/fake-canvas';
 import { FakeImage, installFakeImages } from '../support/fake-image';
 import { WATERMARK_SRC } from '../../../src/preview/watermark';
 import { previewCatalog, previewSizes } from '../preview/fixtures';
@@ -233,7 +239,8 @@ describe('Preview', () => {
         const { user } = await squarePlate();
         await choose(user, 'Cor do texto', 'Test ink A');
 
-        await user.type(field(), 'L0{Enter}L1{Enter}L2 abcdefghijk');
+        // Sem serifa: at most 10 spaced capitals per 240 px line (D-072), so the word wraps.
+        await user.type(field(), 'L0{Enter}L1{Enter}L2 abcdefgh');
 
         const message =
           'O texto não cabe na área do modelo: 1 linha a mais. Reduza o texto ou use menos linhas.';
@@ -247,7 +254,7 @@ describe('Preview', () => {
           'true',
         );
 
-        await user.type(field(), '{Backspace}'.repeat(12));
+        await user.type(field(), '{Backspace}'.repeat(9));
         expect(field()).not.toHaveAttribute('aria-invalid');
         expect(document.getElementById('text-overflow')).toBeNull();
       });
@@ -290,8 +297,8 @@ describe('Preview', () => {
       expect(within(preview()).queryByText(/O texto não cabe/)).toBeNull();
       expect(strokesOf(currentContext())).toEqual([]);
 
-      // A word that wraps onto a fourth line (240 px wide, 20 px per character).
-      await user.type(field, ' abcdefghijk');
+      // A word that wraps onto a fourth line (240 px wide: at most 10 spaced capitals, D-072).
+      await user.type(field, ' abcdefgh');
       expect(
         within(preview()).getByText(
           'O texto não cabe na área do modelo: 1 linha a mais. Reduza o texto ou use menos linhas.',
@@ -309,13 +316,13 @@ describe('Preview', () => {
         'text:L0',
         'text:L1',
         'text:L2',
-        'text:ABCDEFGHIJK',
+        'text:ABCDEFGH',
       ]);
 
-      await user.type(field, ' abcdefghijk');
+      await user.type(field, ' abcdefgh');
       expect(within(preview()).getByText(/: 2 linhas a mais\./)).toBeVisible();
 
-      await user.type(field, '{Backspace}'.repeat(24));
+      await user.type(field, '{Backspace}'.repeat(18));
       expect(within(preview()).queryByText(/O texto não cabe/)).toBeNull();
       expect(strokesOf(currentContext())).toEqual([]);
     });
@@ -380,16 +387,26 @@ describe('Preview', () => {
     const alignment = (name: string) => within(positionGroup()).getByRole('radio', { name });
     /** The one position announcement (D-057). */
     const status = () => within(positionGroup()).getByRole('status');
-    /** The first painted line as [x, textAlign]. */
-    const firstLine = () => {
-      const call = currentContext().drawn.find((entry) => entry.op === 'fillText');
-      return [call?.x, call?.textAlign];
-    };
+    /**
+     * Each painted lettering line as [left, right]: runs are drawn left-aligned
+     * (D-072); the fake measures half the font size per character.
+     */
+    const lineEdges = () =>
+      currentContext()
+        .drawn.filter((entry) => entry.op === 'fillText' && entry.text !== '© Taavi')
+        .map((entry) => {
+          if (entry.op !== 'fillText') return [];
+          const width = [...entry.text].length * fontSizeOf(entry.font) * 0.5;
+          return [entry.x, entry.x + width];
+        });
+    const firstLine = () => lineEdges()[0];
 
     async function withText() {
       const { user } = setup();
       await choosePlate(user, /^Test plate square /);
       settle();
+      // Com serifa: no letter spacing and the catalog size, 20 px per character (D-072).
+      await choose(user, 'Fonte', 'Com serifa');
       await user.type(screen.getByLabelText('Texto'), 'Ana');
       // The canvas is displayed at the scene's size (400×400) at the page origin.
       const element = preview().querySelector('canvas');
@@ -456,8 +473,8 @@ describe('Preview', () => {
       expect(button('Superior à esquerda')).toHaveAttribute('aria-pressed', 'true');
       expect(button('Centro')).toHaveAttribute('aria-pressed', 'false');
       expect(status()).toHaveTextContent('Posição: Superior à esquerda.');
-      // Area x 80–320: the block ("Ana", 60 wide) starts at the left edge; its line stays centered.
-      expect(firstLine()).toEqual([110, 'center']);
+      // Area x 80–320: the block ("Ana", 60 wide) starts at the left edge.
+      expect(firstLine()).toEqual([80, 140]);
       expect(alignment('Centralizar texto')).toBeChecked();
     });
 
@@ -474,33 +491,28 @@ describe('Preview', () => {
       await user.clear(screen.getByLabelText('Texto'));
       await user.type(screen.getByLabelText('Texto'), 'Ana{Enter}Casa da Ana');
       // Block 220 wide (the longer line), centered in the area: x 90–310.
-      const lineEdges = () =>
-        currentContext()
-          .drawn.filter((entry) => entry.op === 'fillText' && entry.text !== '© Taavi')
-          .map((entry) => (entry.op === 'fillText' ? [entry.x, entry.textAlign] : []));
-
       expect(lineEdges()).toEqual([
-        [200, 'center'],
-        [200, 'center'],
+        [170, 230],
+        [90, 310],
       ]);
       await user.click(alignment('Alinhar à direita'));
       expect(lineEdges()).toEqual([
-        [310, 'right'],
-        [310, 'right'],
+        [250, 310],
+        [90, 310],
       ]);
       expect(button('Centro')).toHaveAttribute('aria-pressed', 'true');
       expect(status()).toHaveTextContent('Posição: Centro.');
       await user.click(alignment('Alinhar à esquerda'));
       expect(lineEdges()).toEqual([
-        [90, 'left'],
-        [90, 'left'],
+        [90, 150],
+        [90, 310],
       ]);
 
       // A preset then moves the block and keeps the left alignment.
       await user.click(button('Inferior à direita'));
       expect(lineEdges()).toEqual([
-        [100, 'left'],
-        [100, 'left'],
+        [100, 160],
+        [100, 320],
       ]);
       expect(alignment('Alinhar à esquerda')).toBeChecked();
       const summary = within(review()).getByText('Alinhamento:', { selector: 'dt' });
@@ -514,10 +526,11 @@ describe('Preview', () => {
       await user.keyboard('{ArrowRight}');
       expect(alignment('Alinhar à direita')).toBeChecked();
       expect(alignment('Alinhar à direita')).toHaveFocus();
-      expect(firstLine()).toEqual([230, 'right']);
+      // One line: the block is the line, so it stays at x 170–230.
+      expect(firstLine()).toEqual([170, 230]);
       await user.keyboard('{ArrowLeft}{ArrowLeft}');
       expect(alignment('Alinhar à esquerda')).toBeChecked();
-      expect(firstLine()).toEqual([170, 'left']);
+      expect(firstLine()).toEqual([170, 230]);
       expect(status()).toHaveTextContent('Posição: Centro.');
     });
 
@@ -550,7 +563,7 @@ describe('Preview', () => {
       expect(status()).toHaveTextContent('Posição: Centro.');
       expect(button('Redefinir posição')).toBeDisabled();
       // Block "Ana" centered (x 170–230), its line right-aligned.
-      expect(firstLine()).toEqual([230, 'right']);
+      expect(firstLine()).toEqual([170, 230]);
       expect(alignment('Alinhar à direita')).toBeChecked();
     });
 

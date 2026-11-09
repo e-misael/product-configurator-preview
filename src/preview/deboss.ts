@@ -1,14 +1,15 @@
 /**
- * Debossed lettering (D-052): a subtle inner shadow on the top inside edge of
- * each glyph and a faint highlight on the bottom one, as if the letters were
- * engraved into the ceramic. The lettering color itself is painted by the
- * caller; this module only adds shading, and only inside the glyphs.
+ * Debossed lettering (D-052, treatment B of D-072): a subtle inner shadow
+ * along the top inside edge of each glyph, as if the letters were engraved
+ * into the ceramic. No highlight. The lettering color itself is painted by
+ * the caller and stays dominant; this module only adds shading, and only
+ * inside the glyphs.
  *
  * Technique, all on offscreen canvases in device pixels:
  * 1. an inverse mask: an opaque sheet with the glyph runs cut out;
  * 2. a layer twice as wide as the mask: the mask is drawn in its right half
  *    with a shadow offset by one mask width, so the blurred shadow lands in
- *    the left half (dark shifted down, then light shifted up). Everything stays
+ *    the left half, shifted down. Everything stays
  *    on the canvas: WebKit drops shadows of images drawn fully off-canvas;
  * 3. the mask itself, drawn over the left half with `destination-out`, removes
  *    the shading wherever there is no glyph and scales it by the antialiased
@@ -19,29 +20,30 @@
  * Safari), no drop shadow, stroke, or halo.
  */
 
-/** One run of glyphs to shade, in the scene's logical units. */
+import { fillSpacedText } from './letter-spacing';
+
+/** One left-aligned run of glyphs to shade, in the scene's logical units. */
 export interface GlyphRun {
   readonly text: string;
   readonly x: number;
   readonly y: number;
-  readonly align: CanvasTextAlign;
+  /** Letter spacing after each grapheme (D-072). */
+  readonly spacing: number;
 }
 
-/** Effect strength, as fractions of the font size and shading opacities. */
+/** Effect strength: offset and blur as fractions of the font size, and the shadow's opacity. */
 export interface DebossStyle {
   readonly offset: number;
   readonly blur: number;
   readonly shadow: number;
-  readonly highlight: number;
 }
 
 /**
- * Half of the first proposal (offset 0.04, blur 0.05, shadow 0.5, highlight 0.28):
- * at the Placa's text sizes the full proposal reached the stroke centers, so
- * the lettering looked darkened throughout. Pending visual approval (D-052);
- * not customer-adjustable.
+ * Treatment B (D-072): in the comparison it kept about 95% of glyph pixels
+ * within ΔE 5 of the chosen color, against about 80% for the previous
+ * shadow-and-highlight effect. Not customer-adjustable.
  */
-export const DEBOSS: DebossStyle = { offset: 0.02, blur: 0.025, shadow: 0.25, highlight: 0.14 };
+export const DEBOSS: DebossStyle = { offset: 0.012, blur: 0.012, shadow: 0.3 };
 
 /** Below this font size in device pixels the effect is skipped, so small text stays clean. */
 export const DEBOSS_MIN_FONT_PX = 9;
@@ -93,10 +95,7 @@ function surface(
 }
 
 function fillRuns(ctx: CanvasRenderingContext2D, runs: readonly GlyphRun[]): void {
-  for (const run of runs) {
-    ctx.textAlign = run.align;
-    ctx.fillText(run.text, run.x, run.y);
-  }
+  for (const run of runs) fillSpacedText(ctx, run.text, run.x, run.y, run.spacing);
 }
 
 /**
@@ -149,19 +148,13 @@ export function paintDeboss(
   m.globalCompositeOperation = 'source-over';
 
   const l = layer.ctx;
-  const passes = [
-    [`rgba(0, 0, 0, ${style.shadow})`, offset],
-    [`rgba(255, 255, 255, ${style.highlight})`, -offset * 0.7],
-  ] as const;
-  for (const [color, dy] of passes) {
-    l.save();
-    l.shadowColor = color;
-    l.shadowBlur = blur;
-    l.shadowOffsetX = -width;
-    l.shadowOffsetY = dy;
-    l.drawImage(mask.canvas, width, 0);
-    l.restore();
-  }
+  l.save();
+  l.shadowColor = `rgba(0, 0, 0, ${style.shadow})`;
+  l.shadowBlur = blur;
+  l.shadowOffsetX = -width;
+  l.shadowOffsetY = offset;
+  l.drawImage(mask.canvas, width, 0);
+  l.restore();
   l.globalCompositeOperation = 'destination-out';
   l.drawImage(mask.canvas, 0, 0);
   l.globalCompositeOperation = 'source-over';

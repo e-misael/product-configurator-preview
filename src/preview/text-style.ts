@@ -1,12 +1,15 @@
 /**
- * Lettering style for the preview (D-042): provisional font stacks, the color
+ * Lettering style for the preview (D-042): system font stacks, the color
  * drawn while the customer has not picked one, and the split of wrapped lines
  * into single-color segments. Pure; no DOM.
  */
 
 import type { FontFamily, TextRange } from '../domain';
 
-/** Provisional system stacks until Taavi provides real typography (P-14). */
+/**
+ * System font stacks: the signature's font (D-060) and the fallback of the
+ * lettering fonts if their files cannot be loaded (D-072).
+ */
 export const FONT_STACKS: Record<FontFamily, string> = {
   'sans-serif': 'system-ui, -apple-system, "Segoe UI", sans-serif',
   serif: 'Georgia, "Times New Roman", Times, serif',

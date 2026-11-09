@@ -10,7 +10,13 @@ import {
 import { DEBOSS, DEBOSS_MIN_FONT_PX } from '../../../src/preview/deboss';
 import { buildScene, type ImageState } from '../../../src/preview/scene';
 import { MARK_INK, SIGNATURE, WATERMARK_SRC } from '../../../src/preview/watermark';
-import { contextOf, FakeContext, installFakeCanvas, type PaintCall } from '../support/fake-canvas';
+import {
+  contextOf,
+  FakeContext,
+  fontSizeOf,
+  installFakeCanvas,
+  type PaintCall,
+} from '../support/fake-canvas';
 import { config, previewCatalog, previewSizes, validate } from './fixtures';
 
 type Img = HTMLImageElement;
@@ -31,7 +37,7 @@ function paint(
 ) {
   const value = config(overrides);
   const composition = composePreview(previewCatalog, value, validate(value));
-  const scene = buildScene(composition, loaded(), createTextMeasurer());
+  const scene = buildScene(composition, loaded(), createTextMeasurer(value.fontFamily));
   const ctx = new FakeContext();
   drawScene(ctx as unknown as CanvasRenderingContext2D, scene, pixelWidth, ...effect);
   return { ctx, scene };
@@ -49,6 +55,9 @@ const lines = (ctx: FakeContext) =>
   lettering(ctx.calls).filter(
     (call): call is Extract<PaintCall, { op: 'fillText' }> => call.op === 'fillText',
   );
+/** Fake width of an unspaced run (serif, the fixtures' font): half the font size per character. */
+const widthOf = (call: { readonly text: string; readonly font: string }) =>
+  [...call.text].length * fontSizeOf(call.font) * 0.5;
 
 describe('chooseBackingWidth', () => {
   it('follows the displayed width times the pixel ratio', () => {
@@ -111,23 +120,25 @@ describe('drawScene', () => {
     const drawnLines = lines(ctx);
 
     // Text area: x 80..320, y 120..280 → center x 200, vertical center 200.
+    // Lines are drawn left-aligned from their measured start (D-072).
     expect(drawnLines.map((call) => call.text)).toEqual(['Casa', 'Ana']);
-    expect(drawnLines.every((call) => call.x === 200 && call.textAlign === 'center')).toBe(true);
+    expect(drawnLines.every((call) => call.textAlign === 'left')).toBe(true);
+    expect(drawnLines.map((call) => call.x + widthOf(call) / 2)).toEqual([200, 200]);
     const [first, second] = drawnLines;
     expect(((first?.y ?? 0) + (second?.y ?? 0)) / 2).toBeCloseTo(200);
     expect((second?.y ?? 0) - (first?.y ?? 0)).toBeGreaterThan(0);
   });
 
   it('anchors left- and right-aligned text to the area edges', () => {
-    for (const [align, x, expectedX] of [
-      ['left', 0, 80],
-      ['right', 1, 320],
+    for (const [align, x, anchor, edge] of [
+      ['left', 0, 0, 80],
+      ['right', 1, 1, 320],
     ] as const) {
       const { ctx } = paint({ textLayout: { align, x, y: 0.5 } }, 400);
-      expect(ctx.calls.find((call) => call.op === 'fillText')).toMatchObject({
-        x: expectedX,
-        textAlign: align,
-      });
+      const [line] = lines(ctx);
+      if (line === undefined) throw new Error('No text');
+      expect(line.textAlign).toBe('left');
+      expect(line.x + widthOf(line) * anchor).toBe(edge);
     }
   });
 
@@ -145,9 +156,9 @@ describe('drawScene', () => {
     expect(bounds.x).toBe(80);
     expect(bounds.y).toBe(120);
     // Right-aligned lines share the block's right edge, which is not the area's.
-    expect(drawnLines.map((call) => [call.x, call.textAlign])).toEqual([
-      [80 + bounds.width, 'right'],
-      [80 + bounds.width, 'right'],
+    expect(drawnLines.map((call) => call.x + widthOf(call))).toEqual([
+      80 + bounds.width,
+      80 + bounds.width,
     ]);
     expect(80 + bounds.width).toBeLessThan(320);
     expect(drawnLines[0]?.y).toBeCloseTo(120 + lineHeight / 2);
@@ -172,15 +183,13 @@ describe('drawScene', () => {
 
       // Same block as center alignment: 220 wide at x 80 + 0.3 × 20.
       expect(bounds).toMatchObject({ x: 86, width: 220 });
-      expect(drawnLines.map((call) => [call.text, call.x, call.textAlign])).toEqual([
-        ['Ana', edge, align],
-        ['Casa da Ana', edge, align],
-      ]);
       // Both lines share the aligned edge: left starts, centers, or right ends.
-      const measure = (value: string) => [...value].length * 20;
-      const offsets = drawnLines.map((call) => call.x - measure(call.text) * anchor);
-      expect(offsets[0]).toBeGreaterThanOrEqual(bounds.x);
-      expect((offsets[0] ?? 0) + measure('Ana')).toBeLessThanOrEqual(bounds.x + bounds.width);
+      expect(drawnLines.map((call) => [call.text, call.x + widthOf(call) * anchor])).toEqual([
+        ['Ana', edge],
+        ['Casa da Ana', edge],
+      ]);
+      expect(drawnLines[0]?.x).toBeGreaterThanOrEqual(bounds.x);
+      expect((drawnLines[0]?.x ?? 0) + 3 * 20).toBeLessThanOrEqual(bounds.x + bounds.width);
     },
   );
 
@@ -190,8 +199,9 @@ describe('drawScene', () => {
     const fontOf = (ctx: FakeContext) => ctx.calls.find((call) => call.op === 'fillText');
 
     expect(fontOf(serif.ctx)).toMatchObject({ fillStyle: '#112233' });
-    expect(fontOf(serif.ctx)?.font).toContain('Georgia');
-    expect(fontOf(sans.ctx)?.font).not.toContain('Georgia');
+    // The self-hosted lettering fonts first, the system stacks only as fallback (D-072).
+    expect(fontOf(serif.ctx)?.font).toMatch(/^400 [\d.]+px "Taavi Lettering Serif", Georgia/);
+    expect(fontOf(sans.ctx)?.font).toMatch(/^700 [\d.]+px "Taavi Lettering Sans", system-ui/);
   });
 
   it('paints a mixed-color line as consecutive runs that add up to the same text', () => {
@@ -364,23 +374,24 @@ describe('drawScene: debossed lettering (D-052)', () => {
     expect(ctx.globalCompositeOperation).toBe('source-over');
   });
 
-  it('casts only shadows, then cuts them to the glyphs with the mask in one draw', () => {
+  it('is treatment B: a light inner shadow, no highlight (D-072)', () => {
+    expect(DEBOSS).toEqual({ offset: 0.012, blur: 0.012, shadow: 0.3 });
+  });
+
+  it('casts one inner shadow, then cuts it to the glyphs with the mask in one draw', () => {
     const { ctx } = paint({ text: 'Casa\nAna' }, 400);
     const frame = latest(shading(ctx).layer);
     const draws = frame.filter((call): call is Draw => call.op === 'drawImage');
-    const [dark, light, cut] = draws;
+    const [dark, cut] = draws;
 
-    expect(draws).toHaveLength(3);
+    // Treatment B: one dark pass and the cut; no highlight pass (D-072).
+    expect(draws).toHaveLength(2);
     // The inverse mask is drawn in the layer's right half; its shadow lands in the left half.
-    for (const call of [dark, light]) {
-      expect(call?.x).toBe(call?.width);
-      expect((call?.x ?? 0) + (call?.shadow.dx ?? 0)).toBe(0);
-      expect(call?.composite).toBe('source-over');
-    }
-    expect(dark?.shadow.color).toBe(`rgba(0, 0, 0, ${DEBOSS.shadow})`);
+    expect(dark?.x).toBe(dark?.width);
+    expect((dark?.x ?? 0) + (dark?.shadow.dx ?? 0)).toBe(0);
+    expect(dark?.composite).toBe('source-over');
+    expect(dark?.shadow.color).toBe('rgba(0, 0, 0, 0.3)');
     expect(dark?.shadow.dy).toBeGreaterThan(0);
-    expect(light?.shadow.color).toBe(`rgba(255, 255, 255, ${DEBOSS.highlight})`);
-    expect(light?.shadow.dy).toBeLessThan(0);
     // Then the same mask, over the left half, removes everything that is not a glyph.
     expect(cut).toMatchObject({ x: 0, composite: 'destination-out', shadow: { dx: 0, dy: 0 } });
     expect(cut?.image).toBe(dark?.image);
@@ -428,8 +439,9 @@ describe('drawScene: debossed lettering (D-052)', () => {
       );
       return shadow?.shadow;
     };
-    const small = blurAt(400);
-    const large = blurAt(800);
+    // Large enough that neither is held at the 0.5 px minimum.
+    const small = blurAt(800);
+    const large = blurAt(1600);
 
     expect(large?.blur).toBeCloseTo((small?.blur ?? 0) * 2);
     expect(large?.dy).toBeCloseTo((small?.dy ?? 0) * 2);
@@ -456,5 +468,61 @@ describe('drawScene: debossed lettering (D-052)', () => {
     const second = shading(paint({ text: 'Casa da Ana' }, 400).ctx).draw.image;
 
     expect(second).toBe(first);
+  });
+});
+
+describe('drawScene: "Sem serifa" letter spacing (D-072)', () => {
+  beforeEach(() => {
+    installFakeCanvas();
+  });
+
+  it('measures lines with the spacing between graphemes', () => {
+    const measure = createTextMeasurer('sans-serif');
+    // Fake: 10 px per character at 20 px; spacing 0.05 em = 1 px.
+    expect(measure('PAZ', 20)).toBe(32);
+    expect(createTextMeasurer('serif')('PAZ', 20)).toBe(30);
+  });
+
+  it('spaces every run, and advances mixed-color runs by their spaced width', () => {
+    const { ctx, scene } = paint(
+      {
+        fontFamily: 'sans-serif',
+        text: 'a bc d',
+        textColorId: 'test-text-color-a',
+        highlightEnabled: true,
+        secondaryColorId: 'test-text-color-b',
+        secondaryRanges: [{ start: 2, end: 4 }],
+      },
+      400,
+    );
+    const text = scene.layers.find((layer) => layer.kind === 'text');
+    if (text?.kind !== 'text') throw new Error('No text layer');
+    const runs = lines(ctx);
+    const spacing = 0.05 * text.block.fontSize;
+
+    expect(runs.map((run) => run.text)).toEqual(['A ', 'BC', ' D']);
+    expect(runs.every((run) => run.letterSpacing === `${spacing}px`)).toBe(true);
+    // Each run starts after the previous one's glyphs and the spacing after each of them.
+    const [first, second, third] = runs;
+    const advance = (run: typeof first) => widthOf(run ?? { text: '', font: '' }) + 2 * spacing;
+    expect(second?.x).toBeCloseTo((first?.x ?? 0) + advance(first));
+    expect(third?.x).toBeCloseTo((second?.x ?? 0) + advance(second));
+    // The line is centered on its spaced width: 6 graphemes, 5 gaps.
+    const lineWidth = widthOf({ text: 'A BC D', font: first?.font ?? '' }) + 5 * spacing;
+    expect((first?.x ?? 0) + lineWidth / 2).toBeCloseTo(200);
+  });
+
+  it('cuts the deboss mask with the same spacing as the lettering', () => {
+    const { ctx } = paint({ fontFamily: 'sans-serif', text: 'Paz' }, 400);
+    const layer = ctx.calls.find((call) => call.op === 'drawImage' && isLayer(call));
+    const shadow = contextOf((layer as { image: HTMLCanvasElement }).image).calls.find(
+      (call) => call.op === 'drawImage',
+    );
+    const mask = contextOf((shadow as { image: HTMLCanvasElement }).image);
+    // The mask canvas is reused between frames: its latest glyph run is this frame's.
+    const cut = mask.calls.filter((call) => call.op === 'fillText').at(-1);
+
+    expect(cut).toMatchObject({ text: 'PAZ', letterSpacing: lines(ctx)[0]?.letterSpacing });
+    expect(mask.letterSpacing).toBe('0px');
   });
 });

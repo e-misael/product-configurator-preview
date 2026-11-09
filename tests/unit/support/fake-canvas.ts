@@ -1,7 +1,8 @@
 /**
  * jsdom has no 2D canvas. This fake records what would be painted so tests can
  * assert layer order, positions, and text, and it measures text
- * deterministically (half the font size per code point).
+ * deterministically (half the font size per code point, letter spacing not
+ * included, as in browsers' `measureText` of unspaced text).
  */
 
 export type PaintCall =
@@ -44,15 +45,22 @@ export type PaintCall =
       readonly y: number;
       readonly font: string;
       readonly textAlign: string;
+      readonly letterSpacing: string;
       readonly fillStyle: string;
       readonly composite: string;
     };
+
+/** The font size in a CSS font shorthand such as `700 24px "Family", serif`. */
+export function fontSizeOf(font: string): number {
+  return parseFloat(/([\d.]+)px/.exec(font)?.[1] ?? '10');
+}
 
 export class FakeContext {
   readonly calls: PaintCall[] = [];
   font = '10px sans-serif';
   fillStyle = '#000';
   textAlign = 'start';
+  letterSpacing = '0px';
   textBaseline = 'alphabetic';
   imageSmoothingEnabled = false;
   imageSmoothingQuality = 'low';
@@ -72,6 +80,7 @@ export class FakeContext {
     'font',
     'fillStyle',
     'textAlign',
+    'letterSpacing',
     'textBaseline',
     'globalCompositeOperation',
     'globalAlpha',
@@ -151,6 +160,7 @@ export class FakeContext {
       y,
       font: this.font,
       textAlign: this.textAlign,
+      letterSpacing: this.letterSpacing,
       fillStyle: this.fillStyle,
       composite: this.globalCompositeOperation,
     });
@@ -169,7 +179,7 @@ export class FakeContext {
   }
 
   measureText(text: string) {
-    return { width: [...text].length * parseFloat(this.font) * 0.5 };
+    return { width: [...text].length * fontSizeOf(this.font) * 0.5 };
   }
 
   /** Images and text painted since the last clear: what is currently on the canvas. */

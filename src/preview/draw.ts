@@ -4,17 +4,18 @@
  * and exported image come from the same path (D-008, D-009). Photographs are
  * never filtered, tinted, or blended: each image layer is the real image of its
  * variation. The lettering gets a debossed look inside its glyphs only (D-052).
+ * Lettering uses the self-hosted fonts and letter spacing of lettering-fonts.ts (D-072).
  */
 
 import type { FontFamily } from '../domain';
 import { DEBOSS, paintDeboss, type DebossStyle, type GlyphRun } from './deboss';
+import { fillSpacedText } from './letter-spacing';
+import { LETTERING_FONTS, letteringFont, spacedWidth } from './lettering-fonts';
 import type { ImageSize, Scene, TextBlock } from './scene';
 import type { MeasureText } from './text-fit';
-import { FALLBACK_TEXT_COLOR, FONT_STACKS } from './text-style';
+import { FALLBACK_TEXT_COLOR } from './text-style';
 import { MARK_INK, SIGNATURE, signatureBox, signatureFont } from './watermark';
 
-/** Provisional typography (P-04, P-14, D-038, D-042): replace when the store defines it. */
-export const TEXT_FONT_FAMILY = FONT_STACKS['sans-serif'];
 /** Preview color while no lettering color is chosen; never a product color. */
 export const TEXT_COLOR = FALLBACK_TEXT_COLOR;
 
@@ -40,16 +41,25 @@ export function chooseBackingWidth(
 }
 
 export function fontFor(fontSize: number, family: FontFamily = 'sans-serif'): string {
-  return `${fontSize}px ${FONT_STACKS[family]}`;
+  return letteringFont(fontSize, family);
 }
 
-/** Text measurer backed by an offscreen canvas; falls back to a rough estimate without one. */
+/** Letter spacing of `family` at `fontSize`, in logical units. */
+export function letterSpacingFor(fontSize: number, family: FontFamily = 'sans-serif'): number {
+  return LETTERING_FONTS[family].letterSpacing * fontSize;
+}
+
+/**
+ * Text measurer backed by an offscreen canvas, letter spacing included
+ * (`spacedWidth`); falls back to a rough estimate without a canvas.
+ */
 export function createTextMeasurer(family: FontFamily = 'sans-serif'): MeasureText {
   const ctx = document.createElement('canvas').getContext('2d');
   return (text, fontSize) => {
-    if (ctx === null) return text.length * fontSize * 0.55;
+    const spacing = letterSpacingFor(fontSize, family);
+    if (ctx === null) return spacedWidth(text, text.length * fontSize * 0.55, spacing);
     ctx.font = fontFor(fontSize, family);
-    return ctx.measureText(text).width;
+    return spacedWidth(text, ctx.measureText(text).width, spacing);
   };
 }
 
@@ -60,28 +70,32 @@ interface ColoredRun extends GlyphRun {
 }
 
 /**
- * Where each single-color run of a text block is painted. The lettering color
- * and the deboss shading both use these runs, so the shading lines up with
- * the glyphs exactly.
+ * Where each single-color run of a text block is painted, left-aligned. The
+ * lettering color and the deboss shading both use these runs, so the shading
+ * lines up with the glyphs exactly. Lines start at their measured width
+ * (spacing included, the scene's `lineWidths`) from the alignment anchor.
  */
-function layoutRuns(ctx: CanvasRenderingContext2D, block: TextBlock): ColoredRun[] {
-  const { lines, segments, lineHeight, align, bounds } = block;
+function layoutRuns(
+  ctx: CanvasRenderingContext2D,
+  block: TextBlock,
+  spacing: number,
+): ColoredRun[] {
+  const { lines, segments, lineHeight, align, bounds, lineWidths } = block;
   // Lines are aligned inside the block; the block itself is placed by the scene (D-044).
   const x = bounds.x + bounds.width * TEXT_ANCHOR[align];
   return lines.flatMap((line, index) => {
     const y = bounds.y + (index + 0.5) * lineHeight;
     const runs = segments[index] ?? [{ text: line, color: FALLBACK_TEXT_COLOR }];
     const [only] = runs;
-    // One color: let the canvas align the whole line.
+    const lineWidth = lineWidths[index] ?? spacedWidth(line, ctx.measureText(line).width, spacing);
+    const start = x - lineWidth * TEXT_ANCHOR[align];
     if (runs.length === 1 && only !== undefined)
-      return [{ text: line, x, y, align, color: only.color }];
-    // Mixed colors: lay the runs out left to right from the aligned start of the line.
-    const widths = runs.map((run) => ctx.measureText(run.text).width);
-    const total = widths.reduce((sum, width) => sum + width, 0);
-    let cursor = x - total * TEXT_ANCHOR[align];
-    return runs.map((run, runIndex) => {
-      const placed = { text: run.text, x: cursor, y, align: 'left' as const, color: run.color };
-      cursor += widths[runIndex] ?? 0;
+      return [{ text: line, x: start, y, spacing, color: only.color }];
+    // Mixed colors: each run advances by its glyphs plus the spacing after each of them.
+    let cursor = start;
+    return runs.map((run) => {
+      const placed = { text: run.text, x: cursor, y, spacing, color: run.color };
+      cursor += spacedWidth(run.text, ctx.measureText(run.text).width, spacing) + spacing;
       return placed;
     });
   });
@@ -120,11 +134,10 @@ export function drawScene(
     const font = fontFor(block.fontSize, block.fontFamily);
     ctx.font = font;
     ctx.textBaseline = 'middle';
-    const runs = layoutRuns(ctx, block);
+    const runs = layoutRuns(ctx, block, letterSpacingFor(block.fontSize, block.fontFamily));
     for (const run of runs) {
       ctx.fillStyle = run.color;
-      ctx.textAlign = run.align;
-      ctx.fillText(run.text, run.x, run.y);
+      fillSpacedText(ctx, run.text, run.x, run.y, run.spacing);
     }
     if (deboss === null) continue;
     // Room around the block for glyphs that overhang their line box.

@@ -35,7 +35,7 @@ function sceneFor(
   const scene = buildScene(
     composePreview(previewCatalog, value, validation),
     images,
-    createTextMeasurer(),
+    createTextMeasurer(value.fontFamily),
   );
   return { scene, validation };
 }

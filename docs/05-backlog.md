@@ -99,8 +99,8 @@ Status: **Done** for the four current models: photographs, calibration, dimensio
 Status: **Done** (technical implementation, committed in 6d8cbb2, 2026-11-08). Crop, calibration, centered default, and photo presentation approved (D-053). Delivered: the Placa photograph (640 × 640 crop) in `public/catalog/plates/placa-ceramica-10/bege.png` with its calibration in the production catalog; debossed lettering (D-052) in the shared Canvas renderer, so preview and PNG export match; the six proposed colors in the demo catalog only. Production still has no lettering colors, so production export stays blocked. Checks: 446 unit tests; Playwright 91 passed, 3 skipped, including Chromium and WebKit pixel tests (no pixel outside the glyphs changes; stroke centers keep their color) and a throttled drag test. Production-readiness dependencies (tracked here, not reopening M1.3b-1):
 
 - Lettering palette (P-02): Taavi's production `#rrggbb` values. Marrom, Azul, Verde, and Vermelho escuro are visually acceptable to the product owner; Amarelo and Laranja remain proposals with a legibility concern. Until then production export stays blocked.
-- Typography (P-04, P-14): real typefaces and text limits; system font stacks are provisional.
-- Deboss look (D-052): aesthetic approval; half strength is technically accepted only.
+- Typography (P-04, P-14): typefaces resolved by D-072 (M4.8); text limits still open.
+- Deboss look (D-052): resolved by treatment B (D-072).
 - Mobile rendering: about 40 fps while dragging under 4× CPU throttling; optimize only with evidence from real devices.
 
 History: inputs confirmed so far (D-048): photo usage rights, the official name "Placa cerâmica (tamanho 10 x 10 cm)", the color names Marrom, Azul, Verde, Amarelo, Laranja, Vermelho escuro (D-049), and the text-area rule (ceramic only, never the frame). Candidate photograph `plate-no-text.png` accepted under D-050 after a basic quality check; crop and calibration proposed and a color review sheet prepared (`docs/07-product-assets.md`). ID, label, and centered default placement approved (D-051). Crop, calibration, and centered alignment provisionally accepted for the first iteration; the six proposed `#rrggbb` values are for review and demo only. Implementation approved on 2026-11-08 with the inner-shadow conditions of D-052.
@@ -117,7 +117,7 @@ Status: **Done** (accepted by the product owner 2026-11-08; committed in c3c9d8b
 - [x] Permanent IDs confirmed: `quadro-20`, `bandeja-ondulada-m-8`, `bandeja-ondulada-g-11` (P-12)
 - [x] Image-size check reads JPEG as well as PNG
 - [x] Unit tests: exact entries, text area inside the Quadro ceramic, shared Bandeja placement with separate sizes, 7 mm capitals on every model; Playwright: every model shows its photograph, JPEGs served, lettering drawn, Bandeja M overflow warning, fixed size and 7 mm capitals per model with real font metrics, deboss inside the glyphs only on each new photograph
-- Remaining: typography (P-04, P-14); deboss look (D-052). Production lettering colors: M4.4.
+- Remaining: text limits (P-04, P-14). Typefaces and deboss look: M4.8 (D-072). Production lettering colors: M4.4.
 
 ## M2 — Configuration interface
 
@@ -305,6 +305,18 @@ Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decisio
 - [x] "Reiniciar configurações" in the review, with confirmation (D-070)
 - [x] M4.7c (D-071): unified "Cores do texto"; "Destacar parte(s) do texto" switch; whole-word toggles (repeated words independent, all words allowed); position-based highlight reconciliation on edits; color swap on conflict; character-selection UI and hook removed
 - Remaining: lowercase manufacturability (P-04/P-14); real-phone review of selection on iOS and Android.
+
+## M4.8 — Lettering fonts and deboss treatment B
+
+Status: **Implemented** (2026-11-08), awaiting product-owner acceptance and a real-phone check beside a Taavi piece. Decision D-072.
+
+- [x] One `lettering-fonts` configuration: Quicksand Bold 700 (0.05 em spacing, uppercase) and Gelasio Regular 400, self-hosted from `@fontsource` (OFL 1.1), Latin and Latin Extended
+- [x] Fonts loaded before measuring or drawing (Font Loading API); scene waits; `font-error` draws the fallback and blocks export
+- [x] 7 mm capital kept: Quicksand drawn at 0.7046 ÷ 0.700 of the catalog size; Gelasio unchanged
+- [x] Letter spacing: canvas `letterSpacing`, per-grapheme fallback for older Safari, one width formula for both
+- [x] Deboss treatment B: one inner shadow (0.012 em, 0.012 em, 0.30), no highlight
+- [x] Tests: font config, loading, and hook; capital calibration; spacing (native and fallback, accents, emoji); wrapping and overflow boundaries on every model, Bandeja M and G included; mixed-case serif and uppercase sans; several highlighted words; color fidelity in Azul and Marrom; PNG equal to the preview drawing; font failure blocks export (Chromium and WebKit)
+- Remaining: final visual check on a real iPhone or Android phone, preferably beside a real Taavi piece.
 
 ## M5 — Quality and usability
 

@@ -1,7 +1,10 @@
 import { composePreview } from '../../../src/preview/composition';
 import { FALLBACK_TEXT_COLOR } from '../../../src/preview/text-style';
+import { CALIBRATION_CAP_RATIO, LETTERING_FONTS } from '../../../src/preview/lettering-fonts';
+import type { FontState } from '../../../src/preview/font-loading';
 import {
   buildScene,
+  drawnFontSize,
   placeBlock,
   textFrameOf,
   type ImageSize,
@@ -34,9 +37,10 @@ function states(overrides: Record<string, ImageState<TestImage>> = {}) {
 function sceneFor(
   overrides: Parameters<typeof config>[0] = {},
   images: ReadonlyMap<string, ImageState<TestImage>> = states(),
+  font?: FontState,
 ): Scene<TestImage> {
   const value = config(overrides);
-  return buildScene(composePreview(previewCatalog, value, validate(value)), images, measure);
+  return buildScene(composePreview(previewCatalog, value, validate(value)), images, measure, font);
 }
 
 const order = (scene: Scene<TestImage>) => scene.layers.map((layer) => layer.kind);
@@ -106,6 +110,52 @@ describe('buildScene: image states', () => {
 
   it('keeps the catalog-pending state distinct from a load error', () => {
     expect(sceneFor({ plateId: 'test-plate-pending' }).notices).toEqual(['plate-image-pending']);
+  });
+});
+
+describe('buildScene: lettering font (D-072)', () => {
+  it('draws nothing while the lettering font loads, as for the photograph', () => {
+    const scene = sceneFor({}, states(), 'loading');
+
+    expect(scene.layers).toEqual([]);
+    expect(scene.notices).toEqual(['plate-image-loading']);
+  });
+
+  it('does not wait for the font when there is no text to draw', () => {
+    expect(order(sceneFor({ text: '' }, states(), 'loading'))).toEqual(['image', 'signature']);
+    expect(sceneFor({ text: '' }, states(), 'error').notices).toEqual([]);
+  });
+
+  it('draws the text with the fallback font and blocks export when the font fails', () => {
+    const scene = sceneFor({}, states(), 'error');
+
+    expect(order(scene)).toEqual(['image', 'text', 'signature']);
+    expect(scene.notices).toEqual(['font-error']);
+  });
+});
+
+describe('lettering size calibration (D-055, D-072)', () => {
+  const textOf = (overrides: Parameters<typeof config>[0]) => {
+    const text = sceneFor(overrides).layers.find((layer) => layer.kind === 'text');
+    if (text?.kind !== 'text') throw new Error('no text layer');
+    return text.block;
+  };
+
+  it('keeps the calibrated capital height for each font: catalog size × 0.7046', () => {
+    // Fixture: fontSize 0.1 of a 400 px photograph → a 28.18 px capital.
+    for (const family of ['sans-serif', 'serif'] as const) {
+      const { fontSize } = textOf({ fontFamily: family });
+      const font = LETTERING_FONTS[family];
+      if (family === 'sans-serif')
+        expect(fontSize * font.capRatio).toBeCloseTo(40 * CALIBRATION_CAP_RATIO, 9);
+      else expect(fontSize).toBe(40);
+    }
+  });
+
+  it('scales Quicksand by 0.7046 ÷ 0.700 ≈ 1.007 and leaves Gelasio at the catalog size', () => {
+    expect(drawnFontSize(0.1, 'sans-serif', 400)).toBeCloseTo(40.263, 3);
+    expect(drawnFontSize(0.1, 'serif', 400)).toBe(40);
+    expect(LETTERING_FONTS['sans-serif'].sizeScale).toBeCloseTo(1.007, 3);
   });
 });
 
@@ -370,20 +420,35 @@ describe('textFrameOf (D-063)', () => {
     const drawn = sceneFor({ text: 'Ana' }).layers.find((layer) => layer.kind === 'text');
     if (drawn?.kind !== 'text') throw new Error('no text layer');
 
-    expect(textFrameOf(plate('test-plate-square'), empty)).toEqual({
+    expect(textFrameOf(plate('test-plate-square'), empty, 'serif')).toEqual({
       area: drawn.block.area,
       fontSize: drawn.block.fontSize,
       lineHeight: drawn.block.lineHeight,
     });
   });
 
+  it("uses the font's drawn size, so the line limit matches the drawn lines (D-072)", () => {
+    const drawn = sceneFor({ text: 'Ana', fontFamily: 'sans-serif' }).layers.find(
+      (layer) => layer.kind === 'text',
+    );
+    if (drawn?.kind !== 'text') throw new Error('no text layer');
+
+    expect(textFrameOf(plate('test-plate-square'), sceneFor(), 'sans-serif')).toMatchObject({
+      fontSize: drawn.block.fontSize,
+      lineHeight: drawn.block.lineHeight,
+    });
+  });
+
   it('is undefined before the photograph is drawn, without a model, or without an approved size', () => {
-    expect(textFrameOf(plate('test-plate-square'), { width: 0, height: 0 })).toBeUndefined();
-    expect(textFrameOf(undefined, sceneFor())).toBeUndefined();
+    expect(
+      textFrameOf(plate('test-plate-square'), { width: 0, height: 0 }, 'serif'),
+    ).toBeUndefined();
+    expect(textFrameOf(undefined, sceneFor(), 'serif')).toBeUndefined();
     expect(
       textFrameOf(
         plate('test-plate-size-pending'),
         sceneFor({ plateId: 'test-plate-size-pending' }),
+        'serif',
       ),
     ).toBeUndefined();
   });

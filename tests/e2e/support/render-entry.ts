@@ -8,5 +8,9 @@ export { createEmptyConfiguration, validateConfiguration } from '../../../src/do
 export { composePreview } from '../../../src/preview/composition';
 export { createTextMeasurer, drawScene, fontFor } from '../../../src/preview/draw';
 export { DEBOSS } from '../../../src/preview/deboss';
+export { loadLetteringFont } from '../../../src/preview/font-loading';
+export { fillSpacedText } from '../../../src/preview/letter-spacing';
+export { LETTERING_FONTS, letteringFont } from '../../../src/preview/lettering-fonts';
+export { renderPng } from '../../../src/preview/export';
 export { buildScene } from '../../../src/preview/scene';
 export { MARK_INK, SIGNATURE, WATERMARK_SRC } from '../../../src/preview/watermark';

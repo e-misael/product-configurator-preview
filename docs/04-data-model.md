@@ -11,7 +11,7 @@ Vocabulary: the customer-facing word for a product is **Modelo**; the code keeps
 | Type         | Values                                       | Notes                                                                                                                                                  |
 | ------------ | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | `PlateShape` | `square`, `rectangle`, `circle`, `scalloped` | Classification of the model, fixed per model (D-023, D-040). Implies no geometry or aspect ratio; `scalloped` (the wavy trays) is classification only. |
-| `FontFamily` | `serif`, `sans-serif`                        | "Com serifa" / "Sem serifa" (`FONT_FAMILIES`). Mapped to provisional system font stacks by the renderer; real typefaces pending (P-14, D-043).         |
+| `FontFamily` | `serif`, `sans-serif`                        | "Com serifa" / "Sem serifa" (`FONT_FAMILIES`). Drawn with Quicksand Bold (spaced) and Gelasio Regular, self-hosted (D-072).                            |
 
 ### `Dimensions`
 

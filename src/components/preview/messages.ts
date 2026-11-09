@@ -60,6 +60,8 @@ export const NOTICE_MESSAGES: Record<PreviewNoticeCode, string> = {
   'text-overflow': 'O texto não cabe na área do modelo. Reduza o texto ou use menos linhas.',
   'watermark-error':
     'Não foi possível carregar a assinatura Taavi da imagem. Recarregue a página para exportar.',
+  'font-error':
+    'Não foi possível carregar a fonte das letras; a prévia usa uma fonte aproximada. Recarregue a página para exportar.',
 };
 
 /** Replaces "plate-not-selected" while a model group waits for its size (D-057). */

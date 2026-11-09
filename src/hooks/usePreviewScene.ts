@@ -4,12 +4,15 @@ import { composeIllustration, composePreview, compositionSources } from '../prev
 import { createTextMeasurer } from '../preview/draw';
 import { buildScene } from '../preview/scene';
 import { useImages } from './useImages';
+import { useLetteringFont } from './useLetteringFont';
 
 /**
  * The one scene for the configuration (D-037): the preview paints it, the
  * position controls read its text block, and export renders it (D-009).
  * `illustration` is the model whose photograph stands in while a model
- * group waits for its size; it is never part of the configuration.
+ * group waits for its size; it is never part of the configuration. The
+ * scene waits for the lettering font, so nothing is measured or drawn with
+ * another one (D-072).
  */
 export function usePreviewScene(
   catalog: Catalog,
@@ -26,5 +29,9 @@ export function usePreviewScene(
   );
   const measure = useMemo(() => createTextMeasurer(config.fontFamily), [config.fontFamily]);
   const images = useImages(compositionSources(composition));
-  return useMemo(() => buildScene(composition, images, measure), [composition, images, measure]);
+  const font = useLetteringFont(config.fontFamily);
+  return useMemo(
+    () => buildScene(composition, images, measure, font),
+    [composition, images, measure, font],
+  );
 }

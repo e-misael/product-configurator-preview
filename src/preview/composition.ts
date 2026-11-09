@@ -35,7 +35,8 @@ export type PreviewNoticeCode =
   | 'text-size-pending'
   | 'text-color-provisional'
   | 'text-overflow'
-  | 'watermark-error';
+  | 'watermark-error'
+  | 'font-error';
 
 export interface PlateLayer {
   readonly src: string;

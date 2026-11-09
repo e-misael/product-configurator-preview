@@ -76,7 +76,7 @@ export function ConfiguratorForm({
   const block = textBlockOf(scene);
   const measure = useMemo(() => createTextMeasurer(config.fontFamily), [config.fontFamily]);
   // Line breaks beyond the model's text area are refused (D-063); wrapping still overflows.
-  const frame = textFrameOf(plate, scene);
+  const frame = textFrameOf(plate, scene, config.fontFamily);
   const lineLimit = frame && {
     refuses: (next: string) =>
       addsLineBeyondCapacity(

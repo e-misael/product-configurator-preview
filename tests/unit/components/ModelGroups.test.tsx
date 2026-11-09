@@ -98,14 +98,20 @@ describe('illustrative tray preview before the size (M4.6)', () => {
 
     await user.click(within(group('Tamanho')).getByRole('radio', { name: 'G — 11 × 11 cm' }));
     settle();
-    // G: 0.0851 of the 1060 px photograph; M: 0.117.
-    expect(painted()).toEqual([PHOTO_G, expect.stringMatching(/^text:(?:\D*)90\.20\d*px /)]);
+    // G: 0.0851 of the 1060 px photograph; M: 0.117; both × 0.7046 / 0.7 for Quicksand (D-072).
+    expect(painted()).toEqual([
+      PHOTO_G,
+      expect.stringMatching(/^text:700 90\.79\d*px "Taavi Lettering Sans"/),
+    ]);
     expect(within(preview()).queryByText(notice)).toBeNull();
     expect(exportButton()).toHaveAttribute('aria-disabled', 'false');
 
     await user.click(within(group('Tamanho')).getByRole('radio', { name: 'M — 8 × 8 cm' }));
     settle();
-    expect(painted()).toEqual([PHOTO_M, expect.stringMatching(/^text:(?:\D*)124\.0\d*px /)]);
+    expect(painted()).toEqual([
+      PHOTO_M,
+      expect.stringMatching(/^text:700 124\.83\d*px "Taavi Lettering Sans"/),
+    ]);
     expect(exportButton()).toHaveAttribute('aria-disabled', 'false');
   });
 

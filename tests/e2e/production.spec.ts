@@ -720,29 +720,35 @@ test.describe('Overflow at the fixed lettering size (D-057)', () => {
     await chooseModel(page, name);
     const preview = page.getByRole('region', { name: 'Pré-visualização' });
     await expect(preview.getByRole('img')).toBeVisible();
-    // A word that fits one line in one family and wraps in the other, at the
-    // Placa's fixed 53.568 px (0.0837 × 640) in its 454.4 px wide area.
-    const word = await page.evaluate(() => {
+    // A word that fits one line in one family and wraps in the other, measured with the
+    // app's self-hosted lettering fonts (D-072): Gelasio at the Placa's fixed 53.568 px
+    // (0.0837 × 640), Quicksand Bold at that size × 0.7046 / 0.7 in capitals (D-068) with
+    // 0.05 em spacing, in its 454.4 px wide area.
+    const word = await page.evaluate(async () => {
+      const serifFont = '400 53.568px "Taavi Lettering Serif"';
+      const sansSize = (53.568 * 0.7046) / 0.7;
+      const sansFont = `700 ${sansSize}px "Taavi Lettering Sans"`;
+      await Promise.all([document.fonts.load(serifFont, 'm'), document.fonts.load(sansFont, 'M')]);
       const ctx = document.createElement('canvas').getContext('2d');
       if (!ctx) return null;
-      const width = (family: string, text: string) => {
-        ctx.font = `53.568px ${family}`;
-        return ctx.measureText(text).width;
+      const width = (font: string, text: string, spacing: number) => {
+        ctx.font = font;
+        return ctx.measureText(text).width + spacing * (text.length - 1);
       };
-      const sans = 'system-ui, -apple-system, "Segoe UI", sans-serif';
-      const serif = 'Georgia, "Times New Roman", Times, serif';
-      for (let n = 1; n < 40; n += 1) {
-        const text = 'm'.repeat(n);
-        const fitsSans = width(sans, text) <= 454.4;
-        const fitsSerif = width(serif, text) <= 454.4;
-        if (fitsSans !== fitsSerif) return { text, narrow: fitsSans ? 'sans' : 'serif' };
+      for (const letter of ['m', 'o', 'a', 'i']) {
+        for (let n = 1; n < 60; n += 1) {
+          const text = letter.repeat(n);
+          const fitsSans = width(sansFont, text.toUpperCase(), 0.05 * sansSize) <= 454.4;
+          const fitsSerif = width(serifFont, text, 0) <= 454.4;
+          if (fitsSans !== fitsSerif) return { text, narrow: fitsSans ? 'sans' : 'serif' };
+        }
       }
       return null;
     });
-    // Reported as skipped, never as passed, where the system fonts give no such word.
+    // Reported as skipped, never as passed, if the fonts give no such word.
     test.skip(
       word === null,
-      'No word wraps differently in the two font stacks here: font-change revalidation not covered.',
+      'No word wraps differently in the two lettering fonts: font-change revalidation not covered.',
     );
     if (word === null) return;
     test.info().annotations.push({
@@ -753,8 +759,11 @@ test.describe('Overflow at the fixed lettering size (D-057)', () => {
     const fonts = page.getByRole('group', { name: 'Fonte' });
     const wide = word.narrow === 'sans' ? 'Com serifa' : 'Sem serifa';
     const narrow = word.narrow === 'sans' ? 'Sem serifa' : 'Com serifa';
-    await (await textField(page)).fill(`${lines(area.lines - 1)}\n${word.text}`);
+    // In the narrow font first: typed in the wide one, the last line break would be refused (D-063).
+    const field = await textField(page);
     await fonts.getByRole('radio', { name: narrow }).check();
+    await field.fill(`${lines(area.lines - 1)}\n${word.text}`);
+    await expect(field).toHaveValue(`${lines(area.lines - 1)}\n${word.text}`);
     await expect(preview).not.toContainText('O texto não cabe');
     const base = await outlinePixels(page, area);
 

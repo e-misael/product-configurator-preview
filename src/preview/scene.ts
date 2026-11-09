@@ -8,10 +8,15 @@
  * Layer order (D-037, revised by D-046 and D-060): the model's photograph, the
  * text, then the Taavi signature. The signature's image is required: while it
  * loads nothing is drawn, and when it fails the scene says so and export is blocked.
+ * The lettering font (D-072) is treated the same way while text is shown:
+ * nothing is drawn while it loads; if it fails, the text is drawn with the
+ * fallback font and export is blocked.
  */
 
 import type { FontFamily, NormalizedBox, Plate, TextAlignment } from '../domain';
 import type { Composition, PlateLayer, PreviewNoticeCode } from './composition';
+import type { FontState } from './font-loading';
+import { LETTERING_FONTS } from './lettering-fonts';
 import { LINE_HEIGHT, layoutText, type MeasureText } from './text-fit';
 import { FALLBACK_TEXT_COLOR, segmentLine, type TextSegment, type TextStyle } from './text-style';
 import { WATERMARK_SRC } from './watermark';
@@ -118,6 +123,7 @@ export function buildScene<I extends ImageSize>(
   composition: Composition,
   images: ReadonlyMap<string, ImageState<I>>,
   measure: MeasureText,
+  font: FontState = 'loaded',
 ): Scene<I> {
   const notices = [...composition.notices];
   const empty = (): Scene<I> => ({
@@ -145,8 +151,14 @@ export function buildScene<I extends ImageSize>(
     notices.push('plate-image-loading');
     return empty();
   }
+  // Measured and drawn only with the loaded lettering font (D-072).
+  if (composition.text !== undefined && font === 'loading') {
+    notices.push('plate-image-loading');
+    return empty();
+  }
   // Without the signature the product is still shown, but it cannot be exported (D-060).
   if (markState.status !== 'loaded') notices.push('watermark-error');
+  if (composition.text !== undefined && font === 'error') notices.push('font-error');
   const mark = markState.status === 'loaded' ? markState.image : undefined;
 
   return assemble(plate, plateState.image, mark, composition, notices, measure);
@@ -171,7 +183,8 @@ function assemble<I extends ImageSize>(
   if (text !== undefined) {
     const area = scaleBox(text.area, plateRect.width, plateRect.height, plateRect);
     // Fixed lettering size (D-055): never depends on the text, its position, or the area.
-    const fit = layoutText(text.text, area, text.fontSize * plateRect.width, measure);
+    const fontSize = drawnFontSize(text.fontSize, text.fontFamily, plateRect.width);
+    const fit = layoutText(text.text, area, fontSize, measure);
     if (fit.overflow) notices.push('text-overflow');
     const lineWidths = fit.lines.map((line) => measure(line, fit.fontSize));
     const style: TextStyle = {
@@ -201,6 +214,14 @@ function assemble<I extends ImageSize>(
   return { width, height, layers, notices, description: plate.alt };
 }
 
+/**
+ * Drawn lettering size in scene units: the catalog size (a fraction of the
+ * image width) scaled so the font's capital keeps the calibrated height (D-055, D-072).
+ */
+export function drawnFontSize(fontSize: number, family: FontFamily, sceneWidth: number): number {
+  return fontSize * sceneWidth * LETTERING_FONTS[family].sizeScale;
+}
+
 export interface TextFrame {
   /** Calibrated text area, in scene units. */
   readonly area: Rect;
@@ -217,11 +238,12 @@ export interface TextFrame {
 export function textFrameOf(
   plate: Plate | undefined,
   scene: { readonly width: number; readonly height: number },
+  family: FontFamily,
 ): TextFrame | undefined {
   const layout = plate?.image?.text;
   if (layout?.fontSize === undefined || scene.width <= 0 || scene.height <= 0) return undefined;
   const plateRect: Rect = { x: 0, y: 0, width: scene.width, height: scene.height };
-  const fontSize = layout.fontSize * scene.width;
+  const fontSize = drawnFontSize(layout.fontSize, family, scene.width);
   return {
     area: scaleBox(layout.area, scene.width, scene.height, plateRect),
     fontSize,

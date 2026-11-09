@@ -345,6 +345,25 @@ test.describe('blocked export', () => {
     await expect(exportButton(page)).toHaveAccessibleDescription(/assinatura Taavi/);
     await expectNoDownload(page);
   });
+
+  test('when the lettering font cannot be loaded (D-072)', async ({ page }) => {
+    // The fonts start loading with the page: block them, then load it again.
+    await page.route('**/assets/{quicksand,gelasio}-*.woff2', (route) => route.abort());
+    await page.reload();
+    await chooseModel(page, /Placa cerâmica/);
+    await (await textField(page)).fill('HHH');
+    await radio(page, 'Cor do texto', /Letra azul/).check();
+    await openStep(page, 'Revisar personalização');
+
+    // The preview still shows the text, in the fallback font, and says so.
+    await expect(preview(page)).toContainText(
+      'Não foi possível carregar a fonte das letras; a prévia usa uma fonte aproximada. Recarregue a página para exportar.',
+    );
+    await expect(preview(page).getByRole('img')).toBeVisible();
+    await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'true');
+    await expect(exportButton(page)).toHaveAccessibleDescription(/fonte das letras/);
+    await expectNoDownload(page);
+  });
 });
 
 test('signs every export like its preview, at the bottom-right (D-060)', async ({ page }) => {
