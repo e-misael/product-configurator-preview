@@ -30,7 +30,7 @@ React 19, TypeScript strict (`~6.0`), Vite 8, ESLint 9 + jsx-a11y, Prettier, Vit
 src/domain/    pure types + validation (no React/DOM)
 src/catalog/   catalog data (data.ts) + getCatalog() entry point — deep-frozen source of truth
 src/components/ configurator form + canvas preview
-src/config/    contact.ts: TAAVI's WhatsApp number (pending, P-16; never a placeholder)
+src/config/    contact.ts: TAAVI's official WhatsApp number (P-16, supplied by the owner; never a placeholder)
 src/hooks/     useConfiguration, useImages, useLetteringFont, usePreparedPng
 src/preview/   pure composition + scene layout + text fit; canvas painting
 src/demo/      demo-mode catalog, banner, and public/ synthetic images (never in production builds, D-028, D-036)

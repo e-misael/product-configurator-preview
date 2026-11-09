@@ -177,12 +177,24 @@ test.describe('Compartilhar personalização (D-076)', () => {
   });
 });
 
-test('offers no WhatsApp link while TAAVI’s number is not configured (P-16)', async ({ page }) => {
+test('links to TAAVI’s official WhatsApp with the order message (P-16)', async ({ page }) => {
   await page.goto('/');
+  const link = finalize(page).getByRole('link', { name: 'Abrir WhatsApp da TAAVI' });
+  // Blocked while incomplete: not a link to follow.
+  await chooseModel(page, /Placa cerâmica/);
+  await expect(link).toHaveAttribute('aria-disabled', 'true');
+  await expect(link).not.toHaveAttribute('href');
+
   await ready(page);
   await expect(downloadButton(page)).toHaveAttribute('aria-disabled', 'false');
-  await expect(finalize(page).getByRole('link', { name: 'Abrir WhatsApp da TAAVI' })).toHaveCount(
-    0,
+  await expect(finalize(page)).toContainText('Prefere enviar pelo WhatsApp?');
+  await expect(finalize(page)).toContainText(
+    'Toque em "Baixar imagem" para salvar a imagem no aparelho.',
   );
-  await expect(finalize(page)).not.toContainText('Prefere enviar pelo WhatsApp?');
+  const url = new URL((await link.getAttribute('href')) ?? '');
+  expect(`${url.origin}${url.pathname}`).toBe('https://wa.me/5561999237316');
+  const text = url.searchParams.get('text') ?? '';
+  expect(text).toMatch(/^Olá, TAAVI!\n\n/);
+  expect(text).toContain('Texto:\nCASA DA ANA\n');
+  await expect(link).toHaveAttribute('target', '_blank');
 });

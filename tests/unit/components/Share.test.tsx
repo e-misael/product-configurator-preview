@@ -5,7 +5,10 @@ import { WIDE_LAYOUT_QUERY } from '../../../src/hooks/useWideLayout';
 import { FakeImage, installFakeImages } from '../support/fake-image';
 import { previewCatalog, previewSizes } from '../preview/fixtures';
 
-/** TAAVI's number is not supplied (P-16): tests set a well-formed, non-existent one. */
+/**
+ * The number is mocked so each test chooses it: none, malformed, or a
+ * well-formed test one. The configured number is tested in WhatsApp.test.tsx.
+ */
 const contact = vi.hoisted(() => ({ number: null as string | null }));
 vi.mock('../../../src/config/contact', () => ({
   get TAAVI_WHATSAPP_NUMBER() {

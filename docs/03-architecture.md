@@ -50,7 +50,7 @@ src/
 ├── components/
 │   ├── configurator/ # form controls (M2)
 │   └── preview/      # canvas preview and its messages (M3.1)
-├── config/           # contact.ts: TAAVI's WhatsApp number (D-076, P-16)
+├── config/           # contact.ts: TAAVI's WhatsApp number (D-076; P-16 resolved)
 ├── hooks/            # useConfiguration (M2), useImages (M3.1), usePreparedPng (M5.1)
 ├── preview/          # pure composition, scene layout, text fitting; canvas painting (M3.1)
 ├── demo/             # demo catalog, banner, and public/ with synthetic images (demo mode only)

@@ -125,7 +125,7 @@ The pilot site is the production build in `dist/`, uploaded to Cloudflare Pages 
 
 ## F. TAAVI's WhatsApp number (P-16)
 
-**[Product owner]** Supply the official number (country code first, digits only). Claude Code then sets `TAAVI_WHATSAPP_NUMBER` in `src/config/contact.ts`, adds the checks, and the change goes through sections B–D as a new release. Until then, "Abrir WhatsApp da TAAVI" is not shown and sharing and download work without it.
+Done (2026-11-09): the product owner supplied +55 61 99923-7316, set as `TAAVI_WHATSAPP_NUMBER = '5561999237316'` in `src/config/contact.ts`, with tests for the `https://wa.me/5561999237316?text=…` link and its order message. The change goes through sections B–D as a new release; "Abrir WhatsApp da TAAVI" appears in "Finalizar personalização".
 
 ## G. Real-device acceptance checklist
 
@@ -145,7 +145,7 @@ The pilot site is the production build in `dist/`, uploaded to Cloudflare Pages 
 | 10  | Physical lettering size    | Print each model's PNG to scale (Placa: plate 539 px wide = 100 mm); measure a capital; lay the print beside the real piece.                  | Capitals about Placa 6.3 mm, Quadro 7 mm, Bandeja M 4.8 mm, Bandeja G 4.4 mm; "AMIZADES" one row on the M, "PROSPERIDADE" one row on the G; 8 lines fit on the Placa.                 |        |         |
 | 11  | Layout                     | Go through all steps.                                                                                                                         | Readable tip, spacing, buttons in order (share, download), nothing cut off.                                                                                                           |        |         |
 
-Production is approved only when checks 1–5 and 7–11 pass on both phones (check 8's link part once P-16 is configured). Open findings go to the backlog.
+Production is approved only when checks 1–5 and 7–11 pass on both phones (check 8 includes the "Abrir WhatsApp da TAAVI" link, P-16). Open findings go to the backlog.
 
 ## H. Deployment log
 

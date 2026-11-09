@@ -176,7 +176,7 @@ Status: Done — enforced by the catalog-driven image architecture and asset-pat
 
 Acceptance criteria:
 
-1. "Finalizar personalização" (D-078) ends with "Compartilhar personalização", "Baixar imagem", and, once TAAVI's number is configured (P-16), "Prefere enviar pelo WhatsApp?" with two steps and "Abrir WhatsApp da TAAVI".
+1. "Finalizar personalização" (D-078) ends with "Compartilhar personalização", "Baixar imagem", and "Prefere enviar pelo WhatsApp?" with two steps and "Abrir WhatsApp da TAAVI".
 2. "Compartilhar personalização" is shown only where `navigator.share` and `navigator.canShare` exist and a PNG file can be shared; otherwise "Baixar imagem" is the main action.
 3. It shares the same watermarked PNG "Baixar imagem" saves, as `taavi-{plateId}.png`, and the order message where the browser accepts text with the file. `navigator.share()` is called directly from the tap; it is never retried automatically, and never followed by WhatsApp.
 4. The PNG is prepared 300 ms after the last change while the configuration is exportable and the section is open, for one export revision (every field but the note); any other change withdraws it at once, "Preparando imagem para compartilhar…" is shown, and the button does nothing until the new PNG is ready. A stale image is never shared.
@@ -185,7 +185,7 @@ Acceptance criteria:
 7. "Abrir WhatsApp da TAAVI" opens `https://wa.me/{number}?text={encoded order message}` in a new tab; no file is attached through the URL; the steps tell the customer to download the image and attach it. Without a valid configured number it is not shown.
 8. The export blockers (FR-07.5–7) apply to all three actions: buttons stay focusable with `aria-disabled` and the reasons as their description; the WhatsApp action is not a link while blocked.
 
-Status: Implemented (M5.1), verified with a stubbed share sheet in Chromium and WebKit; pending manual checks on a real iPhone (Safari) and Android phone (Chrome), and TAAVI's number (P-16).
+Status: Implemented (M5.1), verified with a stubbed share sheet in Chromium and WebKit; pending manual checks on a real iPhone (Safari) and Android phone (Chrome). TAAVI's number is configured (P-16, `wa.me/5561999237316`).
 
 ## Non-functional requirements
 

@@ -327,7 +327,7 @@ Status: In progress.
 
 ### M5.1 — Sharing the customization (D-076, FR-10)
 
-Status: **Implemented** (2026-11-09), awaiting manual device checks and TAAVI's WhatsApp number (P-16).
+Status: **Implemented** (2026-11-09), awaiting manual device checks. TAAVI's WhatsApp number configured (P-16, 2026-11-09).
 
 - [x] "Compartilhar personalização": Web Share API with the watermarked PNG and the order message; hidden without file sharing
 - [x] PNG prepared in the background (300 ms, per export revision, never stale), shared from the tap itself
@@ -337,8 +337,8 @@ Status: **Implemented** (2026-11-09), awaiting manual device checks and TAAVI's 
 - [x] Export blockers on every action; configuration kept on cancel and failure
 - [x] TAAVI in capitals in the UI, messages, and documentation
 - [x] Tests: share helpers, order message, prepared PNG (debounce, invalidation, stale results), component flows, Playwright with a stubbed share sheet (Chromium desktop and mobile, WebKit mobile): same bytes as the download, user activation, stale prevention, cancel and failure, unsupported browser, loading photograph, no WhatsApp link without a number
-- Remaining (manual): on a real iPhone (Safari) and Android phone (Chrome), share to WhatsApp and choose the TAAVI chat; note whether the text arrives as the image caption, as a separate message, or not at all; image quality after WhatsApp compression; the `wa.me` link opening the app (once P-16 is supplied); no activation refusal on a slow phone.
-- Remaining (data): TAAVI's WhatsApp number (P-16).
+- Remaining (manual): on a real iPhone (Safari) and Android phone (Chrome), share to WhatsApp and choose the TAAVI chat; note whether the text arrives as the image caption, as a separate message, or not at all; image quality after WhatsApp compression; the `wa.me/5561999237316` link opening TAAVI's chat in the app; no activation refusal on a slow phone.
+- [x] TAAVI's WhatsApp number configured: `5561999237316` (P-16, 2026-11-09)
 
 ### M5.3 — Mobile finalization layout (D-078)
 
@@ -360,7 +360,7 @@ Status: **Prepared** (2026-11-09): repository changes and runbook ready; no Clou
 - [x] `scripts/deploy-pages.js` and `npm run deploy:beta` / `deploy:production` (pinned Wrangler 4.153.0, clean tree, stamped build, explicit production confirmation)
 - [x] Runbook, rollback, real-device checklist, and deployment log: `docs/08-deployment.md`
 - Remaining (product owner): Cloudflare account; Wrangler login in the browser; confirm the `crie-com-a-taavi.pages.dev` address; authorize beta and production deployments; real-device checklist on iPhone Safari and Android Chrome; approve the production address; then the QR Code.
-- Remaining (data): TAAVI's WhatsApp number (P-16).
+- [x] TAAVI's WhatsApp number configured (P-16, 2026-11-09)
 
 ### Later
 
