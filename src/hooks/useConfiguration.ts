@@ -33,10 +33,15 @@ interface State {
  * exactly as chosen (the lettering color starts at the catalog default, D-064) and reported by validation; the only automatic change is
  * formatting that cannot follow an ambiguous text edit (D-042).
  */
-export function useConfiguration(catalog: Catalog) {
+export function useConfiguration(catalog: Catalog, note = '') {
   const [state, setState] = useState<State>(() => ({
-    // The catalog's default lettering color, if any, is the starting choice (D-064).
-    config: { ...createEmptyConfiguration(), textColorId: catalog.defaultTextColorId ?? null },
+    // The catalog's default lettering color, if any, is the starting choice (D-064);
+    // a note kept through a restart is the only other starting input (D-070).
+    config: {
+      ...createEmptyConfiguration(),
+      textColorId: catalog.defaultTextColorId ?? null,
+      note,
+    },
     notice: null,
   }));
 

@@ -50,7 +50,7 @@ describe('Reiniciar configurações', () => {
 
     expect(
       screen.getByRole('group', {
-        name: 'Reiniciar apaga o modelo, o texto, as cores, a posição e a observação. Deseja continuar?',
+        name: 'Reiniciar apaga o modelo, o texto, as cores e a posição; a observação é mantida. Deseja continuar?',
       }),
     ).toBeInTheDocument();
     expect(cancel()).toHaveFocus();
@@ -69,7 +69,7 @@ describe('Reiniciar configurações', () => {
     expect(screen.getByLabelText('Observação')).toHaveValue('Presente');
   });
 
-  it('resets every field and choice to the initial state', async () => {
+  it('resets every field and choice to the initial state, keeping the note', async () => {
     const { user } = setup();
     await customize(user);
     expect(within(review()).getByText('Test ink B: Casa')).toBeInTheDocument();
@@ -81,7 +81,7 @@ describe('Reiniciar configurações', () => {
       expect(radio).not.toBeChecked();
     }
     expect(screen.getByLabelText('Texto')).toHaveValue('');
-    expect(screen.getByLabelText('Observação')).toHaveValue('');
+    expect(screen.getByLabelText('Observação')).toHaveValue('Presente');
     expect(within(group('Fonte')).getByRole('radio', { name: 'Sem serifa' })).toBeChecked();
     for (const radio of within(group('Cor do texto')).getAllByRole('radio')) {
       expect(radio).not.toBeChecked();

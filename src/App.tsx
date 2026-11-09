@@ -22,11 +22,13 @@ interface AppProps {
  * the steps, all open; narrow screens show one step at a time.
  *
  * "Reiniciar configurações" mounts a fresh configurator, so every choice,
- * input, and open section returns to its initial state; then the first step
- * gets focus and the reset is announced.
+ * input, and open section returns to its initial state, except the note,
+ * which is kept (D-070); then the first step gets focus and the reset is
+ * announced.
  */
 export function App({ catalog = getCatalog(), banner, modelGroups = MODEL_GROUPS }: AppProps) {
   const [run, setRun] = useState(0);
+  const [keptNote, setKeptNote] = useState('');
 
   useEffect(() => {
     if (run === 0) return;
@@ -54,7 +56,11 @@ export function App({ catalog = getCatalog(), banner, modelGroups = MODEL_GROUPS
           key={run}
           catalog={catalog}
           modelGroups={modelGroups}
-          onRestart={() => setRun((count) => count + 1)}
+          note={keptNote}
+          onRestart={(note) => {
+            setKeptNote(note);
+            setRun((count) => count + 1);
+          }}
         />
       )}
     </main>
@@ -64,11 +70,14 @@ export function App({ catalog = getCatalog(), banner, modelGroups = MODEL_GROUPS
 interface ConfiguratorProps {
   readonly catalog: Catalog;
   readonly modelGroups: readonly ModelGroup[];
-  readonly onRestart: () => void;
+  /** The note kept from before a restart. */
+  readonly note: string;
+  /** Called with the current note, which survives the restart. */
+  readonly onRestart: (note: string) => void;
 }
 
-function Configurator({ catalog, modelGroups, onRestart }: ConfiguratorProps) {
-  const state = useConfiguration(catalog);
+function Configurator({ catalog, modelGroups, note, onRestart }: ConfiguratorProps) {
+  const state = useConfiguration(catalog, note);
   const { plateId } = state.config;
   const plate = plateId === null ? undefined : findPlate(catalog, plateId);
   // A model group chosen without its size selects no model yet (D-057).
@@ -146,7 +155,7 @@ function Configurator({ catalog, modelGroups, onRestart }: ConfiguratorProps) {
         collapsible={!wide}
         openStep={openStep}
         onToggleStep={toggleStep}
-        onRestart={onRestart}
+        onRestart={() => onRestart(state.config.note)}
       />
     </div>
   );

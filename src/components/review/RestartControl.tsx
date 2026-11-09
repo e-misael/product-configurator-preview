@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 
 interface RestartControlProps {
-  /** Discards every choice and input; called only after confirmation. */
+  /** Discards every choice and input but the note; called only after confirmation. */
   readonly onRestart: () => void;
 }
 
 /**
- * "Reiniciar configurações": asks once before clearing everything, because
- * the text and the note cannot be recovered. Focus moves to "Cancelar", the
+ * "Reiniciar configurações": asks once before clearing everything but the
+ * note (D-070), because the text cannot be recovered. Focus moves to "Cancelar", the
  * safe choice, and back to the button when cancelled.
  */
 export function RestartControl({ onRestart }: RestartControlProps) {
@@ -41,7 +41,8 @@ export function RestartControl({ onRestart }: RestartControlProps) {
   return (
     <div className="restart" role="group" aria-labelledby="restart-warning">
       <p className="field__info" id="restart-warning">
-        Reiniciar apaga o modelo, o texto, as cores, a posição e a observação. Deseja continuar?
+        Reiniciar apaga o modelo, o texto, as cores e a posição; a observação é mantida. Deseja
+        continuar?
       </p>
       <div className="restart__actions">
         <button type="button" className="button" onClick={onRestart}>

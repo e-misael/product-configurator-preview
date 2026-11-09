@@ -546,7 +546,7 @@ Status values:
 
 ### D-070 — "Reiniciar configurações" (2026-11-08)
 
-- Requested by the product owner (2026-11-08): an option that resets every field and choice. "Reiniciar configurações" sits in "Revisar personalização", under the summary, so "Exportar imagem" stays the last action (D-058). It asks first ("Reiniciar apaga o modelo, o texto, as cores, a posição e a observação. Deseja continuar?", "Sim, reiniciar" / "Cancelar", focus on "Cancelar"). Confirming mounts a fresh configurator: the configuration returns to its initial state (catalog default lettering color, D-064), and the open step, second-color section, size pending, and messages reset too; focus goes to the first step and "Configurações reiniciadas." is announced.
+- Requested by the product owner (2026-11-08): an option that resets every field and choice. "Reiniciar configurações" sits in "Revisar personalização", under the summary, so "Exportar imagem" stays the last action (D-058). It asks first ("Reiniciar apaga o modelo, o texto, as cores e a posição; a observação é mantida. Deseja continuar?", "Sim, reiniciar" / "Cancelar", focus on "Cancelar"). Confirming mounts a fresh configurator: the configuration returns to its initial state (catalog default lettering color, D-064) except the note ("Observação", D-062), which is kept as typed (product owner request, 2026-11-09), and the open step, second-color section, size pending, and messages reset too; focus goes to the first step and "Configurações reiniciadas." is announced.
 - **Status:** Approved (product owner, 2026-11-08). Implementation pending acceptance.
 
 ### D-071 — Unified "Cores do texto" with whole-word highlighting (2026-11-08)
