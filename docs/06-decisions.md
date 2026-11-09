@@ -429,7 +429,7 @@ Status values:
 
 ### D-053 — Placa photograph and calibration approved (2026-11-08)
 
-- **Decision:** Approved by the product owner for the first production iteration, after reviewing the rendered crop, overlay, and colors: (1) the 640 × 640 crop of `plate-no-text.png`; (2) `objectBounds` `{ x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 }`; (3) `text.area` `{ x: 0.145, y: 0.155, width: 0.71, height: 0.69 }`; (4) centered default alignment and placement; (5) the photographic presentation as is, with no background removal or tinting.
+- **Decision:** Approved by the product owner for the first production iteration, after reviewing the rendered crop, overlay, and colors: (1) the 640 × 640 crop of `plate-no-text.png`; (2) `objectBounds` `{ x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 }`; (3) `text.area` `{ x: 0.145, y: 0.155, width: 0.71, height: 0.69 }` (enlarged to `{ x: 0.12, y: 0.14, width: 0.76, height: 0.74 }` by D-075); (4) centered default alignment and placement; (5) the photographic presentation as is, with no background removal or tinting.
 - **Color review (not a production approval):** Marrom `#4a2a14`, Azul `#2b4a7a`, Verde `#2f4a36`, and Vermelho escuro `#7a1f1f` are visually acceptable. Amarelo `#e0b225` and Laranja `#e07a1f` stay proposals with a legibility concern; they are not removed or darkened automatically. All six stay in demonstration data until Taavi approves production values (P-02).
 - **Deboss (D-052):** half strength is technically accepted; its look is not yet approved.
 - **Status:** Approved (product owner, 2026-11-08).
@@ -448,10 +448,10 @@ Status values:
 
 - **Context:** Taavi letters the pieces with physical molds of one size, so text that grows or shrinks with its length misrepresents the product.
 - **Decision:** Each model's text placement carries a fixed `fontSize` as a fraction of its photograph's width (`TextLayout.fontSize`, per model, not per photograph: models sharing a photograph can differ in physical size). The size never depends on the text, its wrapping or line breaks, the alignment, or the position; text is never shrunk, enlarged, clipped, or truncated. Text taller or wider than the area is drawn at the same size with the `text-overflow` warning ("O texto não cabe na área do modelo. Reduza o texto ou use menos linhas."), and export is blocked. There is no customer size control.
-- **Placa value:** 0.0837 of the image width (53.6 px on the 640 px photograph), for a visible capital about **7 mm** tall on the 100 mm plate. The 7 mm is a provisional estimate (6–8 mm) by the product owner from the reference photograph of a real lettered 10 × 10 cm Placa, `docs/reference-images/um-passo-de-cada-vez-…webp`. It is not a verified mold or manufacturing measurement; a direct reading of that photograph gives about 6.4 mm (6.2–6.6).
+- **Placa value:** (0.0753 since D-075) 0.0837 of the image width (53.6 px on the 640 px photograph), for a visible capital about **7 mm** tall on the 100 mm plate. The 7 mm is a provisional estimate (6–8 mm) by the product owner from the reference photograph of a real lettered 10 × 10 cm Placa, `docs/reference-images/um-passo-de-cada-vez-…webp`. It is not a verified mold or manufacturing measurement; a direct reading of that photograph gives about 6.4 mm (6.2–6.6).
 - **Glyph height vs font size:** the canvas sets a nominal font size; the visible capital is 0.705 of it for the sans-serif stack and 0.693 for serif (measured in Chromium and WebKit on macOS; other platforms' system fonts differ by a few percent). Formula: `fontSize = capMm × (objectBounds.width ÷ ceramicWidthMm) ÷ 0.705`, so 7 × (0.8422 ÷ 100) ÷ 0.705 = 0.0837. At this size serif capitals are about 6.9 mm. The previous value, 0.08625 (55.2 px, half the former starting size), gave about 7.2 mm.
 - **Pending state:** `fontSize` is optional, so a model without an approved size keeps the catalog valid. When such a model has text, nothing is drawn on the image, the `text-size-pending` notice says so ("O tamanho das letras deste modelo ainda não foi definido; o texto não aparece na imagem."), and export is blocked like any preview notice. There is no fallback to fitting and no guessed size. Validation rejects a `fontSize` that is not a finite number in (0, 1].
-- **Other models (approved 2026-11-08 with the confirmed dimensions, P-01):** Quadro 0.0424 (the 100 mm ceramic, 282 of 660 px, never the 200 mm frame; 28.0 px); Bandeja ondulada M 0.1170 (80 mm, 0.9425 of 1060 px; 124.0 px); Bandeja ondulada G 0.0851 (110 mm, same photograph; 90.2 px). M and G share a photograph but not a size. Same formula, with the measured cap ratio 0.7046 (0.705 rounded). The bandeja's dish measures 999 × 978 px in the photograph; its width is used, as for the Placa. Demo models use the same rule on their synthetic areas (demo-only values).
+- **Other models (approved 2026-11-08 with the confirmed dimensions, P-01):** Quadro 0.0424 (the 100 mm ceramic, 282 of 660 px, never the 200 mm frame; 28.0 px); Bandeja ondulada M 0.1170 (80 mm, 0.9425 of 1060 px; 124.0 px; replaced by 0.0805 in D-074); Bandeja ondulada G 0.0851 (110 mm, same photograph; 90.2 px; replaced by 0.053 in D-073). M and G share a photograph but not a size. Same formula, with the measured cap ratio 0.7046 (0.705 rounded). The bandeja's dish measures 999 × 978 px in the photograph; its width is used, as for the Placa. Demo models use the same rule on their synthetic areas (demo-only values).
 - **Alternatives:** Halving the fitted size (rejected: still resizes with the text); a size per photograph (rejected: Bandeja M and G share one photograph at different physical sizes).
 - **Status:** Approved (product owner, 2026-11-08): Placa, then Quadro and Bandejas M and G.
 - **Date:** 2026-11-08.
@@ -518,7 +518,7 @@ Status values:
 
 ### D-065 — Larger signature without background (2026-11-08)
 
-- Requested by the product owner (2026-11-08): the Taavi signature 50% larger, with no background. Height 0.055 → 0.0825 of the shorter side (× 1.5); the light pill is no longer painted; the mark and "© Taavi" keep opacity 0.72 and the same relative layout. It still sits below and right of every model's text area (top at 0.8955 of the height; the lowest area ends at 0.845). Without the pill its contrast depends on the photograph behind it.
+- Requested by the product owner (2026-11-08): the Taavi signature 50% larger, with no background. Height 0.055 → 0.0825 of the shorter side (× 1.5); the light pill is no longer painted; the mark and "© Taavi" keep opacity 0.72 and the same relative layout. It still sits below and right of every model's text area (top at 0.8955 of the height; the lowest area ends at 0.845, 0.88 since D-075). Without the pill its contrast depends on the photograph behind it.
 - **Status:** Approved (product owner, 2026-11-08). Implementation pending acceptance.
 
 ### D-067 — Production palette revised and extended (2026-11-08)
@@ -574,6 +574,30 @@ Status values:
 - **Effect on wrapping:** "Sem serifa" fits one character fewer per line (Placa and Quadro 14 instead of 15; Bandeja M 5 instead of 6; Bandeja G 8 instead of 9; capitals of a typical phrase), so some texts gain a line: "O QUE NÃO CABE TRANSBORDA." takes 3 lines on the Placa and Quadro (was 2) and overflows the Bandeja G (5 lines, 4 fit); "EU TE AMO" takes 2 lines on the Bandeja G (was 1). "Com serifa" wraps as before on every model.
 - **Status:** Approved (product owner, 2026-11-08). Implemented; release subject to a check on a real iPhone or Android phone, preferably beside a real Taavi piece.
 
+### D-073 — Bandeja ondulada G lettering sized from the real piece (2026-11-08)
+
+- **Context:** the product owner reported that on the real Bandeja ondulada G, "PROSPERIDADE" fits in one row (reference: `docs/reference-images/travessa-artesanal-da-prosperidade-…`). At the 7 mm capital of D-055 (0.0851) the preview fitted 8 capitals per line, so the word was split. The Placa and the Quadro look right and are unchanged; the Bandeja M is unchanged.
+- **Decision:** Bandeja ondulada G `fontSize` 0.053 (56.2 px of the 1060 px photograph; drawn at 56.5 px in Quicksand, D-072). The largest size at which "PROSPERIDADE" fits the unchanged text area (455.8 px) in Quicksand Bold with its spacing is 0.05367 (Chromium and WebKit agree); 0.053 leaves about 1%. Capitals about 4.4 mm (serif 4.3 mm), consistent with the reference photograph (roughly 4–5 mm, estimated through its perspective, not measured). Text area and position unchanged.
+- **Effect:** "PROSPERIDADE" takes one line (99% of the width; "Prosperidade" in "Com serifa" 73%); about 13 capitals per line instead of 8; 6 lines fit instead of 4 (the D-063 line limit follows). "O QUE NÃO CABE TRANSBORDA." no longer overflows (3 lines); "EU TE AMO" takes one line again.
+- **Open:** the 4.4 mm is derived from fitting the word, not from a mold measurement; a measured letter height of the G stamps would replace it.
+- **Status:** Approved (product owner request, 2026-11-08). Implemented, pending visual acceptance.
+
+### D-074 — Bandeja ondulada M lettering sized from the real piece (2026-11-08)
+
+- **Context:** the product owner confirmed the Bandeja G size (D-073) and reported that "AMIZADES" fits in one row on the real Bandeja ondulada M. At the 7 mm capital of D-055 (0.117) the preview fitted 5 capitals per line.
+- **Decision:** Bandeja ondulada M `fontSize` 0.0805 (85.3 px of the 1060 px photograph; drawn at 85.9 px in Quicksand, D-072), the same method as D-073: the largest size at which "AMIZADES" fits the unchanged text area in Quicksand Bold with its spacing is 0.08131 (Chromium and WebKit agree), less about 1%. Capitals about 4.8 mm (serif 4.7 mm). Text area and position unchanged.
+- **Effect:** "AMIZADES" takes one line (99% of the width; "Amizades" in "Com serifa" 80%); about 8 capitals per line instead of 5; 4 lines fit instead of 3 (the D-063 line limit follows). "BEM-VINDOS AO NOSSO LAR" no longer overflows (4 lines); "CASA DA ANA E DO PEDRO, DESDE 2024" still does (5 lines).
+- **Open:** derived from fitting the word, not from a mold measurement.
+- **Status:** Approved (product owner request, 2026-11-08). Implemented, pending visual acceptance.
+
+### D-075 — Placa cerâmica: smaller lettering and a larger text area (2026-11-09)
+
+- **Context:** the product owner reported that the Placa cerâmica may take up to 7 rows, asked for its lettering to be 10% smaller, and asked for the text area to be enlarged so the customer can write closer to the edges; then (2026-11-09) asked for 8 lines, gained by extending the area downwards only, with the size unchanged. At 0.0837 (D-055) in the area of D-053 (about 8 mm inside the plate edge), 6 lines and about 14 capitals per line fitted.
+- **Decision:** Placa `fontSize` 0.0837 → **0.0753** (−10%; 48.2 px of the 640 px photograph, drawn at 48.5 px in Quicksand and 48.2 px in Gelasio, D-072); capitals about 6.3 mm. `text.area` `{ x: 0.145, y: 0.155, width: 0.71, height: 0.69 }` → **`{ x: 0.12, y: 0.14, width: 0.76, height: 0.74 }`**: about 5 mm inside the plate's side edges, 6 mm below its top edge, and 4 mm above its bottom edge (was about 8 mm all round), still clear of the rounded rim (checked on an overlay of the photograph). The height fits 8 lines (8.1 line heights of 1.2 × the size); 0.72, first proposed for 7 lines, was extended downwards only, so the area's center is about 0.01 below the plate's and centered text sits about 6 px lower.
+- **Effect:** 8 lines (the D-063 line limit follows) and about 16 capitals per line in "Sem serifa" (21 characters in "Com serifa"). The lowest text area now ends at 0.88 of the height, still above the Taavi signature (top at 0.8955, D-065). The Quadro and the Bandejas are unchanged.
+- **Open:** the 6.3 mm capital and the 5 mm margin follow the owner's request, not a mold measurement.
+- **Status:** Approved (product owner request, 2026-11-09). Implemented, pending visual acceptance.
+
 ## Proposed
 
 ### D-066 — Lettering font evaluation: Georgia Bold and Century Gothic Bold (2026-11-08)
@@ -606,5 +630,5 @@ Status values:
 - **P-11:** Resolved by D-040: the scalloped dishes are the Bandeja ondulada M models. No circular model is registered.
 - **P-12:** Resolved (product owner, 2026-11-08): the four permanent model IDs are `placa-ceramica-10` (D-051), `quadro-20`, `bandeja-ondulada-m-8`, and `bandeja-ondulada-g-11`.
 - **P-13:** Resolved by D-046: no model takes an optional frame.
-- **P-15:** Resolved (2026-11-08): with the confirmed dimensions (P-01), the Quadro (0.0424), Bandeja ondulada M (0.1170), and Bandeja ondulada G (0.0851) have fixed lettering sizes (D-055). The 7 mm letter height stays a provisional estimate; a measured letter height of Taavi's molds would replace it.
+- **P-15:** Resolved (2026-11-08): with the confirmed dimensions (P-01), the Quadro (0.0424), Bandeja ondulada M (0.1170, now 0.0805 by D-074), and Bandeja ondulada G (0.0851, now 0.053 by D-073) have fixed lettering sizes (D-055). The 7 mm letter height stays a provisional estimate; a measured letter height of Taavi's molds would replace it.
 - **P-14:** Typefaces resolved by D-072. Still open: the per-line text-length limit.

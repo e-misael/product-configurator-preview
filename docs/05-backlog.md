@@ -316,6 +316,9 @@ Status: **Implemented** (2026-11-08), awaiting product-owner acceptance and a re
 - [x] Letter spacing: canvas `letterSpacing`, per-grapheme fallback for older Safari, one width formula for both
 - [x] Deboss treatment B: one inner shadow (0.012 em, 0.012 em, 0.30), no highlight
 - [x] Tests: font config, loading, and hook; capital calibration; spacing (native and fallback, accents, emoji); wrapping and overflow boundaries on every model, Bandeja M and G included; mixed-case serif and uppercase sans; several highlighted words; color fidelity in Azul and Marrom; PNG equal to the preview drawing; font failure blocks export (Chromium and WebKit)
+- [x] Bandeja ondulada G lettering 0.053 (about 4.4 mm capitals): "PROSPERIDADE" in one row, as on the real piece (D-073)
+- [x] Bandeja ondulada M lettering 0.0805 (about 4.8 mm capitals): "AMIZADES" in one row, as on the real piece (D-074)
+- [x] Placa cerâmica lettering 0.0753 (−10%, about 6.3 mm capitals) and a larger text area about 5 mm from the edges, extended downwards: 8 lines, about 16 capitals per line (D-075)
 - Remaining: final visual check on a real iPhone or Android phone, preferably beside a real Taavi piece.
 
 ## M5 — Quality and usability

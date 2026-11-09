@@ -20,7 +20,7 @@ export const MARK_INK = { x: 349, y: 223, width: 558, height: 734 } as const;
  * Sizes are fractions of the scene's shorter side. The box (no longer
  * painted, D-065) sits in the
  * photograph's bottom-right corner, below and right of every model's text
- * area (the lowest ends at 0.845 of the height), on the background or the
+ * area (the lowest ends at 0.88 of the height), on the background or the
  * Quadro's frame, never on the lettering.
  */
 export const SIGNATURE = {

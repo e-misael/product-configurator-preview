@@ -3,7 +3,7 @@ import type { Catalog, PlateImage } from '../domain';
 /**
  * The Bandejas ondulada M and G share one design, so they share one photograph
  * and its placement, stored once per model folder (D-054). Only the lettering
- * size differs: the same 7 mm letters cover less of the larger G (D-055).
+ * size differs (D-055, D-073, D-074).
  * Text area: the flat floor, clear of the wavy walls (M1.3b-2).
  */
 function bandejaImage(id: string, fontSize: number): PlateImage {
@@ -66,12 +66,15 @@ export const catalogData: Catalog = {
           heightPx: 640,
         },
         objectBounds: { x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 },
-        // About 8% inside the plate edge, clear of the rounded rim.
-        // Lettering: 7 × (0.8422 / 100) / 0.7046 = 0.0837 (53.6 px).
+        // About 5 mm inside the plate's side edges, 6 mm below the top and 4 mm above
+        // the bottom, clear of the rounded rim; enlarged from about 8 mm so the lettering
+        // can come closer to the edge, and 8 lines fit (D-075).
+        // Lettering: 7 × (0.8422 / 100) / 0.7046 = 0.0837 (D-055), reduced by 10%
+        // (D-075): 0.0753 (48.2 px), capitals about 6.3 mm.
         text: {
-          area: { x: 0.145, y: 0.155, width: 0.71, height: 0.69 },
+          area: { x: 0.12, y: 0.14, width: 0.76, height: 0.74 },
           align: 'center',
-          fontSize: 0.0837,
+          fontSize: 0.0753,
         },
       },
     },
@@ -111,8 +114,10 @@ export const catalogData: Catalog = {
       ceramicColor: 'Bege',
       shape: 'scalloped',
       dimensions: { status: 'defined', widthMm: 80, heightMm: 80 },
-      // 7 × (0.9425 / 80) / 0.7046 = 0.1170 (124.0 px).
-      image: bandejaImage('bandeja-ondulada-m-8', 0.117),
+      // Not the 7 mm of D-055: Taavi's real M letters "AMIZADES" in one row (D-074).
+      // The largest size at which it fits the text area in Quicksand Bold (0.08131),
+      // less about 1%: capitals 0.0805 × 0.7046 × 80 / 0.9425 ≈ 4.8 mm (85.3 px).
+      image: bandejaImage('bandeja-ondulada-m-8', 0.0805),
     },
     {
       id: 'bandeja-ondulada-g-11',
@@ -122,8 +127,10 @@ export const catalogData: Catalog = {
       ceramicColor: 'Bege',
       shape: 'scalloped',
       dimensions: { status: 'defined', widthMm: 110, heightMm: 110 },
-      // 7 × (0.9425 / 110) / 0.7046 = 0.0851 (90.2 px).
-      image: bandejaImage('bandeja-ondulada-g-11', 0.0851),
+      // Not the 7 mm of D-055: Taavi's real G letters "PROSPERIDADE" in one row
+      // (D-073). The largest size at which it fits the text area in Quicksand Bold
+      // (0.05367), less about 1%: capitals 0.053 × 0.7046 × 110 / 0.9425 ≈ 4.4 mm (56.2 px).
+      image: bandejaImage('bandeja-ondulada-g-11', 0.053),
     },
   ],
   // Production palette (D-056, values revised and colors added by D-067), in

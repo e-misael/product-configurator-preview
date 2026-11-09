@@ -98,10 +98,10 @@ describe('illustrative tray preview before the size (M4.6)', () => {
 
     await user.click(within(group('Tamanho')).getByRole('radio', { name: 'G — 11 × 11 cm' }));
     settle();
-    // G: 0.0851 of the 1060 px photograph; M: 0.117; both × 0.7046 / 0.7 for Quicksand (D-072).
+    // G: 0.053 of the 1060 px photograph (D-073); M: 0.0805 (D-074); both × 0.7046 / 0.7 for Quicksand (D-072).
     expect(painted()).toEqual([
       PHOTO_G,
-      expect.stringMatching(/^text:700 90\.79\d*px "Taavi Lettering Sans"/),
+      expect.stringMatching(/^text:700 56\.54\d*px "Taavi Lettering Sans"/),
     ]);
     expect(within(preview()).queryByText(notice)).toBeNull();
     expect(exportButton()).toHaveAttribute('aria-disabled', 'false');
@@ -110,7 +110,7 @@ describe('illustrative tray preview before the size (M4.6)', () => {
     settle();
     expect(painted()).toEqual([
       PHOTO_M,
-      expect.stringMatching(/^text:700 124\.83\d*px "Taavi Lettering Sans"/),
+      expect.stringMatching(/^text:700 85\.89\d*px "Taavi Lettering Sans"/),
     ]);
     expect(exportButton()).toHaveAttribute('aria-disabled', 'false');
   });
@@ -277,8 +277,11 @@ describe('model groups (D-057)', () => {
       await user.click(models().getByRole('radio', { name: 'Bandeja ondulada' }));
       await user.click(within(group('Tamanho')).getByRole('radio', { name: 'G — 11 × 11 cm' }));
       settle();
-      // G holds 4 lines at its fixed size; M holds 3.
-      await user.type(screen.getByLabelText('Texto'), 'Ana{Enter}Luz{Enter}Casa{Enter}Mar');
+      // G holds 6 lines at its fixed size (D-073); M holds 4 (D-074).
+      await user.type(
+        screen.getByLabelText('Texto'),
+        'Ana{Enter}Luz{Enter}Casa{Enter}Mar{Enter}Sol',
+      );
       await user.click(within(group('Cor do texto')).getByRole('radio', { name: /Azul/ }));
       expect(within(preview()).queryByText(/O texto não cabe/)).toBeNull();
       expect(configStatus()).toHaveTextContent('Configuração completa.');
@@ -286,7 +289,7 @@ describe('model groups (D-057)', () => {
       await user.click(within(group('Tamanho')).getByRole('radio', { name: 'M — 8 × 8 cm' }));
       settle();
 
-      expect(screen.getByLabelText('Texto')).toHaveValue('Ana\nLuz\nCasa\nMar');
+      expect(screen.getByLabelText('Texto')).toHaveValue('Ana\nLuz\nCasa\nMar\nSol');
       expect(within(group('Cor do texto')).getByRole('radio', { name: /Azul/ })).toBeChecked();
       expect(
         within(preview()).getByText(

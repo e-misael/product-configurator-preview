@@ -45,27 +45,41 @@ interface Comparison {
   readonly withinDeltaE5: number;
 }
 
-/** Every production model: its photograph and the real width (mm) of the ceramic in it. */
+/**
+ * Every production model: its photograph, the real width (mm) of the ceramic in
+ * it, and its capital height (mm): 7 (D-055); on the Placa 10% less (D-075)
+ * (D-075); on the Bandejas sized from the real
+ * pieces so that M "AMIZADES" (D-074) and G "PROSPERIDADE" (D-073) fit one row.
+ */
 const MODELS = [
   {
     id: 'placa-ceramica-10',
     src: '/catalog/plates/placa-ceramica-10/bege.png',
     ceramic: 0.8422,
     mm: 100,
+    capMm: 6.3,
   },
   // The 100 mm ceramic inside the frame (282 of 660 px), never the 200 mm frame.
-  { id: 'quadro-20', src: '/catalog/plates/quadro-20/bege.jpg', ceramic: 282 / 660, mm: 100 },
+  {
+    id: 'quadro-20',
+    src: '/catalog/plates/quadro-20/bege.jpg',
+    ceramic: 282 / 660,
+    mm: 100,
+    capMm: 7,
+  },
   {
     id: 'bandeja-ondulada-m-8',
     src: '/catalog/plates/bandeja-ondulada-m-8/bege.jpg',
     ceramic: 0.9425,
     mm: 80,
+    capMm: 4.81,
   },
   {
     id: 'bandeja-ondulada-g-11',
     src: '/catalog/plates/bandeja-ondulada-g-11/bege.jpg',
     ceramic: 0.9425,
     mm: 110,
+    capMm: 4.36,
   },
 ] as const;
 
@@ -345,7 +359,7 @@ test.describe('Lettering on the catalog photographs', () => {
   for (const [model, family] of MODELS.flatMap((entry) =>
     (['sans-serif', 'serif'] as const).map((font) => [entry, font] as const),
   )) {
-    test(`draws every text at the fixed ${model.id} size, ${family} capitals about 7 mm (D-055)`, async ({
+    test(`draws every text at the fixed ${model.id} size, ${family} capitals about ${model.capMm} mm (D-055, D-073)`, async ({
       page,
     }) => {
       const texts = [
@@ -403,11 +417,12 @@ test.describe('Lettering on the catalog photographs', () => {
       for (const result of results) {
         expect(result.fontSize).toBeCloseTo(fontSize * width * sizeScale, 6);
       }
-      // Capitals about 7 mm tall on the ceramic, the provisional reference.
+      // Capitals at the model's height on the ceramic: 7 mm (provisional, D-055), the Bandejas' from the real pieces (D-073, D-074).
       const pxPerMm = (model.ceramic * width) / model.mm;
       for (const result of results) {
-        expect((result.capPx ?? 0) / pxPerMm).toBeGreaterThan(6.8);
-        expect((result.capPx ?? 0) / pxPerMm).toBeLessThan(7.2);
+        // Gelasio's capital is 0.693 of its size, Quicksand's matches the calibration: within 3%.
+        expect((result.capPx ?? 0) / pxPerMm).toBeGreaterThan(model.capMm * 0.97);
+        expect((result.capPx ?? 0) / pxPerMm).toBeLessThan(model.capMm * 1.03);
       }
       // Wrapping, not shrinking: one typed line wider than the area draws as several.
       expect(results[1]?.lines).toBeGreaterThan(1);
@@ -546,24 +561,34 @@ test.describe('Lettering on the catalog photographs', () => {
   });
 
   // Lines and overflow with the lettering fonts (D-072): "Sem serifa" holds one character
-  // fewer per line than with the system font; "Com serifa" wraps exactly as before.
+  // fewer per line than with the system font; "Com serifa" wraps exactly as before. The
+  // Bandejas are sized from the real pieces (D-073, D-074).
   const BOUNDARIES = [
-    ['placa-ceramica-10', 'sans-serif', 'O que não cabe transborda.', 3, false],
+    // The Placa's size is 10% under 7 mm (D-075).
+    ['placa-ceramica-10', 'sans-serif', 'O que não cabe transborda.', 2, false],
     ['placa-ceramica-10', 'sans-serif', 'Café não costuma faiá', 2, false],
     ['placa-ceramica-10', 'serif', 'Casa da Ana e do Pedro, desde 2024', 2, false],
     ['quadro-20', 'sans-serif', 'O que não cabe transborda.', 3, false],
     ['quadro-20', 'serif', 'Café não costuma faiá', 2, false],
+    // The real M piece letters "AMIZADES" in one row (D-074).
+    ['bandeja-ondulada-m-8', 'sans-serif', 'Amizades', 1, false],
     ['bandeja-ondulada-m-8', 'sans-serif', 'Small steps', 2, false],
     ['bandeja-ondulada-m-8', 'sans-serif', 'Eu te amo', 2, false],
-    ['bandeja-ondulada-m-8', 'sans-serif', 'Bem-vindos ao nosso lar', 5, true],
-    ['bandeja-ondulada-m-8', 'serif', 'Small steps', 2, false],
-    ['bandeja-ondulada-m-8', 'serif', 'Café não costuma faiá', 4, true],
-    ['bandeja-ondulada-g-11', 'sans-serif', 'Café não costuma faiá', 4, false],
-    ['bandeja-ondulada-g-11', 'sans-serif', 'Bem-vindos ao nosso lar', 4, false],
-    ['bandeja-ondulada-g-11', 'sans-serif', 'Eu te amo', 2, false],
-    ['bandeja-ondulada-g-11', 'sans-serif', 'O que não cabe transborda.', 5, true],
+    ['bandeja-ondulada-m-8', 'sans-serif', 'Bem-vindos ao nosso lar', 4, false],
+    ['bandeja-ondulada-m-8', 'sans-serif', 'Casa da Ana e do Pedro, desde 2024', 5, true],
+    ['bandeja-ondulada-m-8', 'serif', 'Amizades', 1, false],
+    ['bandeja-ondulada-m-8', 'serif', 'Small steps', 1, false],
+    ['bandeja-ondulada-m-8', 'serif', 'Café não costuma faiá', 3, false],
+    // The real G piece letters "PROSPERIDADE" in one row (D-073).
+    ['bandeja-ondulada-g-11', 'sans-serif', 'Prosperidade', 1, false],
+    ['bandeja-ondulada-g-11', 'sans-serif', 'Café não costuma faiá', 2, false],
+    ['bandeja-ondulada-g-11', 'sans-serif', 'Bem-vindos ao nosso lar', 2, false],
+    ['bandeja-ondulada-g-11', 'sans-serif', 'Eu te amo', 1, false],
+    ['bandeja-ondulada-g-11', 'sans-serif', 'O que não cabe transborda.', 3, false],
+    ['bandeja-ondulada-g-11', 'sans-serif', 'Casa da Ana e do Pedro, desde 2024', 3, false],
+    ['bandeja-ondulada-g-11', 'serif', 'Prosperidade', 1, false],
     ['bandeja-ondulada-g-11', 'serif', 'Eu te amo', 1, false],
-    ['bandeja-ondulada-g-11', 'serif', 'O que não cabe transborda.', 4, false],
+    ['bandeja-ondulada-g-11', 'serif', 'O que não cabe transborda.', 2, false],
   ] as const;
 
   test('wraps and overflows at the lettering fonts’ boundaries on every model (D-072)', async ({

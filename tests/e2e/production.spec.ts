@@ -28,7 +28,7 @@ const DISCLAIMER = [
 ];
 
 /** The Placa's calibrated text area, as fractions of the image. */
-const PLACA_AREA = { x0: 0.145, y0: 0.155, x1: 0.855, y1: 0.845 };
+const PLACA_AREA = { x0: 0.12, y0: 0.14, x1: 0.88, y1: 0.88 };
 
 /**
  * Pixels within a small tolerance of each color inside the Placa text area, on
@@ -366,14 +366,14 @@ test.describe('Quadro and Bandeja photographs (M1.3b-2)', () => {
     const preview = page.getByRole('region', { name: 'Pré-visualização' });
     await expect(preview.getByRole('img')).toBeVisible();
     const field = await textField(page);
-    // A fourth line break is refused (D-063); a long last line still wraps past the area.
-    await field.fill('Ana\nLuz\nLeo\nBia');
+    // A fifth line break is refused (D-063); a long last line still wraps past the area.
+    await field.fill('Ana\nLuz\nLeo\nBia\nMar');
     await expect(field).toHaveValue('');
     await expect(page.locator('#text-line-limit')).toHaveText(
-      'Este modelo comporta no máximo 3 linhas.',
+      'Este modelo comporta no máximo 4 linhas.',
     );
-    await field.fill('Ana\nLuz\nLeo');
-    await field.fill('Ana\nLuz\nLeo Bia Mar Sol Lua Céu Rio');
+    await field.fill('Ana\nLuz\nLeo\nBia');
+    await field.fill('Ana\nLuz\nLeo\nBia Mar Sol Lua Céu Rio');
 
     await expect(preview).toContainText(/O texto não cabe na área do modelo: \d+ linhas? a mais\./);
   });
@@ -487,7 +487,7 @@ test.describe('Bandeja ondulada sizes (D-057)', () => {
     await expect(bandeja).toHaveAccessibleDescription('Disponível em dois tamanhos');
     await expect(page.getByRole('group', { name: 'Tamanho' })).toHaveCount(0);
 
-    await (await textField(page)).fill('Ana\nLuz\nCasa\nMar');
+    await (await textField(page)).fill('Ana\nLuz\nCasa\nMar\nSol');
     await page
       .getByRole('group', { name: 'Cor do texto' })
       .getByRole('radio', { name: 'Azul' })
@@ -506,7 +506,7 @@ test.describe('Bandeja ondulada sizes (D-057)', () => {
     await expect(summary('Modelo')).toHaveText('Bandeja ondulada');
     await expect(summary('Tamanho')).toHaveText('Não escolhido');
 
-    // G holds the four lines; M holds three at its fixed size.
+    // G holds the five lines (6 fit, D-073); M holds four at its fixed size (D-074).
     await openStep(page, 'Modelo e tamanho');
     await sizes.getByRole('radio', { name: 'G — 11 × 11 cm' }).check();
     await expect(preview.getByRole('img')).toBeVisible();
@@ -529,7 +529,7 @@ test.describe('Bandeja ondulada sizes (D-057)', () => {
     await expect(preview).toContainText(
       'O texto não cabe na área do modelo: 1 linha a mais. Reduza o texto ou use menos linhas.',
     );
-    await expect(await textField(page)).toHaveValue('Ana\nLuz\nCasa\nMar');
+    await expect(await textField(page)).toHaveValue('Ana\nLuz\nCasa\nMar\nSol');
     await expect(
       page.getByRole('group', { name: 'Cor do texto' }).getByRole('radio', { name: 'Azul' }),
     ).toBeChecked();
@@ -621,10 +621,10 @@ test.describe('Bandeja ondulada before its size (M4.6)', () => {
 
 /** Text areas as fractions of each photograph (src/catalog/data.ts). */
 const AREAS = {
-  'Placa cerâmica — 10 × 10 cm': { x: 0.145, y: 0.155, width: 0.71, height: 0.69, lines: 6 },
+  'Placa cerâmica — 10 × 10 cm': { x: 0.12, y: 0.14, width: 0.76, height: 0.74, lines: 8 },
   'Quadro — 20 × 20 cm': { x: 0.3009, y: 0.3494, width: 0.3589, height: 0.3589, lines: 7 },
-  'Bandeja ondulada M — 8 × 8 cm': { x: 0.28, y: 0.265, width: 0.43, height: 0.43, lines: 3 },
-  'Bandeja ondulada G — 11 × 11 cm': { x: 0.28, y: 0.265, width: 0.43, height: 0.43, lines: 4 },
+  'Bandeja ondulada M — 8 × 8 cm': { x: 0.28, y: 0.265, width: 0.43, height: 0.43, lines: 4 },
+  'Bandeja ondulada G — 11 × 11 cm': { x: 0.28, y: 0.265, width: 0.43, height: 0.43, lines: 6 },
 } as const;
 type Area = (typeof AREAS)[keyof typeof AREAS];
 
@@ -721,12 +721,12 @@ test.describe('Overflow at the fixed lettering size (D-057)', () => {
     const preview = page.getByRole('region', { name: 'Pré-visualização' });
     await expect(preview.getByRole('img')).toBeVisible();
     // A word that fits one line in one family and wraps in the other, measured with the
-    // app's self-hosted lettering fonts (D-072): Gelasio at the Placa's fixed 53.568 px
-    // (0.0837 × 640), Quicksand Bold at that size × 0.7046 / 0.7 in capitals (D-068) with
-    // 0.05 em spacing, in its 454.4 px wide area.
-    const word = await page.evaluate(async () => {
-      const serifFont = '400 53.568px "Taavi Lettering Serif"';
-      const sansSize = (53.568 * 0.7046) / 0.7;
+    // app's self-hosted lettering fonts (D-072): Gelasio at the Placa's fixed 48.192 px
+    // (0.0753 × 640, D-075), Quicksand Bold at that size × 0.7046 / 0.7 in capitals (D-068) with
+    // 0.05 em spacing, in its area's width of the 640 px photograph.
+    const word = await page.evaluate(async (areaWidth) => {
+      const serifFont = '400 48.192px "Taavi Lettering Serif"';
+      const sansSize = (48.192 * 0.7046) / 0.7;
       const sansFont = `700 ${sansSize}px "Taavi Lettering Sans"`;
       await Promise.all([document.fonts.load(serifFont, 'm'), document.fonts.load(sansFont, 'M')]);
       const ctx = document.createElement('canvas').getContext('2d');
@@ -738,13 +738,13 @@ test.describe('Overflow at the fixed lettering size (D-057)', () => {
       for (const letter of ['m', 'o', 'a', 'i']) {
         for (let n = 1; n < 60; n += 1) {
           const text = letter.repeat(n);
-          const fitsSans = width(sansFont, text.toUpperCase(), 0.05 * sansSize) <= 454.4;
-          const fitsSerif = width(serifFont, text, 0) <= 454.4;
+          const fitsSans = width(sansFont, text.toUpperCase(), 0.05 * sansSize) <= areaWidth;
+          const fitsSerif = width(serifFont, text, 0) <= areaWidth;
           if (fitsSans !== fitsSerif) return { text, narrow: fitsSans ? 'sans' : 'serif' };
         }
       }
       return null;
-    });
+    }, area.width * 640);
     // Reported as skipped, never as passed, if the fonts give no such word.
     test.skip(
       word === null,

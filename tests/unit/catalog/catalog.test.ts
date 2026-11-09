@@ -88,9 +88,9 @@ describe('production catalog', () => {
       },
       objectBounds: { x: 0.0781, y: 0.0891, width: 0.8422, height: 0.8219 },
       text: {
-        area: { x: 0.145, y: 0.155, width: 0.71, height: 0.69 },
+        area: { x: 0.12, y: 0.14, width: 0.76, height: 0.74 },
         align: 'center',
-        fontSize: 0.0837,
+        fontSize: 0.0753,
       },
     });
   });
@@ -137,7 +137,7 @@ describe('production catalog', () => {
       text: {
         area: { x: 0.28, y: 0.265, width: 0.43, height: 0.43 },
         align: 'center',
-        fontSize: 0.117,
+        fontSize: 0.0805,
         // Always centered (D-068).
         fixedPlacement: true,
       },
@@ -146,7 +146,7 @@ describe('production catalog', () => {
     expect(g?.objectBounds).toEqual(m?.objectBounds);
     expect(g?.text?.area).toEqual(m?.text?.area);
     expect(g?.image.src).toBe('/catalog/plates/bandeja-ondulada-g-11/bege.jpg');
-    expect(g?.text?.fontSize).toBe(0.0851);
+    expect(g?.text?.fontSize).toBe(0.053);
     expect(g?.text?.fixedPlacement).toBe(true);
   });
 
@@ -159,11 +159,8 @@ describe('production catalog', () => {
 
   it.each([
     // Ceramic width as a fraction of the photograph, and its real width in mm.
-    ['placa-ceramica-10', 0.8422, 100],
     // The 100 mm ceramic inside the frame (282 of 660 px), never the 200 mm frame.
     ['quadro-20', 282 / 660, 100],
-    ['bandeja-ondulada-m-8', 0.9425, 80],
-    ['bandeja-ondulada-g-11', 0.9425, 110],
   ])('sizes the %s lettering for a capital about 7 mm tall (D-055)', (id, ceramic, mm) => {
     const fontSize =
       getCatalog().plates.find((plate) => plate.id === id)?.image?.text?.fontSize ?? 0;
@@ -171,6 +168,19 @@ describe('production catalog', () => {
     const capMm = (fontSize * 0.7046 * mm) / ceramic;
     expect(capMm).toBeGreaterThan(6.95);
     expect(capMm).toBeLessThan(7.05);
+  });
+
+  it.each([
+    // Placa: 7 mm less 10%; 8 lines fit (D-075). Bandejas: a word the real piece
+    // letters in one row, M "AMIZADES" (D-074), G "PROSPERIDADE" (D-073).
+    ['placa-ceramica-10', 0.8422, 100, 6.3],
+    ['bandeja-ondulada-m-8', 0.9425, 80, 4.8],
+    ['bandeja-ondulada-g-11', 0.9425, 110, 4.4],
+  ])('sizes the %s lettering as revised, capitals about the given mm', (id, ceramic, mm, cap) => {
+    const fontSize =
+      getCatalog().plates.find((plate) => plate.id === id)?.image?.text?.fontSize ?? 0;
+    const capMm = (fontSize * 0.7046 * mm) / ceramic;
+    expect(Math.abs(capMm - cap)).toBeLessThan(0.05);
   });
 
   it('returns the same deeply frozen instance on every call', () => {

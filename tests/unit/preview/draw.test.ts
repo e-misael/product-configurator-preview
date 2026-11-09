@@ -279,8 +279,8 @@ describe('drawScene: Taavi signature (D-060)', () => {
     // First values: height 0.05, ink alpha 0.9; × 1.1 and × 0.8 (M4.6), then × 1.5 (D-065).
     expect(SIGNATURE.height).toBeCloseTo(0.05 * 1.1 * 1.5, 10);
     expect(SIGNATURE.inkAlpha).toBeCloseTo(0.9 * 0.8, 10);
-    // Still below every model's text area (the lowest ends at 0.845).
-    expect(1 - SIGNATURE.margin - SIGNATURE.height).toBeGreaterThan(0.845);
+    // Still below every model's text area (the lowest ends at 0.88).
+    expect(1 - SIGNATURE.margin - SIGNATURE.height).toBeGreaterThan(0.88);
   });
 
   it('has no background: only the mark and the text are painted (D-065)', () => {
