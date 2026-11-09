@@ -340,6 +340,17 @@ Status: **Implemented** (2026-11-09), awaiting manual device checks and TAAVI's 
 - Remaining (manual): on a real iPhone (Safari) and Android phone (Chrome), share to WhatsApp and choose the TAAVI chat; note whether the text arrives as the image caption, as a separate message, or not at all; image quality after WhatsApp compression; the `wa.me` link opening the app (once P-16 is supplied); no activation refusal on a slow phone.
 - Remaining (data): TAAVI's WhatsApp number (P-16).
 
+### M5.2 — Pilot deployment on Cloudflare Pages (D-077)
+
+Status: **Prepared** (2026-11-09): repository changes and runbook ready; no Cloudflare resource created, nothing deployed.
+
+- [x] `public/_headers`: noindex on every path, `nosniff`, referrer policy, long cache for hashed assets (verified with `wrangler pages dev`)
+- [x] `scripts/check-release-build.js` (build contents, noindex, no source maps, fingerprint, commit stamp) with unit tests; `npm run release:verify`
+- [x] `scripts/deploy-pages.js` and `npm run deploy:beta` / `deploy:production` (pinned Wrangler 4.153.0, clean tree, stamped build, explicit production confirmation)
+- [x] Runbook, rollback, real-device checklist, and deployment log: `docs/08-deployment.md`
+- Remaining (product owner): Cloudflare account; Wrangler login in the browser; confirm the `crie-com-a-taavi.pages.dev` address; authorize beta and production deployments; real-device checklist on iPhone Safari and Android Chrome; approve the production address; then the QR Code.
+- Remaining (data): TAAVI's WhatsApp number (P-16).
+
 ### Later
 
 - Broader mobile/browser testing.

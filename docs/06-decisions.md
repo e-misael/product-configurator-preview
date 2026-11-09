@@ -613,6 +613,16 @@ Status values:
 - **Supersedes:** "Exportar imagem" as the last action of the page (D-058, FR-07.9): "Baixar imagem" is the last button, followed by the WhatsApp link when configured.
 - **Status:** Approved (product owner, 2026-11-09). Implemented; release subject to manual checks on a real iPhone (Safari) and Android phone (Chrome) (05-backlog, M5.1).
 
+### D-077 — Pilot hosting on Cloudflare Pages by Direct Upload (M5.2, 2026-11-09)
+
+- **Context:** Native Share needs HTTPS, and the store pilot needs a stable address for a QR Code, with no backend and no change to the Nuvemshop store.
+- **Decision (approved by the product owner, 2026-11-09):** Cloudflare Pages, project `crie-com-a-taavi` in an account TAAVI controls; production branch `main` (`https://crie-com-a-taavi.pages.dev`, subject to availability), beta branch `beta`. The production build (`dist/`, never demo assets) is uploaded with a pinned Wrangler (`4.153.0`) from a verified local build; no Git integration. `npm run release:verify` runs every gate and stamps the build with its commit and fingerprint; `scripts/deploy-pages.js` deploys only a stamped, unchanged build of HEAD from a clean tree, and production only with `--confirm-production`, after the beta's real-device checks. The same `dist/` goes to beta and production.
+- **Indexing:** `public/_headers` sends `X-Robots-Tag: noindex, nofollow` on every path (and `nosniff`, a referrer policy, long caching for hashed `/assets/*`); no `robots.txt` blocking, so crawlers see the header. No authentication for the pilot.
+- **Rollback:** the dashboard's "Rollback to this deployment", or redeploying a `pilot-*` tag; never deleting the project, which would free the name behind the QR Code.
+- **QR Code:** points to the verified production address only, titled "Crie sua peça com a TAAVI", subtitle "Escaneie, personalize e envie sua criação pelo WhatsApp."; prepared only after the owner approves that address.
+- **Runbook:** `docs/08-deployment.md`, with each product-owner step marked and the deployment log.
+- **Status:** Approved (product owner, 2026-11-09). Repository prepared; no Cloudflare resource created and nothing deployed.
+
 ## Proposed
 
 ### D-066 — Lettering font evaluation: Georgia Bold and Century Gothic Bold (2026-11-08)

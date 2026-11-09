@@ -27,3 +27,7 @@ blob-report
 
 # Demo-mode build output
 dist-demo
+
+# Release (docs/08-deployment.md): local build stamp and Wrangler's state
+.release-build.json
+.wrangler

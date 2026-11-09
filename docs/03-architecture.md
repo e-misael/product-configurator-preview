@@ -17,7 +17,7 @@ Version pins: TypeScript is held at `~6.0` because typescript-eslint supports `<
 
 ## Application boundaries
 
-A static, client-only single-page app. No backend, database, authentication, or network calls. All product data is local and version-controlled. Sharing (D-076) hands the PNG to the device's share sheet or opens a `wa.me` link; neither is a request made by the app.
+A static, client-only single-page app. No backend, database, authentication, or network calls. All product data is local and version-controlled. Sharing (D-076) hands the PNG to the device's share sheet or opens a `wa.me` link; neither is a request made by the app. The pilot is hosted as static files on Cloudflare Pages (D-077, docs/08-deployment.md); `public/_headers` sets its response headers.
 
 ## Layers
 

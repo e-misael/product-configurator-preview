@@ -13,6 +13,7 @@ Visual configurator for TAAVI's handmade ceramics: the customer picks a model (M
 | Increments M0–M5 and status        | [docs/05-backlog.md](docs/05-backlog.md)               |
 | Decisions (approved vs proposed)   | [docs/06-decisions.md](docs/06-decisions.md)           |
 | Product image assets and placement | [docs/07-product-assets.md](docs/07-product-assets.md) |
+| Deployment runbook (Cloudflare)    | [docs/08-deployment.md](docs/08-deployment.md)         |
 
 ## MVP boundaries
 
@@ -34,7 +35,7 @@ src/hooks/     useConfiguration, useImages, useLetteringFont, usePreparedPng
 src/preview/   pure composition + scene layout + text fit; canvas painting
 src/demo/      demo-mode catalog, banner, and public/ synthetic images (never in production builds, D-028, D-036)
 src/App.tsx    app shell
-scripts/       build checks (demo isolation), demo image generator
+scripts/       build checks (demo isolation, release), deployment, demo image generator
 tests/unit/    Vitest (fixtures prefixed `test-`)
 tests/e2e/     Playwright
 docs/          product and technical docs
@@ -69,6 +70,8 @@ npm run dev           # dev server
 npm run check         # typecheck + lint + format:check + unit tests
 npm run test:e2e      # Playwright (builds and serves the app)
 npm run build
+npm run release:verify   # every gate + production build + release checks (before any deployment)
+npm run deploy:beta      # only with the owner's authorization (docs/08-deployment.md)
 ```
 
 ## Testing expectations
