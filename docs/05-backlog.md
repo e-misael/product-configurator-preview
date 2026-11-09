@@ -289,7 +289,7 @@ Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decisio
 - [x] Palette revised and extended (D-067): Marrom, Azul, Verde with new values; Laranja escuro, Amarelo queimado, Preto added; Vermelho escuro kept
 - [ ] Lettering fonts: evaluation recorded (D-066); production unchanged pending visual approval
 - [x] Tests: unit (alignment model, presets, reset, modes, accordion, signature geometry and factors, illustration flow, image reuse); Playwright on real photographs (alignment edges and signature placement per model, both engines), demo flows, export PNG signature pixels and missing-mark blocking, mobile layout at four widths by touch in Chromium and WebKit, production tray transition
-- Remaining: product-owner review on real phones (LAN); the signature over the Quadro frame rail; whether M and G should share one image file; where the "Observação" goes (D-062).
+- Remaining: product-owner review on real phones (LAN); the signature over the Quadro frame rail; whether M and G should share one image file; where the "Observação" goes (D-062; resolved by D-078).
 
 ## M4.7 — Functional and UX corrections
 
@@ -339,6 +339,17 @@ Status: **Implemented** (2026-11-09), awaiting manual device checks and TAAVI's 
 - [x] Tests: share helpers, order message, prepared PNG (debounce, invalidation, stale results), component flows, Playwright with a stubbed share sheet (Chromium desktop and mobile, WebKit mobile): same bytes as the download, user activation, stale prevention, cancel and failure, unsupported browser, loading photograph, no WhatsApp link without a number
 - Remaining (manual): on a real iPhone (Safari) and Android phone (Chrome), share to WhatsApp and choose the TAAVI chat; note whether the text arrives as the image caption, as a separate message, or not at all; image quality after WhatsApp compression; the `wa.me` link opening the app (once P-16 is supplied); no activation refusal on a slow phone.
 - Remaining (data): TAAVI's WhatsApp number (P-16).
+
+### M5.3 — Mobile finalization layout (D-078)
+
+Status: **Implemented** (2026-11-09), pending acceptance.
+
+- [x] "Revisar personalização" holds only the summary and "Reiniciar configurações"
+- [x] "Observação" in its own step: collapsible on phones, closed at first, "Opcional", text kept while closed
+- [x] "Finalizar personalização", always open: disclaimer, status (each blocker once), share, download, WhatsApp fallback
+- [x] Word selector ignores the text's line breaks and wraps freely (D-071 refinement)
+- [x] Unit and Playwright tests (320, 375, 393, 430 px, Chromium and WebKit)
+- Remaining (manual): real-device check of the new layout on iPhone Safari and Android Chrome.
 
 ### M5.2 — Pilot deployment on Cloudflare Pages (D-077)
 

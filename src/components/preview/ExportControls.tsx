@@ -20,7 +20,7 @@ import {
   whatsAppUrl,
   type ShareOutcome,
 } from '../../preview/share';
-import { invalidMessage } from '../configurator/messages';
+import { invalidMessage, missingLabel } from '../configurator/messages';
 import { EXPORT_MESSAGES, noticeMessage, SHARE_MESSAGES } from './messages';
 
 interface ExportControlsProps {
@@ -32,7 +32,7 @@ interface ExportControlsProps {
   readonly sizePending?: boolean;
   /** What the image shows (`exportRevision`); the PNG to share is prepared for one. */
   readonly revision: string;
-  /** The finalization section is open: only then is the PNG to share prepared. */
+  /** The customer is not editing a step: only then is the PNG to share prepared. */
   readonly active: boolean;
   /** The order request sent with the image (D-076). */
   readonly orderMessage: string;
@@ -53,8 +53,9 @@ const RESTATED: ReadonlySet<PreviewNoticeCode> = new Set([
 ]);
 
 /**
- * Every blocker is named (D-063): configuration issues and each preview
- * problem in the preview's own words, e.g. how many lines are over.
+ * Every blocker is named (D-063): invalid choices and each preview problem in
+ * the preview's own words, e.g. how many lines are over. Missing choices are
+ * listed together in one "Falta escolher" line instead.
  */
 function blockerMessage(
   blocker: ExportBlocker,
@@ -63,7 +64,7 @@ function blockerMessage(
 ): string | undefined {
   switch (blocker.kind) {
     case 'configuration':
-      return invalidMessage(blocker.issue, sizePending);
+      return blocker.issue.kind === 'missing' ? undefined : invalidMessage(blocker.issue);
     case 'preview':
       return RESTATED.has(blocker.code)
         ? undefined
@@ -77,7 +78,8 @@ function blockerMessage(
  * The finalization actions (D-076): "Compartilhar personalização" where the
  * browser can share PNG files, "Baixar imagem" (FR-07, D-008), and "Abrir
  * WhatsApp da TAAVI" once a number is configured. What still blocks them is
- * listed just above, and every action stays focusable while blocked
+ * listed just above, the one place the configuration's status is shown
+ * (D-078; "Configuração completa." once nothing does). Every action stays focusable while blocked
  * (`aria-disabled`) so the reasons can be reached; activation does nothing
  * until they are resolved. Each action starts only from its own tap.
  */
@@ -96,7 +98,11 @@ export function ExportControls({
   const outcome = result?.scene === scene ? result.outcome : undefined;
   const blockers = exportBlockers(validation, scene);
   const excessLines = textBlockOf(scene)?.excessLines ?? 0;
+  const missing = (validation.status === 'valid' ? [] : validation.issues)
+    .filter((issue) => issue.kind === 'missing')
+    .map((issue) => missingLabel(issue.field, sizePending));
   const reasons = [
+    ...(missing.length > 0 ? [`Falta escolher: ${missing.join(', ')}.`] : []),
     ...new Set(
       blockers
         .map((blocker) => blockerMessage(blocker, excessLines, sizePending))
@@ -167,16 +173,20 @@ export function ExportControls({
 
   return (
     <div className="export">
-      {blocked && (
-        <div className="export__reasons" id="export-reasons">
-          <p className="field__info">Para exportar a imagem:</p>
-          <ul className="export__list">
-            {reasons.map((reason) => (
-              <li key={reason}>{reason}</li>
-            ))}
-          </ul>
-        </div>
-      )}
+      <section className="status" aria-label="Situação da configuração">
+        {blocked ? (
+          <div className="export__reasons" id="export-reasons">
+            <p className="field__info">Para exportar a imagem:</p>
+            <ul className="export__list">
+              {reasons.map((reason) => (
+                <li key={reason}>{reason}</li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <p className="status__summary status__summary--valid">Configuração completa.</p>
+        )}
+      </section>
       {shareable && (
         <>
           <button

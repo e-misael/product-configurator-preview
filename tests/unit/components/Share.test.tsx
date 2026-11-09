@@ -47,13 +47,13 @@ afterEach(() => {
 });
 
 const group = (name: string) => screen.getByRole('group', { name });
-const review = () => screen.getByRole('region', { name: 'Revisar personalização' });
+const finalize = () => screen.getByRole('region', { name: 'Finalizar personalização' });
 const queryShare = () =>
-  within(review()).queryByRole('button', { name: 'Compartilhar personalização' });
+  within(finalize()).queryByRole('button', { name: 'Compartilhar personalização' });
 const shareButton = () =>
-  within(review()).getByRole('button', { name: 'Compartilhar personalização' });
-const downloadButton = () => within(review()).getByRole('button', { name: 'Baixar imagem' });
-const whatsApp = () => within(review()).queryByRole('link', { name: 'Abrir WhatsApp da TAAVI' });
+  within(finalize()).getByRole('button', { name: 'Compartilhar personalização' });
+const downloadButton = () => within(finalize()).getByRole('button', { name: 'Baixar imagem' });
+const whatsApp = () => within(finalize()).queryByRole('link', { name: 'Abrir WhatsApp da TAAVI' });
 
 async function setup({ complete = true } = {}) {
   const user = userEvent.setup();
@@ -69,7 +69,7 @@ async function setup({ complete = true } = {}) {
 
 /** Waits for the PNG prepared in the background (300 ms after the last change). */
 async function prepared() {
-  await within(review()).findByText('Preparando imagem para compartilhar…');
+  await within(finalize()).findByText('Preparando imagem para compartilhar…');
   await vi.waitFor(() => expect(shareButton()).toHaveAttribute('aria-disabled', 'false'), {
     timeout: 2000,
   });
@@ -80,7 +80,7 @@ describe('Compartilhar personalização (D-076)', () => {
     await setup();
     expect(queryShare()).toBeNull();
     expect(downloadButton()).not.toHaveClass('export__button--secondary');
-    expect(within(review()).queryByText(/Preparando imagem/)).toBeNull();
+    expect(within(finalize()).queryByText(/Preparando imagem/)).toBeNull();
   });
 
   it('is not offered when the browser cannot share PNG files', async () => {
@@ -92,7 +92,7 @@ describe('Compartilhar personalização (D-076)', () => {
   it('comes first, then "Baixar imagem" as the secondary action', async () => {
     installShare();
     await setup();
-    const buttons = within(review())
+    const buttons = within(finalize())
       .getAllByRole('button')
       .map((button) => button.textContent);
     expect(buttons.slice(-2)).toEqual(['Compartilhar personalização', 'Baixar imagem']);
@@ -102,7 +102,7 @@ describe('Compartilhar personalização (D-076)', () => {
   it('prepares the image, then shares the PNG and the order message from the tap itself', async () => {
     const { calls } = installShare();
     const { user } = await setup();
-    await user.type(screen.getByLabelText('Observação'), 'Presente');
+    await user.type(screen.getByRole('textbox', { name: 'Observação' }), 'Presente');
     expect(shareButton()).toHaveAttribute('aria-disabled', 'true');
     await prepared();
 
@@ -168,11 +168,11 @@ describe('Compartilhar personalização (D-076)', () => {
       await Promise.resolve();
     });
 
-    await user.type(screen.getByLabelText('Observação'), 'Obrigado');
+    await user.type(screen.getByRole('textbox', { name: 'Observação' }), 'Obrigado');
     expect(shareButton()).toHaveAttribute('aria-disabled', 'false');
     await user.click(shareButton());
-    await user.clear(screen.getByLabelText('Observação'));
-    await user.type(screen.getByLabelText('Observação'), 'Entregar em maio');
+    await user.clear(screen.getByRole('textbox', { name: 'Observação' }));
+    await user.type(screen.getByRole('textbox', { name: 'Observação' }), 'Entregar em maio');
     await act(async () => {
       pending[1]?.resolve();
       await Promise.resolve();
@@ -219,8 +219,8 @@ describe('Compartilhar personalização (D-076)', () => {
         await Promise.resolve();
       });
 
-      expect(await within(review()).findByText(message)).toBeInTheDocument();
-      expect(review()).not.toHaveTextContent(/pedido (foi )?(enviado|recebido|confirmado)/i);
+      expect(await within(finalize()).findByText(message)).toBeInTheDocument();
+      expect(finalize()).not.toHaveTextContent(/pedido (foi )?(enviado|recebido|confirmado)/i);
       expect(calls).toHaveLength(1);
       expect(screen.getByLabelText('Texto')).toHaveValue('Casa da Ana');
       expect(shareButton()).toHaveAttribute('aria-disabled', 'false');
@@ -234,7 +234,7 @@ describe('Compartilhar personalização (D-076)', () => {
 
     expect(shareButton()).toHaveAttribute('aria-disabled', 'true');
     expect(shareButton()).toHaveAccessibleDescription(/Falta escolher: Cor do texto\./);
-    expect(within(review()).queryByText(/Preparando imagem/)).toBeNull();
+    expect(within(finalize()).queryByText(/Preparando imagem/)).toBeNull();
     expect(HTMLCanvasElement.prototype.toBlob).not.toHaveBeenCalled();
     await user.click(shareButton());
     expect(calls).toHaveLength(0);
@@ -249,10 +249,10 @@ describe('Compartilhar personalização (D-076)', () => {
     await user.click(within(group('Cor do texto')).getByRole('radio', { name: 'Test ink A' }));
 
     expect(shareButton()).toHaveAccessibleDescription(/Carregando imagem…/);
-    expect(within(review()).queryByText(/Preparando imagem/)).toBeNull();
+    expect(within(finalize()).queryByText(/Preparando imagem/)).toBeNull();
   });
 
-  it('prepares only while "Revisar personalização" is open on narrow screens', async () => {
+  it('prepares nothing while a step that changes the image is open on narrow screens', async () => {
     vi.stubGlobal('matchMedia', (query: string) => ({
       matches: query !== WIDE_LAYOUT_QUERY,
       media: query,
@@ -271,7 +271,8 @@ describe('Compartilhar personalização (D-076)', () => {
     await new Promise((resolve) => setTimeout(resolve, 400));
     expect(HTMLCanvasElement.prototype.toBlob).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole('button', { name: 'Revisar personalização' }));
+    // Closing the step, or opening the review or the note, lets it prepare (D-078).
+    await user.click(screen.getByRole('button', { name: 'Texto e cores' }));
     await prepared();
     expect(HTMLCanvasElement.prototype.toBlob).toHaveBeenCalledTimes(1);
   });
@@ -281,7 +282,7 @@ describe('Abrir WhatsApp da TAAVI (D-076)', () => {
   it('is not offered while TAAVI’s number is not configured', async () => {
     await setup();
     expect(whatsApp()).toBeNull();
-    expect(within(review()).queryByText('Prefere enviar pelo WhatsApp?')).toBeNull();
+    expect(within(finalize()).queryByText('Prefere enviar pelo WhatsApp?')).toBeNull();
   });
 
   it('is not offered for a malformed number', async () => {
@@ -302,7 +303,7 @@ describe('Abrir WhatsApp da TAAVI (D-076)', () => {
     expect(url.searchParams.get('text')).toMatch(/^Olá, TAAVI!\n\n/);
     expect(url.searchParams.get('text')).toContain('Texto:\nCASA DA ANA\n');
     expect(link).toHaveAccessibleDescription(/Baixar imagem.*anexe a imagem baixada/);
-    expect(within(review()).getByText('Prefere enviar pelo WhatsApp?')).toBeInTheDocument();
+    expect(within(finalize()).getByText('Prefere enviar pelo WhatsApp?')).toBeInTheDocument();
   });
 
   it('is not a link while blocked, and names the reasons', async () => {

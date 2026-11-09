@@ -1,8 +1,12 @@
 import type { Page } from '@playwright/test';
 
-/** The four customization steps (D-058). */
+/** The collapsible steps (D-058, D-078): the four customization steps and the note. */
 export type StepTitle =
-  'Modelo e tamanho' | 'Texto e cores' | 'Posição do texto' | 'Revisar personalização';
+  | 'Modelo e tamanho'
+  | 'Texto e cores'
+  | 'Posição do texto'
+  | 'Revisar personalização'
+  | 'Observação';
 
 /**
  * Opens a step on narrow screens, where one step is open at a time. Wide
@@ -33,4 +37,9 @@ export async function chooseModel(page: Page, name: RegExp, size?: RegExp) {
 export async function textField(page: Page) {
   await openStep(page, 'Texto e cores');
   return page.getByLabel('Texto', { exact: true });
+}
+
+/** "Finalizar personalização": always open; the disclaimer, the status, and the actions (D-078). */
+export function finalize(page: Page) {
+  return page.getByRole('region', { name: 'Finalizar personalização', exact: true });
 }

@@ -221,14 +221,14 @@ describe('model groups (D-057)', () => {
       expect(size.getByRole('radio', { name: 'G — 11 × 11 cm' })).not.toBeChecked();
     });
 
-    it('requires the size: status, export reasons, preview, and summary say so', async () => {
+    it('requires the size: the status (once), preview, and summary say so', async () => {
       const { user } = setup();
       await user.click(models().getByRole('radio', { name: 'Bandeja ondulada' }));
 
       // Marrom is the default lettering color (D-064).
       expect(configStatus()).toHaveTextContent('Falta escolher: Tamanho, Texto.');
       expect(exportButton()).toHaveAttribute('aria-disabled', 'true');
-      expect(within(review()).getByText('Falta escolher: Tamanho.')).toBeInTheDocument();
+      expect(screen.getAllByText(/Falta escolher/)).toHaveLength(1);
       expect(
         within(preview()).getByText('Selecione o tamanho para visualizar a personalização.'),
       ).toBeInTheDocument();
@@ -238,7 +238,8 @@ describe('model groups (D-057)', () => {
       await user.click(within(group('Tamanho')).getByRole('radio', { name: 'M — 8 × 8 cm' }));
 
       expect(configStatus()).toHaveTextContent('Falta escolher: Texto.');
-      expect(within(review()).queryByText('Falta escolher: Tamanho.')).toBeNull();
+      expect(screen.getAllByText(/Falta escolher/)).toHaveLength(1);
+      expect(configStatus()).not.toHaveTextContent('Tamanho');
       expect(summary('Modelo')).toBe('Bandeja ondulada');
       expect(summary('Tamanho')).toBe('M — 8 × 8 cm');
     });

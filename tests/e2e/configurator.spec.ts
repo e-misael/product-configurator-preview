@@ -1,5 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
-import { openStep, step, textField } from './support/steps';
+import { finalize, openStep, step, textField } from './support/steps';
 
 /** Functional flows against the demo build's synthetic catalog (D-028). */
 
@@ -83,11 +83,11 @@ test('completes a configuration @smoke', async ({ page }) => {
   await expect(page.locator('#step-text-summary')).toContainText('Concluído');
 
   const review = await step(page, 'Revisar personalização');
-  await expect(review.getByText('Configuração completa.')).toBeVisible();
+  await expect(finalize(page).getByText('Configuração completa.')).toBeVisible();
   // "Sem serifa" is lettered in capitals (D-068).
   await expect(review).toContainText('CASA DA ANA');
   await expect(review).toContainText('Bege');
-  await expect(review.getByRole('button', { name: 'Baixar imagem' })).toHaveAttribute(
+  await expect(finalize(page).getByRole('button', { name: 'Baixar imagem' })).toHaveAttribute(
     'aria-disabled',
     'false',
   );
@@ -175,8 +175,13 @@ test('selects repeated words independently and swaps colors on conflict (D-071)'
   await expectNoHorizontalScroll(page);
 });
 
-test('shows the handmade-product disclaimer in the review, before export', async ({ page }) => {
-  const review = await step(page, 'Revisar personalização');
+test('shows the handmade-product disclaimer in "Finalizar", before export (D-078)', async ({
+  page,
+}) => {
+  const review = finalize(page);
+  await expect(await step(page, 'Revisar personalização')).not.toContainText(
+    'A pré-visualização é ilustrativa',
+  );
   for (const paragraph of [
     /^A pré-visualização é ilustrativa\. Como nossas peças são produzidas artesanalmente/,
     /^As cores também podem variar conforme a iluminação/,
@@ -206,7 +211,7 @@ test('shows only the selected text color name; the others are chips', async ({ p
   await expectNoHorizontalScroll(page);
 });
 
-test('takes an optional "Observação" just before export, never required (D-062)', async ({
+test('takes an optional "Observação" in its own section, before "Finalizar" (D-062, D-078)', async ({
   page,
 }) => {
   await model(page, CERAMIC_PLATE).check();
@@ -214,9 +219,9 @@ test('takes an optional "Observação" just before export, never required (D-062
   await inks(page, 'Cor do texto')
     .getByRole('radio', { name: /Letra grafite/ })
     .check();
-  const review = await step(page, 'Revisar personalização');
-  const note = review.getByRole('textbox', { name: 'Observação' });
-  const exportButton = review.getByRole('button', { name: 'Baixar imagem' });
+  const section = await step(page, 'Observação');
+  const note = section.getByRole('textbox', { name: 'Observação' });
+  const exportButton = finalize(page).getByRole('button', { name: 'Baixar imagem' });
   await expect(exportButton).toHaveAttribute('aria-disabled', 'false');
 
   await note.fill('  Entregar até sexta\nObrigada ');

@@ -18,7 +18,10 @@ import { addsLineBeyondCapacity, lineCapacity } from '../../preview/text-fit';
 import { Step } from '../layout/Step';
 import { lineLimitMessage, overflowMessage, presetOf } from '../preview/messages';
 import { TextPositionControls } from '../preview/TextPositionControls';
+import { FinalizePanel } from '../review/FinalizePanel';
+import { NoteField } from '../review/NoteField';
 import { ReviewPanel } from '../review/ReviewPanel';
+import { reviewSummary } from '../review/review-summary';
 import { FontField } from './FontField';
 import { FORMATTING_REMOVED_NOTICE } from './messages';
 import { sizeLabel, type ModelGroup } from './model-groups';
@@ -26,7 +29,7 @@ import { ModelField } from './ModelField';
 import { TextColorsField } from './TextColorFields';
 import { TextField } from './TextField';
 
-export type StepId = 'model' | 'text' | 'position' | 'review';
+export type StepId = 'model' | 'text' | 'position' | 'review' | 'note';
 
 interface ConfiguratorFormProps {
   readonly catalog: Catalog;
@@ -50,7 +53,9 @@ interface ConfiguratorFormProps {
 
 /**
  * The customization in four steps, in order (D-058): model and size, text and
- * colors, position and alignment, then review with export as the last action.
+ * colors, position and alignment, then the review; then the optional
+ * "Observação" and, always open, "Finalizar personalização" with the
+ * disclaimer and the sharing and export actions last (D-078).
  */
 export function ConfiguratorForm({
   catalog,
@@ -96,6 +101,16 @@ export function ConfiguratorForm({
       ? undefined
       : findTextColor(catalog, config.textColorId)?.displayName;
   const firstLine = lettered.split(/\r\n|\r|\n/)[0] ?? '';
+  const noteLine = config.note.trim().split(/\r\n|\r|\n/)[0] ?? '';
+  const summary = reviewSummary(
+    catalog,
+    config,
+    plate,
+    model.groups,
+    model.group,
+    model.sizePending,
+  );
+  const ready = validation.status === 'valid' && scene.notices.length === 0;
 
   const step = (id: StepId) => ({
     id: `step-${id}`,
@@ -203,23 +218,41 @@ export function ConfiguratorForm({
       <Step
         {...step('review')}
         title="Revisar personalização"
-        summary={
-          validation.status === 'valid' && scene.notices.length === 0 ? 'pronta para exportar' : ''
-        }
-        complete={validation.status === 'valid' && scene.notices.length === 0}
+        summary={ready ? 'pronta para exportar' : ''}
+        complete={ready}
       >
-        <ReviewPanel
-          catalog={catalog}
+        <ReviewPanel summary={summary} onRestart={onRestart} />
+      </Step>
+
+      <Step
+        {...step('note')}
+        title="Observação"
+        summary={noteLine === '' ? '' : `“${noteLine}”`}
+        complete={undefined}
+      >
+        <NoteField note={config.note} onNote={state.setNote} />
+      </Step>
+
+      {/* Always open, so the actions are always at hand (D-078). */}
+      <Step
+        id="step-finalize"
+        collapsible={false}
+        open
+        onToggle={() => undefined}
+        title="Finalizar personalização"
+        summary=""
+        complete={ready}
+      >
+        <FinalizePanel
           config={config}
-          plate={plate}
-          groups={model.groups}
-          group={model.group}
-          sizePending={model.sizePending}
+          summary={summary}
           validation={validation}
           scene={scene}
-          active={!collapsible || openStep === 'review'}
-          onNote={state.setNote}
-          onRestart={onRestart}
+          sizePending={model.sizePending}
+          // Not while a step that changes the image is open on a phone (D-076, D-078).
+          active={
+            !collapsible || (openStep !== 'model' && openStep !== 'text' && openStep !== 'position')
+          }
         />
       </Step>
     </form>

@@ -225,9 +225,11 @@ interface WordPickerProps {
 }
 
 /**
- * The text as compact word tokens, in order, with its punctuation, spaces,
- * and line breaks as plain text. Each occurrence is its own toggle button
- * (`aria-pressed`); repeated words are told apart by their occurrence number.
+ * The text as compact word tokens, in order, with its punctuation and spaces
+ * as plain text. Line breaks are shown as one space, so the tokens wrap to the
+ * available width; the text and the ranges' offsets are unchanged. Each
+ * occurrence is its own toggle button (`aria-pressed`); repeated words are
+ * told apart by their occurrence number.
  */
 function WordPicker({ text, ranges, hex, onToggle }: WordPickerProps) {
   const words = wordsOf(text);
@@ -240,19 +242,15 @@ function WordPicker({ text, ranges, hex, onToggle }: WordPickerProps) {
   const seen = new Map<string, number>();
   const pieces: ReactNode[] = [];
   const pushPlain = (from: number, to: number) => {
-    text
-      .slice(from, to)
-      .split(/\r\n|\r|\n/)
-      .forEach((part, index) => {
-        if (index > 0) pieces.push(<br key={`br-${from}-${index}`} />);
-        if (part !== '') {
-          pieces.push(
-            <span key={`t-${from}-${index}`} className="words__plain" aria-hidden="true">
-              {part}
-            </span>,
-          );
-        }
-      });
+    // Presentation only: the line breaks, with the spaces around them, read as one space.
+    const plain = text.slice(from, to).replace(/[ \t]*(?:\r\n|\r|\n)\s*/g, ' ');
+    if (plain !== '') {
+      pieces.push(
+        <span key={`t-${from}`} className="words__plain" aria-hidden="true">
+          {plain}
+        </span>,
+      );
+    }
   };
   let cursor = 0;
   for (const word of words) {

@@ -5,7 +5,8 @@ interface StepProps {
   readonly title: string;
   /** One line describing the current choice, shown beside the title. */
   readonly summary: string;
-  readonly complete: boolean;
+  /** Undefined for an optional step, shown as "Opcional". */
+  readonly complete: boolean | undefined;
   /** Collapsible on narrow screens; always open, with a plain heading, otherwise. */
   readonly collapsible: boolean;
   readonly open: boolean;
@@ -29,7 +30,7 @@ export function Step({
   children,
 }: StepProps) {
   const expanded = !collapsible || open;
-  const state = complete ? 'Concluído' : 'Pendente';
+  const state = complete === undefined ? 'Opcional' : complete ? 'Concluído' : 'Pendente';
   return (
     <section
       className={`step${expanded ? ' step--open' : ''}`}

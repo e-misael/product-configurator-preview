@@ -14,8 +14,10 @@ const plateRadio = (id: string) =>
   within(group('Modelo')).getByRole('radio', { name: new RegExp(`^Test ${id} `) });
 const status = () => screen.getByRole('region', { name: 'Situação da configuração' });
 const preview = () => screen.getByRole('region', { name: 'Pré-visualização' });
-/** "Revisar personalização" holds the summary, the status, the disclaimer, and export (D-058). */
+/** "Revisar personalização" holds the summary and the reset only (D-078). */
 const review = () => screen.getByRole('region', { name: 'Revisar personalização' });
+/** "Finalizar personalização": the disclaimer, the status, and the actions (D-078). */
+const finalize = () => screen.getByRole('region', { name: 'Finalizar personalização' });
 /** The formatting announcement, in the text step next to the field. */
 const formattingNotice = () =>
   within(screen.getByRole('region', { name: 'Texto e cores' })).getByRole('status');
@@ -299,13 +301,56 @@ describe('Configurator', () => {
       expect(highlightRow()).toHaveTextContent('Test ink B: AÇÃO, GUARDA-CHUVA');
     });
 
-    it('keeps the line breaks of the text between the words', async () => {
-      const { user } = setup();
-      fireEvent.change(screen.getByLabelText('Texto'), { target: { value: 'Ana\nBia' } });
-      await user.click(ink('ink A'));
-      await user.click(highlight());
+    /** Text with explicit line breaks, primary ink A, highlighting on, highlight ink B. */
+    async function withLines(text: string) {
+      const context = setup();
+      fireEvent.change(screen.getByLabelText('Texto'), { target: { value: text } });
+      await context.user.click(ink('ink A'));
+      await context.user.click(highlight());
+      await context.user.click(secondary('ink B'));
+      return context;
+    }
+    const wordsShown = () => words().querySelector('.words')?.textContent;
 
-      expect(words().querySelectorAll('br')).toHaveLength(1);
+    it('shows the words as one wrapping sequence, without the line breaks', async () => {
+      await withLines('Ana,\nBia\r\n\nCia.');
+
+      expect(words().querySelectorAll('br')).toHaveLength(0);
+      // Order and punctuation kept; each break, with its blank lines, reads as one space.
+      expect(wordsShown()).toBe('ANA, BIA CIA.');
+      expect(
+        within(words())
+          .getAllByRole('button')
+          .map((b) => b.textContent),
+      ).toEqual(['ANA', 'BIA', 'CIA']);
+    });
+
+    it('highlights a word after a line break on its own letters', async () => {
+      const { user } = await withLines('Casa\nda Ana');
+
+      await user.click(word('ANA'));
+
+      expect(pressed()).toEqual(['ANA']);
+      expect(highlightRow()).toHaveTextContent('Test ink B: ANA');
+    });
+
+    it('selects a repeated word on another line independently', async () => {
+      const { user } = await withLines('Ana\nAna');
+
+      await user.click(word('ANA (2ª de 2)'));
+
+      expect(word('ANA (1ª de 2)')).toHaveAttribute('aria-pressed', 'false');
+      expect(word('ANA (2ª de 2)')).toHaveAttribute('aria-pressed', 'true');
+    });
+
+    it('keeps the line breaks in the text field and the review', async () => {
+      const { user } = await withLines('Casa\nda Ana');
+      await user.click(word('CASA'));
+
+      expect(screen.getByLabelText('Texto')).toHaveValue('Casa\nda Ana');
+      expect(within(review()).getByText(/CASA/, { selector: '.review__text' }).textContent).toBe(
+        'CASA\nDA ANA',
+      );
     });
 
     it('turning highlighting off draws one color but keeps the words for later', async () => {
@@ -382,7 +427,7 @@ describe('Configurator', () => {
   });
 
   describe('status and preview', () => {
-    it('lists missing fields, then reports completion', async () => {
+    it('lists missing fields once, in "Finalizar", then what still blocks export', async () => {
       const { user } = setup();
 
       expect(status()).toHaveTextContent('Falta escolher: Modelo, Texto, Cor do texto.');
@@ -394,7 +439,19 @@ describe('Configurator', () => {
       expect(status()).toHaveTextContent('Falta escolher: Cor do texto.');
 
       await user.click(within(group('Cor do texto')).getByRole('radio', { name: 'Test ink A' }));
-      expect(status()).toHaveTextContent('Configuração completa.');
+      // Complete, but the test catalog has no photograph: that is all that is left.
+      expect(status()).not.toHaveTextContent('Falta escolher');
+      expect(status()).toHaveTextContent('A foto deste modelo ainda não está disponível.');
+      expect(within(finalize()).getByRole('region', { name: 'Situação da configuração' })).toBe(
+        status(),
+      );
+    });
+
+    it('never repeats a missing choice elsewhere on the page', () => {
+      setup();
+      expect(screen.getAllByText(/Falta escolher/)).toEqual([
+        within(status()).getByText('Falta escolher: Modelo, Texto, Cor do texto.'),
+      ]);
     });
 
     it('shows the selection and what is still needed, without product imagery', async () => {
@@ -414,10 +471,13 @@ describe('Configurator', () => {
   });
 
   describe('Observação (D-062)', () => {
-    it('is an optional field in the review, before export, kept exactly as typed', async () => {
+    it('is an optional field in its own section, before "Finalizar", kept exactly as typed', async () => {
       const { user } = setup();
-      const note = within(review()).getByRole('textbox', { name: 'Observação' });
-      const exportButton = within(review()).getByRole('button', { name: 'Baixar imagem' });
+      const section = screen.getByRole('region', { name: 'Observação' });
+      const note = within(section).getByRole('textbox', { name: 'Observação' });
+      const exportButton = within(finalize()).getByRole('button', { name: 'Baixar imagem' });
+      expect(within(review()).queryByRole('textbox', { name: 'Observação' })).toBeNull();
+      expect(within(finalize()).queryByRole('textbox', { name: 'Observação' })).toBeNull();
 
       expect(note).toHaveValue('');
       expect(note).toHaveAccessibleDescription('Opcional. Não aparece na imagem exportada.');
@@ -432,9 +492,9 @@ describe('Configurator', () => {
 
       expect(note).toHaveValue('  Entregar até sexta\nObrigada ');
       // Never validated and never required.
-      expect(status()).toHaveTextContent('Configuração completa.');
+      expect(status()).not.toHaveTextContent(/Falta escolher|Observação/);
       await user.clear(note);
-      expect(status()).toHaveTextContent('Configuração completa.');
+      expect(status()).not.toHaveTextContent(/Falta escolher|Observação/);
     });
   });
 });

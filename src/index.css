@@ -998,7 +998,7 @@ body {
   }
 }
 
-/* The text as compact tokens, in its own order and line breaks. */
+/* The text as compact tokens, in its own order; line breaks are not shown (they wrap freely). */
 .words {
   line-height: 2.25;
   overflow-wrap: anywhere;

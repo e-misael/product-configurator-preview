@@ -28,20 +28,22 @@ async function customize(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByRole('switch', { name: 'Destacar parte(s) do texto' }));
   await user.click(within(group('Cor de destaque')).getByRole('radio', { name: 'Test ink B' }));
   await user.click(screen.getByRole('button', { name: 'Casa' }));
-  await user.type(screen.getByLabelText('Observação'), 'Presente');
+  await user.type(screen.getByRole('textbox', { name: 'Observação' }), 'Presente');
 }
 
 describe('Reiniciar configurações', () => {
-  it('is offered in the review, under the summary and before export (D-058)', () => {
+  it('ends the review, right under the summary, which holds nothing else (D-078)', () => {
     setup();
     const summary = within(review()).getByText('Alinhamento:');
-    const exportButton = within(review()).getByRole('button', { name: 'Baixar imagem' });
     expect(
       summary.compareDocumentPosition(restart()) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
-    expect(
-      restart().compareDocumentPosition(exportButton) & Node.DOCUMENT_POSITION_FOLLOWING,
-    ).toBeTruthy();
+    // The reset is the panel's last element: no note, disclaimer, status, or action after it.
+    const panel = review().querySelector('.review');
+    expect(panel?.lastElementChild?.contains(restart())).toBe(true);
+    expect(within(review()).getAllByRole('button')).toEqual([restart()]);
+    expect(within(review()).queryByRole('textbox')).toBeNull();
+    expect(review()).not.toHaveTextContent(/pré-visualização é ilustrativa|Falta escolher/);
   });
 
   it('asks for confirmation first, with focus on "Cancelar"', async () => {
@@ -66,7 +68,7 @@ describe('Reiniciar configurações', () => {
     expect(restart()).toHaveFocus();
     expect(square()).toBeChecked();
     expect(screen.getByLabelText('Texto')).toHaveValue('Casa da Ana');
-    expect(screen.getByLabelText('Observação')).toHaveValue('Presente');
+    expect(screen.getByRole('textbox', { name: 'Observação' })).toHaveValue('Presente');
   });
 
   it('resets every field and choice to the initial state, keeping the note', async () => {
@@ -81,7 +83,7 @@ describe('Reiniciar configurações', () => {
       expect(radio).not.toBeChecked();
     }
     expect(screen.getByLabelText('Texto')).toHaveValue('');
-    expect(screen.getByLabelText('Observação')).toHaveValue('Presente');
+    expect(screen.getByRole('textbox', { name: 'Observação' })).toHaveValue('Presente');
     expect(within(group('Fonte')).getByRole('radio', { name: 'Sem serifa' })).toBeChecked();
     for (const radio of within(group('Cor do texto')).getAllByRole('radio')) {
       expect(radio).not.toBeChecked();

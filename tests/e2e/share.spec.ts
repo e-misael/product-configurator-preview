@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
-import { chooseModel, openStep, textField } from './support/steps';
+import { chooseModel, finalize, openStep, textField } from './support/steps';
 
 /**
  * Sharing against the demo build (D-076). Playwright cannot open a real share
@@ -61,10 +61,10 @@ async function installShare(page: Page, mode: Mode) {
 
 const shares = (page: Page) =>
   page.evaluate(() => (window as unknown as { __shares: Shared[] }).__shares);
-const review = (page: Page) => page.getByRole('region', { name: 'Revisar personalização' });
 const shareButton = (page: Page) =>
-  review(page).getByRole('button', { name: 'Compartilhar personalização' });
-const downloadButton = (page: Page) => review(page).getByRole('button', { name: 'Baixar imagem' });
+  finalize(page).getByRole('button', { name: 'Compartilhar personalização' });
+const downloadButton = (page: Page) =>
+  finalize(page).getByRole('button', { name: 'Baixar imagem' });
 
 async function ready(page: Page, text = 'Casa da Ana') {
   await chooseModel(page, /Placa cerâmica/);
@@ -104,7 +104,7 @@ test.describe('Compartilhar personalização (D-076)', () => {
     expect(shared?.text).toMatch(
       /\n\nPodem confirmar o valor, a disponibilidade e o prazo de produção\?$/,
     );
-    await expect(review(page)).toContainText(
+    await expect(finalize(page)).toContainText(
       'Confira no WhatsApp se a imagem e os detalhes foram enviados para a TAAVI.',
     );
 
@@ -145,7 +145,7 @@ test.describe('Compartilhar personalização (D-076)', () => {
       await expect(shareButton(page)).toHaveAttribute('aria-disabled', 'false');
       await shareButton(page).click();
 
-      await expect(review(page)).toContainText(message);
+      await expect(finalize(page)).toContainText(message);
       expect(await shares(page)).toHaveLength(1);
       await expect(shareButton(page)).toHaveAttribute('aria-disabled', 'false');
       await expect(await textField(page)).toHaveValue('Casa da Ana');
@@ -159,7 +159,7 @@ test.describe('Compartilhar personalização (D-076)', () => {
 
     await expect(downloadButton(page)).toHaveAttribute('aria-disabled', 'false');
     await expect(shareButton(page)).toHaveCount(0);
-    await expect(review(page)).not.toContainText('Preparando imagem');
+    await expect(finalize(page)).not.toContainText('Preparando imagem');
   });
 
   test('is blocked while the photograph is loading, and prepares nothing', async ({ page }) => {
@@ -171,7 +171,7 @@ test.describe('Compartilhar personalização (D-076)', () => {
 
     await expect(shareButton(page)).toHaveAttribute('aria-disabled', 'true');
     await expect(shareButton(page)).toHaveAccessibleDescription(/Carregando imagem…/);
-    await expect(review(page)).not.toContainText('Preparando imagem');
+    await expect(finalize(page)).not.toContainText('Preparando imagem');
     await shareButton(page).click({ force: true });
     expect(await shares(page)).toHaveLength(0);
   });
@@ -181,6 +181,8 @@ test('offers no WhatsApp link while TAAVI’s number is not configured (P-16)', 
   await page.goto('/');
   await ready(page);
   await expect(downloadButton(page)).toHaveAttribute('aria-disabled', 'false');
-  await expect(review(page).getByRole('link', { name: 'Abrir WhatsApp da TAAVI' })).toHaveCount(0);
-  await expect(review(page)).not.toContainText('Prefere enviar pelo WhatsApp?');
+  await expect(finalize(page).getByRole('link', { name: 'Abrir WhatsApp da TAAVI' })).toHaveCount(
+    0,
+  );
+  await expect(finalize(page)).not.toContainText('Prefere enviar pelo WhatsApp?');
 });

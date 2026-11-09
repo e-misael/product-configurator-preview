@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
-import { chooseModel, openStep, textField } from './support/steps';
+import { chooseModel, finalize, openStep, textField } from './support/steps';
 
 /**
  * PNG export against the demo build (D-008, D-036). Each test downloads a real
@@ -21,6 +21,8 @@ interface Analysis {
   box: { left: number; right: number; top: number; bottom: number } | undefined;
   /** Pixels within tolerance of each requested color, inside the area. */
   counts: number[];
+  /** Rows (canvas fractions) holding each requested color; undefined when absent. */
+  rows: ({ top: number; bottom: number } | undefined)[];
 }
 
 const WHITE: Rgba = [255, 255, 255, 255];
@@ -35,9 +37,7 @@ const WINE = [0x8c, 0x1f, 0x3d] as const;
 const PLATE_AREA: Area = { x0: 0.2, y0: 0.3, x1: 0.8, y1: 0.7 };
 
 const preview = (page: Page) => page.getByRole('region', { name: 'Pré-visualização' });
-/** Export is the last action of "Revisar personalização" (D-058). */
-const review = (page: Page) => page.getByRole('region', { name: 'Revisar personalização' });
-const exportButton = (page: Page) => review(page).getByRole('button', { name: 'Baixar imagem' });
+const exportButton = (page: Page) => finalize(page).getByRole('button', { name: 'Baixar imagem' });
 
 /** Chooses a demo Bandeja size under its grouped option (D-057). */
 async function chooseTray(page: Page, size: 'M' | 'G') {
@@ -95,6 +95,7 @@ async function analyze(
       let top = Infinity;
       let bottom = -Infinity;
       const counts = colors.map(() => 0);
+      const rows = colors.map(() => ({ top: Infinity, bottom: -Infinity }));
       for (let y = y0; y < y1; y += 1) {
         for (let x = x0; x < x1; x += 1) {
           const [r, g, b] = at(x, y);
@@ -111,6 +112,11 @@ async function analyze(
               Math.abs(b - color[2]) <= 12
             ) {
               counts[i] = (counts[i] ?? 0) + 1;
+              const row = rows[i];
+              if (row) {
+                row.top = Math.min(row.top, y);
+                row.bottom = Math.max(row.bottom, y + 1);
+              }
             }
           });
         }
@@ -124,6 +130,9 @@ async function analyze(
             ? undefined
             : { left: left / W, right: right / W, top: top / H, bottom: bottom / H },
         counts,
+        rows: rows.map((row) =>
+          row.top === Infinity ? undefined : { top: row.top / H, bottom: row.bottom / H },
+        ),
       };
     },
     { png: source === 'preview' ? null : source.png, points, area, colors },
@@ -173,7 +182,7 @@ test('downloads the standalone plate as a native-size PNG matching the preview @
 
   expect(file.fileName).toBe('taavi-demo-placa-ceramica.png');
   expect([file.width, file.height]).toEqual([400, 400]);
-  await expect(review(page)).toContainText('Imagem exportada: taavi-demo-placa-ceramica.png');
+  await expect(finalize(page)).toContainText('Imagem exportada: taavi-demo-placa-ceramica.png');
   const points = [
     [0.02, 0.02], // outside the plate photograph: opaque white background
     [0.5, 0.8], // ceramic
@@ -259,6 +268,40 @@ test('exports font, both lettering colors, alignment, and position as previewed'
   }
 });
 
+test('highlights the repeated word after a line break, and only it, in preview and PNG', async ({
+  page,
+}) => {
+  await chooseModel(page, /Placa cerâmica/);
+  const field = await textField(page);
+  await field.fill('HH\nHH');
+  await radio(page, 'Cor do texto', /Letra azul/).check();
+  await page.getByRole('switch', { name: 'Destacar parte(s) do texto' }).check();
+  await radio(page, 'Cor de destaque', /Letra vinho/).check();
+  const words = page.getByRole('group', { name: 'Toque nas palavras que deseja destacar' });
+  const first = words.getByRole('button', { name: 'HH (1ª de 2)' });
+  const second = words.getByRole('button', { name: 'HH (2ª de 2)' });
+  // The selector ignores the line break: both words share one row.
+  const [a, b] = [await first.boundingBox(), await second.boundingBox()];
+  expect(Math.abs((a?.y ?? 0) - (b?.y ?? 1))).toBeLessThan(2);
+  await second.click();
+  await expect(field).toHaveValue('HH\nHH');
+  await openStep(page, 'Revisar personalização');
+  await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'false');
+
+  const file = await downloadPng(page);
+
+  for (const source of [{ png: file.png }, 'preview'] as const) {
+    const { counts, rows } = await analyze(page, source, [], PLATE_AREA, [BLUE, WINE]);
+    const [blue, wine] = rows;
+    expect(counts[0]).toBeGreaterThan(20);
+    expect(counts[1]).toBeGreaterThan(20);
+    // Two lines kept: the first in the primary color, the second (after the break) highlighted.
+    expect(blue).toBeDefined();
+    expect(wine).toBeDefined();
+    expect(wine?.top ?? 0).toBeGreaterThanOrEqual(blue?.bottom ?? 1);
+  }
+});
+
 test('exports a scalloped tray on white, at its native size', async ({ page }) => {
   await chooseTray(page, 'G');
   await ready(page);
@@ -295,8 +338,8 @@ test.describe('blocked export', () => {
     await openStep(page, 'Revisar personalização');
 
     await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'true');
-    await expect(review(page)).toContainText('Para exportar a imagem:');
-    await expect(review(page)).toContainText('Falta escolher: Cor do texto.');
+    await expect(finalize(page)).toContainText('Para exportar a imagem:');
+    await expect(finalize(page)).toContainText('Falta escolher: Cor do texto.');
     await expectNoDownload(page);
   });
 
@@ -310,7 +353,7 @@ test.describe('blocked export', () => {
 
     await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'true');
     // The overflow is named among the reasons (D-063).
-    await expect(review(page).locator('#export-reasons')).toContainText(
+    await expect(finalize(page).locator('#export-reasons')).toContainText(
       'O texto não cabe na área do modelo',
     );
     await expect(exportButton(page)).toHaveAccessibleDescription(/O texto não cabe/);

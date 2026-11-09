@@ -1,6 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import { expect, test, type Page } from '@playwright/test';
-import { openStep, step, textField } from './support/steps';
+import { finalize, openStep, step, textField } from './support/steps';
 
 async function expectNoHorizontalScroll(page: Page) {
   const overflow = await page.evaluate(
@@ -178,9 +178,10 @@ test.describe('Production build @smoke', () => {
       page.getByRole('switch', { name: 'Destacar parte(s) do texto' }),
     ).not.toBeChecked();
     await expect(page.getByRole('group', { name: 'Cor de destaque' })).toHaveCount(0);
-    // The disclaimer is part of the review, before export (D-058).
-    const review = await step(page, 'Revisar personalização');
-    for (const paragraph of DISCLAIMER) await expect(review.getByText(paragraph)).toBeVisible();
+    // The disclaimer opens "Finalizar personalização", before export (D-078).
+    for (const paragraph of DISCLAIMER) {
+      await expect(finalize(page).getByText(paragraph)).toBeVisible();
+    }
   });
 
   test('starts with Marrom; export waits only for the text (D-064)', async ({ page }) => {
@@ -188,10 +189,10 @@ test.describe('Production build @smoke', () => {
     await chooseModel(page, 'Placa cerâmica — 10 × 10 cm');
 
     const review = await step(page, 'Revisar personalização');
-    const button = review.getByRole('button', { name: 'Baixar imagem' });
+    const button = finalize(page).getByRole('button', { name: 'Baixar imagem' });
     await expect(button).toHaveAttribute('aria-disabled', 'true');
-    await expect(review).toContainText('Falta escolher: Texto.');
-    await expect(review).not.toContainText('Cor do texto.');
+    await expect(finalize(page)).toContainText('Falta escolher: Texto.');
+    await expect(finalize(page)).not.toContainText('Cor do texto.');
     await expect(review).toContainText('Cor do texto:Marrom');
     await expect(button).toHaveAccessibleDescription(/Falta escolher: Texto/);
     let downloads = 0;
@@ -289,7 +290,7 @@ test.describe('Production customization to PNG export (D-056)', () => {
     const shown = await colorCounts(page, 'preview', [green, red]);
 
     const review = await step(page, 'Revisar personalização');
-    const button = review.getByRole('button', { name: 'Baixar imagem' });
+    const button = finalize(page).getByRole('button', { name: 'Baixar imagem' });
     await expect(button).toHaveAttribute('aria-disabled', 'false');
     const [download] = await Promise.all([page.waitForEvent('download'), button.click()]);
     expect(download.suggestedFilename()).toBe('taavi-placa-ceramica-10.png');
@@ -494,7 +495,7 @@ test.describe('Bandeja ondulada sizes (D-057)', () => {
     const models = page.getByRole('group', { name: 'Modelo' });
     const preview = page.getByRole('region', { name: 'Pré-visualização' });
     const review = page.getByRole('region', { name: 'Revisar personalização' });
-    const button = review.getByRole('button', { name: 'Baixar imagem' });
+    const button = finalize(page).getByRole('button', { name: 'Baixar imagem' });
     const summary = (term: string) => review.locator('dt', { hasText: term }).locator('+ dd');
     const bandeja = models.getByRole('radio', { name: 'Bandeja ondulada' });
     await expect(bandeja).toHaveAccessibleDescription('Disponível em dois tamanhos');
@@ -514,7 +515,7 @@ test.describe('Bandeja ondulada sizes (D-057)', () => {
     await expect(preview).toContainText('Selecione o tamanho para visualizar a personalização.');
     await expect(preview.getByRole('img')).toHaveAccessibleName('Bandeja ondulada bege, sem texto');
     await openStep(page, 'Revisar personalização');
-    await expect(review).toContainText('Falta escolher: Tamanho.');
+    await expect(finalize(page)).toContainText('Falta escolher: Tamanho.');
     await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(summary('Modelo')).toHaveText('Bandeja ondulada');
     await expect(summary('Tamanho')).toHaveText('Não escolhido');
@@ -608,10 +609,10 @@ test.describe('Bandeja ondulada before its size (M4.6)', () => {
     await expect(
       page.getByRole('group', { name: 'Tamanho' }).getByRole('radio', { checked: true }),
     ).toHaveCount(0);
-    const review = await step(page, 'Revisar personalização');
-    const button = review.getByRole('button', { name: 'Baixar imagem' });
+    await openStep(page, 'Revisar personalização');
+    const button = finalize(page).getByRole('button', { name: 'Baixar imagem' });
     await expect(button).toHaveAttribute('aria-disabled', 'true');
-    await expect(review).toContainText('Falta escolher: Tamanho.');
+    await expect(finalize(page)).toContainText('Falta escolher: Tamanho.');
     await expect(button).toHaveAccessibleDescription(/Falta escolher: Tamanho/);
 
     // G: its own scale; then M: larger letters on the same photograph.
@@ -677,10 +678,8 @@ test.describe('Overflow at the fixed lettering size (D-057)', () => {
         .getByRole('radio', { name: 'Marrom' })
         .check();
       const preview = page.getByRole('region', { name: 'Pré-visualização' });
-      // Export state is read from the button's attributes, whether its step is open or not.
-      const button = page
-        .getByRole('region', { name: 'Revisar personalização' })
-        .getByRole('button', { name: 'Baixar imagem', includeHidden: true });
+      // Export state is read from the button's attributes ("Finalizar" is always open).
+      const button = finalize(page).getByRole('button', { name: 'Baixar imagem' });
       await expect(preview.getByRole('img')).toBeVisible();
 
       await field.fill(lines(area.lines));

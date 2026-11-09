@@ -32,7 +32,14 @@ function setup() {
   return { user };
 }
 
-const STEPS = ['Modelo e tamanho', 'Texto e cores', 'Posição do texto', 'Revisar personalização'];
+const STEPS = [
+  'Modelo e tamanho',
+  'Texto e cores',
+  'Posição do texto',
+  'Revisar personalização',
+  'Observação',
+];
+const FINALIZE = 'Finalizar personalização';
 const toggle = (title: string) => screen.getByRole('button', { name: title });
 const region = (name: string) => screen.getByRole('region', { name });
 const body = (title: string) => {
@@ -44,9 +51,13 @@ const body = (title: string) => {
 const settle = () => act(() => FakeImage.loadAll());
 
 describe('layout (D-058)', () => {
-  it('puts the preview first, then the four steps in order, with export last', () => {
+  it('puts the preview first, then the steps, the note, and "Finalizar" with export last', () => {
     setup();
-    const sections = [region('Pré-visualização'), ...STEPS.map((title) => region(title))];
+    const sections = [
+      region('Pré-visualização'),
+      ...STEPS.map((title) => region(title)),
+      region(FINALIZE),
+    ];
 
     for (let i = 1; i < sections.length; i += 1) {
       const previous = sections[i - 1];
@@ -56,16 +67,22 @@ describe('layout (D-058)', () => {
         Node.DOCUMENT_POSITION_FOLLOWING,
       );
     }
-    // Export is the last control of the page; the disclaimer comes before it, in the review.
-    const review = region('Revisar personalização');
-    // The review step is closed at first: include hidden controls.
-    const exportButton = within(review).getByRole('button', {
-      name: 'Baixar imagem',
-      hidden: true,
-    });
+    // "Finalizar" (D-078): the disclaimer, then the status, then export, the last control.
+    const finalize = region(FINALIZE);
+    const exportButton = within(finalize).getByRole('button', { name: 'Baixar imagem' });
     const controls = screen.getAllByRole('button', { hidden: true });
     expect(controls.at(-1)).toBe(exportButton);
-    expect(within(review).getByText(/A pré-visualização é ilustrativa/)).toBeInTheDocument();
+    const order = [
+      within(finalize).getByText(/A pré-visualização é ilustrativa/),
+      within(finalize).getByRole('region', { name: 'Situação da configuração' }),
+      exportButton,
+    ];
+    for (let i = 1; i < order.length; i += 1) {
+      expect(
+        (order[i - 1]?.compareDocumentPosition(order[i] as Node) ?? 0) &
+          Node.DOCUMENT_POSITION_FOLLOWING,
+      ).toBeTruthy();
+    }
     expect(screen.queryByRole('button', { name: /Continuar/ })).toBeNull();
   });
 
@@ -77,8 +94,12 @@ describe('layout (D-058)', () => {
       'false',
       'false',
       'false',
+      'false',
     ]);
     expect(body('Texto e cores')).not.toBeVisible();
+    // "Finalizar" is always open, with a plain heading (D-078).
+    expect(screen.queryByRole('button', { name: FINALIZE })).toBeNull();
+    expect(within(region(FINALIZE)).getByRole('button', { name: 'Baixar imagem' })).toBeVisible();
 
     await user.click(toggle('Texto e cores'));
     expect(toggle('Modelo e tamanho')).toHaveAttribute('aria-expanded', 'false');
@@ -143,9 +164,34 @@ describe('layout (D-058)', () => {
     expect(toggle('Revisar personalização')).toHaveAccessibleDescription(
       'Concluído · pronta para exportar',
     );
-    expect(
-      within(region('Revisar personalização')).getByRole('button', { name: 'Baixar imagem' }),
-    ).toHaveAttribute('aria-disabled', 'false');
+    expect(within(region(FINALIZE)).getByRole('button', { name: 'Baixar imagem' })).toHaveAttribute(
+      'aria-disabled',
+      'false',
+    );
+  });
+
+  it('keeps "Observação" collapsed at first, and its text while it closes and opens (D-078)', async () => {
+    const { user } = setup();
+    expect(toggle('Observação')).toHaveAttribute('aria-expanded', 'false');
+    expect(toggle('Observação')).toHaveAccessibleDescription('Opcional');
+    expect(body('Observação')).not.toBeVisible();
+
+    await user.click(toggle('Observação'));
+    expect(toggle('Observação')).toHaveFocus();
+    const note = screen.getByRole('textbox', { name: 'Observação' });
+    expect(note).toBeVisible();
+    expect(note).toHaveAccessibleDescription('Opcional. Não aparece na imagem exportada.');
+    await user.type(note, 'Presente{Enter}de aniversário');
+
+    await user.click(toggle('Observação'));
+    expect(body('Observação')).not.toBeVisible();
+    expect(toggle('Observação')).toHaveFocus();
+    expect(toggle('Observação')).toHaveAccessibleDescription('Opcional · “Presente”');
+    await user.click(toggle('Revisar personalização'));
+    await user.click(toggle('Observação'));
+    expect(screen.getByRole('textbox', { name: 'Observação' })).toHaveValue(
+      'Presente\nde aniversário',
+    );
   });
 
   it('expands the preview while positioning; the canvas never captures touch (D-068)', async () => {
@@ -216,9 +262,10 @@ describe('layout (D-058)', () => {
     setup();
 
     expect(screen.queryByRole('button', { name: 'Texto e cores' })).toBeNull();
-    for (const title of STEPS) {
+    for (const title of [...STEPS, FINALIZE]) {
       expect(screen.getByRole('heading', { level: 2, name: new RegExp(title) })).toBeVisible();
     }
+    expect(screen.getByRole('textbox', { name: 'Observação' })).toBeVisible();
     expect(screen.getByLabelText('Texto')).toBeVisible();
     expect(region('Pré-visualização')).not.toHaveClass('preview--expanded');
   });

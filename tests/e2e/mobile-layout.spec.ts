@@ -9,7 +9,14 @@ import { expect, test, type Locator, type Page } from '@playwright/test';
  */
 
 const WIDTHS = [320, 375, 393, 430] as const;
-const STEPS = ['Modelo e tamanho', 'Texto e cores', 'Posição do texto', 'Revisar personalização'];
+const STEPS = [
+  'Modelo e tamanho',
+  'Texto e cores',
+  'Posição do texto',
+  'Revisar personalização',
+  'Observação',
+];
+const FINALIZE = 'Finalizar personalização';
 
 const preview = (page: Page) => page.getByRole('region', { name: 'Pré-visualização' });
 const toggle = (page: Page, title: string) =>
@@ -54,14 +61,15 @@ for (const width of WIDTHS) {
           (element) => element.textContent,
         ),
       );
-      expect(order).toEqual(['Pré-visualização', ...STEPS]);
+      expect(order).toEqual(['Pré-visualização', ...STEPS, FINALIZE]);
       for (const [index, title] of STEPS.entries()) {
         await expect(toggle(page, title)).toHaveAttribute(
           'aria-expanded',
           index === 0 ? 'true' : 'false',
         );
       }
-      // The last control on the page is "Baixar imagem", inside the review.
+      // "Finalizar" is always open, with no toggle; its last control ends the page (D-078).
+      await expect(toggle(page, FINALIZE)).toHaveCount(0);
       const last = await page.evaluate(() => {
         const buttons = [...document.querySelectorAll('button')];
         return buttons.at(-1)?.textContent;
@@ -118,6 +126,42 @@ for (const width of WIDTHS) {
 
       const [download] = await Promise.all([page.waitForEvent('download'), exportButton.tap()]);
       expect(download.suggestedFilename()).toBe('taavi-demo-placa-ceramica.png');
+    });
+
+    test('separates the review, the note, and "Finalizar" (D-078)', async ({ page }) => {
+      const finalize = page.getByRole('region', { name: FINALIZE, exact: true });
+      const review = page.getByRole('region', { name: 'Revisar personalização', exact: true });
+      // "Finalizar" needs no step opened: disclaimer, status, then the actions.
+      await expect(finalize.getByText(/^A pré-visualização é ilustrativa/)).toBeVisible();
+      await expect(
+        finalize.getByRole('region', { name: 'Situação da configuração' }),
+      ).toBeVisible();
+      await expect(finalize.getByRole('button', { name: 'Baixar imagem' })).toBeVisible();
+      await expectNotObscured(finalize.getByRole('button', { name: 'Baixar imagem' }));
+      // The review ends with "Reiniciar configurações".
+      await open(page, 'Revisar personalização');
+      await expect(review.getByRole('button')).toHaveText([
+        /Revisar personalização/,
+        'Reiniciar configurações',
+      ]);
+      await expect(review).not.toContainText(/ilustrativa|Falta escolher|Observação/);
+      // Each blocker is said once on the page.
+      await expect(page.getByText(/Falta escolher/)).toHaveCount(1);
+
+      // The note: collapsed at first; its text survives closing and reopening.
+      const note = page.getByRole('textbox', { name: 'Observação' });
+      await expect(toggle(page, 'Observação')).toHaveAttribute('aria-expanded', 'false');
+      await expect(note).toBeHidden();
+      await open(page, 'Observação');
+      await expect(toggle(page, 'Observação')).toBeFocused();
+      await expect(review.getByRole('button', { name: 'Reiniciar configurações' })).toBeHidden();
+      await note.fill('Presente\nde aniversário');
+      await toggle(page, 'Observação').tap();
+      await expect(note).toBeHidden();
+      await expect(toggle(page, 'Observação')).toBeFocused();
+      await open(page, 'Observação');
+      await expect(note).toHaveValue('Presente\nde aniversário');
+      await expectNoHorizontalScroll(page);
     });
 
     test('keeps every choice when steps close, and summarizes them', async ({ page }) => {

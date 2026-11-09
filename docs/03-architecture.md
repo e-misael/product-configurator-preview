@@ -179,9 +179,9 @@ The preview's scene is painted again by `drawScene` on a separate canvas and enc
 
 - `preview/share.ts` (no React): `canShareFiles`, `shareFile` (calls `navigator.share` synchronously, maps the result to `shared` / `cancelled` / `failed`), `whatsAppNumber` (validation), `whatsAppUrl`.
 - `preview/export.ts`: `exportRevision(config)` identifies what the image shows (every field but the note).
-- `hooks/usePreparedPng`: renders the scene with the same `renderPng` as the download, 300 ms after the last revision change, while the configuration is exportable and the section is open; returns a `File` only for the current revision.
-- `components/review/review-summary.ts` (no React): the review's values, used by `ReviewPanel` and by `order-message.ts`, which formats the plain-text order message.
-- `components/preview/ExportControls`: the three actions, their blockers, and their status messages. The WhatsApp number comes from `config/contact.ts`.
+- `hooks/usePreparedPng`: renders the scene with the same `renderPng` as the download, 300 ms after the last revision change, while the configuration is exportable and, on phones, no step that changes the image is open (D-078); returns a `File` only for the current revision.
+- `components/review/review-summary.ts` (no React): the review's values, computed once by `ConfiguratorForm` for `ReviewPanel` (summary and reset) and `FinalizePanel` (disclaimer and actions), and used by `order-message.ts`, which formats the plain-text order message. `NoteField` is the "Observação" step (D-078).
+- `components/preview/ExportControls`: the three actions, their blockers (the page's one status, "Situação da configuração", D-078), and their status messages. The WhatsApp number comes from `config/contact.ts`.
 
 ## Testing strategy
 

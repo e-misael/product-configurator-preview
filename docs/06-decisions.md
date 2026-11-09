@@ -559,6 +559,7 @@ Status values:
 - Conflict: choosing the highlight color as the primary swaps the two and keeps the words, announced as "As cores foram trocadas: destaque agora em {cor}." (silent while highlighting is off).
 - Off keeps the color and words; on restores them (if their words were not edited).
 - Selected word tokens are filled in the highlight color with white or black letters, whichever contrasts more (WCAG 2 ratio); every production color reaches at least 4.5:1 (Amarelo queimado: black, 6.85:1; Laranja escuro: white, 4.86:1). The check mark and `aria-pressed` are unchanged.
+- Refinement (product owner, 2026-11-09): the word toggles ignore the text's line breaks and wrap to the available width as one sequence; each break (with the spaces and blank lines around it) shows as one space. Presentation only: the stored text, its line breaks, and the range offsets are unchanged, so the text field, preview, PNG, and order message keep every line break.
 - **Status:** Approved (product owner, 2026-11-08). Implementation pending acceptance.
 
 ### D-072 — Lettering fonts, letter spacing, and deboss treatment B (2026-11-08)
@@ -622,6 +623,15 @@ Status values:
 - **QR Code:** points to the verified production address only, titled "Crie sua peça com a TAAVI", subtitle "Escaneie, personalize e envie sua criação pelo WhatsApp."; prepared only after the owner approves that address.
 - **Runbook:** `docs/08-deployment.md`, with each product-owner step marked and the deployment log.
 - **Status:** Approved (product owner, 2026-11-09). Repository prepared; no Cloudflare resource created and nothing deployed.
+
+### D-078 — Three groups at the end: review, note, finalization (2026-11-09)
+
+- **Context:** mobile usability feedback: the review held the summary, the reset, the status, the disclaimer, the note, the blockers, and the actions in one long panel, and the missing choices were listed twice (the status line and the export reasons).
+- **Decision (approved by the product owner, 2026-11-09):** the lower page has three separate groups, each a step panel. (1) "Revisar personalização": the summary and "Reiniciar configurações" only, ending with the reset. (2) "Observação": the optional note (D-062), its hint, and its field; a collapsible step on phones, closed at first, state "Opcional", the first line of the note as its summary; the text is kept while closed (the step stays mounted). (3) "Finalizar personalização": always open, with a plain heading, so the actions are always at hand; the approved disclaimer (D-056, unchanged), then the status, then "Compartilhar personalização", "Baixar imagem", and the WhatsApp fallback (D-076).
+- **One status location:** "Situação da configuração" in "Finalizar" lists what blocks the actions: the missing choices in one "Falta escolher: …" line, then each invalid choice and preview problem (D-063); "Configuração completa." when nothing does. The former separate status line (`ConfigurationStatus`) is removed, so no blocker is shown twice; invalid choices are still explained at their field (D-029).
+- **Preparing the PNG to share:** D-076 prepared it only while the review was open on phones. "Finalizar" is now always open, so on phones the PNG is prepared while no step that changes the image (model, text, position) is open: not while typing. Wide screens are unchanged (always). A note edit still never re-renders the PNG.
+- **Unchanged:** catalog, calibration, typography, text positioning and highlighting, rendering and watermark, PNG export, Native Share, the order message, and every validation rule.
+- **Status:** Approved (product owner, 2026-11-09). Implementation pending acceptance.
 
 ## Proposed
 
