@@ -217,6 +217,7 @@ export function ConfiguratorForm({
           sizePending={model.sizePending}
           validation={validation}
           scene={scene}
+          active={!collapsible || openStep === 'review'}
           onNote={state.setNote}
           onRestart={onRestart}
         />

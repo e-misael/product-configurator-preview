@@ -5,6 +5,7 @@ import {
   ExportError,
   exportBlockers,
   exportFileName,
+  exportRevision,
   exportSize,
   MAX_EXPORT_EDGE,
   renderPng,
@@ -137,7 +138,7 @@ describe('renderPng', () => {
     expect(calls[2]).toMatchObject({ op: 'fillRect', fillStyle: '#ffffff' });
     expect(
       contextOf(canvas).drawn.map((call) => {
-        if (call.op === 'fillText') return call.text === '© Taavi' ? 'signature' : call.fillStyle;
+        if (call.op === 'fillText') return call.text === '© TAAVI' ? 'signature' : call.fillStyle;
         if (call.image instanceof HTMLCanvasElement) return 'deboss';
         return (call.image as { src: string }).src === WATERMARK_SRC ? 'mark' : 'image';
       }),
@@ -253,5 +254,24 @@ describe('downloadBlob', () => {
     vi.runAllTimers();
     expect(revoke).toHaveBeenCalledWith('blob:test');
     vi.unstubAllGlobals();
+  });
+});
+
+describe('exportRevision (D-076)', () => {
+  it('ignores the note, which is never drawn (D-062)', () => {
+    expect(exportRevision(config({ note: 'Presente' }))).toBe(exportRevision(config({ note: '' })));
+  });
+
+  it.each([
+    ['model', { plateId: 'test-plate-circle' }],
+    ['text', { text: 'Ana ' }],
+    ['font', { fontFamily: 'sans-serif' as const }],
+    ['primary color', { textColorId: 'test-text-color-b' }],
+    ['highlight switch', { highlightEnabled: true }],
+    ['highlight color', { secondaryColorId: 'test-text-color-b' }],
+    ['highlighted words', { secondaryRanges: [{ start: 0, end: 3 }] }],
+    ['placement', { textLayout: { x: 0.5, y: 0.4, align: 'center' as const } }],
+  ])('changes with the %s', (_, change) => {
+    expect(exportRevision(config(change))).not.toBe(exportRevision(config()));
   });
 });

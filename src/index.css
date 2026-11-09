@@ -521,7 +521,8 @@ body {
   margin-top: 0;
 }
 
-.export__button {
+/* Scoped to win over .button, defined later. */
+.export .export__button {
   width: 100%;
   border-color: var(--color-text);
   background: var(--color-text);
@@ -529,7 +530,13 @@ body {
   font-weight: 500;
 }
 
-.export__button[aria-disabled='true'] {
+.export .export__button--secondary {
+  background: var(--color-field);
+  color: var(--color-text);
+  font-weight: 400;
+}
+
+.export .export__button[aria-disabled='true'] {
   border-style: dashed;
   border-color: var(--color-border-strong);
   background: var(--color-surface);
@@ -539,10 +546,36 @@ body {
 }
 
 @media (min-width: 48rem) {
-  .export__button {
+  .export .export__button {
     display: block;
     width: auto;
     margin-inline: auto;
+  }
+}
+
+/* "Abrir WhatsApp da TAAVI" (D-076): a link drawn as a button, after its two steps. */
+.whatsapp {
+  margin-top: 1.5rem;
+}
+
+.whatsapp__steps {
+  margin: 0.25rem 0 0;
+  padding-left: 1.25rem;
+  font-size: 0.875rem;
+  color: var(--color-muted);
+}
+
+.export .whatsapp__link {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
+@media (min-width: 48rem) {
+  .export .whatsapp__link {
+    width: fit-content;
   }
 }
 

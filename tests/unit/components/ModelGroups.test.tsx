@@ -43,7 +43,7 @@ const sizes = () => screen.queryByRole('group', { name: 'Tamanho' });
 const preview = () => screen.getByRole('region', { name: 'Pré-visualização' });
 const review = () => screen.getByRole('region', { name: 'Revisar personalização' });
 const configStatus = () => screen.getByRole('region', { name: 'Situação da configuração' });
-const exportButton = () => screen.getByRole('button', { name: 'Exportar imagem' });
+const exportButton = () => screen.getByRole('button', { name: 'Baixar imagem' });
 /** The summary value for a term, e.g. "Modelo". */
 const summary = (term: string) =>
   within(review()).getByText(`${term}:`, { selector: 'dt' }).nextElementSibling?.textContent;
@@ -55,7 +55,7 @@ function painted(): string[] {
   if (!element) return [];
   const ctx: FakeContext = contextOf(element);
   return ctx.drawn.flatMap((call) => {
-    if (call.op === 'fillText') return call.text === '© Taavi' ? [] : [`text:${call.font}`];
+    if (call.op === 'fillText') return call.text === '© TAAVI' ? [] : [`text:${call.font}`];
     const { src } = call.image as { src?: string };
     return src?.startsWith('/catalog/') ? [src] : [];
   });

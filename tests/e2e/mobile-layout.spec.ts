@@ -61,12 +61,12 @@ for (const width of WIDTHS) {
           index === 0 ? 'true' : 'false',
         );
       }
-      // The last control on the page is "Exportar imagem", inside the review.
+      // The last control on the page is "Baixar imagem", inside the review.
       const last = await page.evaluate(() => {
         const buttons = [...document.querySelectorAll('button')];
         return buttons.at(-1)?.textContent;
       });
-      expect(last).toBe('Exportar imagem');
+      expect(last).toBe('Baixar imagem');
       await expect(page.getByRole('button', { name: /Continuar/ })).toHaveCount(0);
       await expectNoHorizontalScroll(page);
     });
@@ -105,7 +105,7 @@ for (const width of WIDTHS) {
 
       await open(page, 'Revisar personalização');
       await expect(preview(page)).not.toHaveClass(/preview--expanded/);
-      const exportButton = page.getByRole('button', { name: 'Exportar imagem' });
+      const exportButton = page.getByRole('button', { name: 'Baixar imagem' });
       await expect(exportButton).toHaveAttribute('aria-disabled', 'false');
       await expectNotObscured(exportButton);
       // Scrolled to the end, the preview band is still at the top of the screen.

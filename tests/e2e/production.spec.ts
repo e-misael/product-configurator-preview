@@ -24,7 +24,7 @@ type Rgb = readonly [number, number, number];
 const DISCLAIMER = [
   'A pré-visualização é ilustrativa. Como nossas peças são produzidas artesanalmente, o produto final pode apresentar pequenas variações de formato, textura, acabamento, posicionamento das letras e tonalidade das cores em relação à imagem exibida na tela.',
   'As cores também podem variar conforme a iluminação, as características da cerâmica e as configurações de cada dispositivo.',
-  'Todas as solicitações de personalização estão sujeitas à análise e aprovação da Taavi.',
+  'Todas as solicitações de personalização estão sujeitas à análise e aprovação da TAAVI.',
 ];
 
 /** The Placa's calibrated text area, as fractions of the image. */
@@ -112,9 +112,9 @@ test.describe('Production build @smoke', () => {
   test('lists the four models, with no demo data, each with its photograph', async ({ page }) => {
     await page.goto('/');
 
-    await expect(page).toHaveTitle('Taavi Configurator');
+    await expect(page).toHaveTitle('TAAVI Configurator');
     await expect(page.locator('html')).toHaveAttribute('lang', 'pt-BR');
-    await expect(page.getByRole('heading', { level: 1, name: 'Taavi Configurator' })).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'TAAVI Configurator' })).toBeVisible();
 
     const group = page.getByRole('group', { name: 'Modelo' });
     const options = ['Placa cerâmica — 10 × 10 cm', 'Quadro — 20 × 20 cm', 'Bandeja ondulada'];
@@ -175,7 +175,7 @@ test.describe('Production build @smoke', () => {
     await chooseModel(page, 'Placa cerâmica — 10 × 10 cm');
 
     const review = await step(page, 'Revisar personalização');
-    const button = review.getByRole('button', { name: 'Exportar imagem' });
+    const button = review.getByRole('button', { name: 'Baixar imagem' });
     await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(review).toContainText('Falta escolher: Texto.');
     await expect(review).not.toContainText('Cor do texto.');
@@ -276,7 +276,7 @@ test.describe('Production customization to PNG export (D-056)', () => {
     const shown = await colorCounts(page, 'preview', [green, red]);
 
     const review = await step(page, 'Revisar personalização');
-    const button = review.getByRole('button', { name: 'Exportar imagem' });
+    const button = review.getByRole('button', { name: 'Baixar imagem' });
     await expect(button).toHaveAttribute('aria-disabled', 'false');
     const [download] = await Promise.all([page.waitForEvent('download'), button.click()]);
     expect(download.suggestedFilename()).toBe('taavi-placa-ceramica-10.png');
@@ -481,7 +481,7 @@ test.describe('Bandeja ondulada sizes (D-057)', () => {
     const models = page.getByRole('group', { name: 'Modelo' });
     const preview = page.getByRole('region', { name: 'Pré-visualização' });
     const review = page.getByRole('region', { name: 'Revisar personalização' });
-    const button = review.getByRole('button', { name: 'Exportar imagem' });
+    const button = review.getByRole('button', { name: 'Baixar imagem' });
     const summary = (term: string) => review.locator('dt', { hasText: term }).locator('+ dd');
     const bandeja = models.getByRole('radio', { name: 'Bandeja ondulada' });
     await expect(bandeja).toHaveAccessibleDescription('Disponível em dois tamanhos');
@@ -596,7 +596,7 @@ test.describe('Bandeja ondulada before its size (M4.6)', () => {
       page.getByRole('group', { name: 'Tamanho' }).getByRole('radio', { checked: true }),
     ).toHaveCount(0);
     const review = await step(page, 'Revisar personalização');
-    const button = review.getByRole('button', { name: 'Exportar imagem' });
+    const button = review.getByRole('button', { name: 'Baixar imagem' });
     await expect(button).toHaveAttribute('aria-disabled', 'true');
     await expect(review).toContainText('Falta escolher: Tamanho.');
     await expect(button).toHaveAccessibleDescription(/Falta escolher: Tamanho/);
@@ -667,7 +667,7 @@ test.describe('Overflow at the fixed lettering size (D-057)', () => {
       // Export state is read from the button's attributes, whether its step is open or not.
       const button = page
         .getByRole('region', { name: 'Revisar personalização' })
-        .getByRole('button', { name: 'Exportar imagem', includeHidden: true });
+        .getByRole('button', { name: 'Baixar imagem', includeHidden: true });
       await expect(preview.getByRole('img')).toBeVisible();
 
       await field.fill(lines(area.lines));

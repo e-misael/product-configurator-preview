@@ -87,7 +87,7 @@ test('completes a configuration @smoke', async ({ page }) => {
   // "Sem serifa" is lettered in capitals (D-068).
   await expect(review).toContainText('CASA DA ANA');
   await expect(review).toContainText('Bege');
-  await expect(review.getByRole('button', { name: 'Exportar imagem' })).toHaveAttribute(
+  await expect(review.getByRole('button', { name: 'Baixar imagem' })).toHaveAttribute(
     'aria-disabled',
     'false',
   );
@@ -180,12 +180,12 @@ test('shows the handmade-product disclaimer in the review, before export', async
   for (const paragraph of [
     /^A pré-visualização é ilustrativa\. Como nossas peças são produzidas artesanalmente/,
     /^As cores também podem variar conforme a iluminação/,
-    'Todas as solicitações de personalização estão sujeitas à análise e aprovação da Taavi.',
+    'Todas as solicitações de personalização estão sujeitas à análise e aprovação da TAAVI.',
   ]) {
     await expect(review.getByText(paragraph)).toBeVisible();
   }
   const disclaimer = review.getByText(/^Todas as solicitações/);
-  const exportButton = review.getByRole('button', { name: 'Exportar imagem' });
+  const exportButton = review.getByRole('button', { name: 'Baixar imagem' });
   const [text, button] = [await disclaimer.boundingBox(), await exportButton.boundingBox()];
   expect((text?.y ?? 0) < (button?.y ?? 0)).toBe(true);
 });
@@ -216,7 +216,7 @@ test('takes an optional "Observação" just before export, never required (D-062
     .check();
   const review = await step(page, 'Revisar personalização');
   const note = review.getByRole('textbox', { name: 'Observação' });
-  const exportButton = review.getByRole('button', { name: 'Exportar imagem' });
+  const exportButton = review.getByRole('button', { name: 'Baixar imagem' });
   await expect(exportButton).toHaveAttribute('aria-disabled', 'false');
 
   await note.fill('  Entregar até sexta\nObrigada ');

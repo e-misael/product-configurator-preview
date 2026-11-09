@@ -17,7 +17,7 @@ Version pins: TypeScript is held at `~6.0` because typescript-eslint supports `<
 
 ## Application boundaries
 
-A static, client-only single-page app. No backend, database, authentication, or network calls. All product data is local and version-controlled.
+A static, client-only single-page app. No backend, database, authentication, or network calls. All product data is local and version-controlled. Sharing (D-076) hands the PNG to the device's share sheet or opens a `wa.me` link; neither is a request made by the app.
 
 ## Layers
 
@@ -50,7 +50,8 @@ src/
 ├── components/
 │   ├── configurator/ # form controls (M2)
 │   └── preview/      # canvas preview and its messages (M3.1)
-├── hooks/            # useConfiguration (M2), useImages (M3.1)
+├── config/           # contact.ts: TAAVI's WhatsApp number (D-076, P-16)
+├── hooks/            # useConfiguration (M2), useImages (M3.1), usePreparedPng (M5.1)
 ├── preview/          # pure composition, scene layout, text fitting; canvas painting (M3.1)
 ├── demo/             # demo catalog, banner, and public/ with synthetic images (demo mode only)
 └── services/         # export (M4)
@@ -173,6 +174,14 @@ Configuration + validation + catalog
 ## Export strategy (D-008, D-009)
 
 The preview's scene is painted again by `drawScene` on a separate canvas and encoded as PNG on the client: same images (already loaded by `useImages`), same measured text and colored segments, same alignment and position. Size is the base image's native size, never upscaled, with the longest edge capped at 4000 px; background is opaque white in both; the file is `taavi-{plateId}.png`. Export is blocked while the configuration is not valid or the scene reports any notice. Real source-image resolution (P-08) only affects the output size through the native-size rule.
+
+## Sharing (M5.1, D-076)
+
+- `preview/share.ts` (no React): `canShareFiles`, `shareFile` (calls `navigator.share` synchronously, maps the result to `shared` / `cancelled` / `failed`), `whatsAppNumber` (validation), `whatsAppUrl`.
+- `preview/export.ts`: `exportRevision(config)` identifies what the image shows (every field but the note).
+- `hooks/usePreparedPng`: renders the scene with the same `renderPng` as the download, 300 ms after the last revision change, while the configuration is exportable and the section is open; returns a `File` only for the current revision.
+- `components/review/review-summary.ts` (no React): the review's values, used by `ReviewPanel` and by `order-message.ts`, which formats the plain-text order message.
+- `components/preview/ExportControls`: the three actions, their blockers, and their status messages. The WhatsApp number comes from `config/contact.ts`.
 
 ## Testing strategy
 

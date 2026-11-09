@@ -37,7 +37,7 @@ const PLATE_AREA: Area = { x0: 0.2, y0: 0.3, x1: 0.8, y1: 0.7 };
 const preview = (page: Page) => page.getByRole('region', { name: 'Pré-visualização' });
 /** Export is the last action of "Revisar personalização" (D-058). */
 const review = (page: Page) => page.getByRole('region', { name: 'Revisar personalização' });
-const exportButton = (page: Page) => review(page).getByRole('button', { name: 'Exportar imagem' });
+const exportButton = (page: Page) => review(page).getByRole('button', { name: 'Baixar imagem' });
 
 /** Chooses a demo Bandeja size under its grouped option (D-057). */
 async function chooseTray(page: Page, size: 'M' | 'G') {
@@ -130,7 +130,7 @@ async function analyze(
   );
 }
 
-/** Clicks "Exportar imagem", waits for the real download, and checks the PNG header. */
+/** Clicks "Baixar imagem", waits for the real download, and checks the PNG header. */
 async function downloadPng(page: Page) {
   const [download] = await Promise.all([page.waitForEvent('download'), exportButton(page).click()]);
   const bytes = await readFile(await download.path());
@@ -339,10 +339,10 @@ test.describe('blocked export', () => {
     await openStep(page, 'Revisar personalização');
 
     await expect(preview(page)).toContainText(
-      'Não foi possível carregar a assinatura Taavi da imagem. Recarregue a página para exportar.',
+      'Não foi possível carregar a assinatura TAAVI da imagem. Recarregue a página para exportar.',
     );
     await expect(exportButton(page)).toHaveAttribute('aria-disabled', 'true');
-    await expect(exportButton(page)).toHaveAccessibleDescription(/assinatura Taavi/);
+    await expect(exportButton(page)).toHaveAccessibleDescription(/assinatura TAAVI/);
     await expectNoDownload(page);
   });
 
@@ -391,7 +391,7 @@ test('signs every export like its preview, at the bottom-right (D-060)', async (
         const W = canvas.width;
         const H = canvas.height;
         const { data } = ctx.getImageData(0, 0, W, H);
-        // Dark ink (mark and "© Taavi") inside the corner, as a box in fractions.
+        // Dark ink (mark and "© TAAVI") inside the corner, as a box in fractions.
         let left = Infinity;
         let right = -Infinity;
         let top = Infinity;

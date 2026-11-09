@@ -59,7 +59,7 @@ export const NOTICE_MESSAGES: Record<PreviewNoticeCode, string> = {
     'Cor do texto ainda não escolhida: o texto aparece em uma cor provisória, que não é uma das cores disponíveis.',
   'text-overflow': 'O texto não cabe na área do modelo. Reduza o texto ou use menos linhas.',
   'watermark-error':
-    'Não foi possível carregar a assinatura Taavi da imagem. Recarregue a página para exportar.',
+    'Não foi possível carregar a assinatura TAAVI da imagem. Recarregue a página para exportar.',
   'font-error':
     'Não foi possível carregar a fonte das letras; a prévia usa uma fonte aproximada. Recarregue a página para exportar.',
 };
@@ -99,5 +99,17 @@ export const EXPORT_MESSAGES = {
   done: 'Imagem exportada:',
   failed: 'Não foi possível gerar a imagem. Tente novamente.',
   invalidSize: 'As dimensões da imagem não permitem a exportação.',
-  noWatermark: 'A assinatura Taavi não foi carregada; a imagem não pode ser exportada.',
+  noWatermark: 'A assinatura TAAVI não foi carregada; a imagem não pode ser exportada.',
+} as const;
+
+/**
+ * pt-BR wording for sharing (D-076). None of it says the request was sent,
+ * received, or confirmed: the app cannot know.
+ */
+export const SHARE_MESSAGES = {
+  preparing: 'Preparando imagem para compartilhar…',
+  shared: 'Confira no WhatsApp se a imagem e os detalhes foram enviados para a TAAVI.',
+  cancelled: 'Compartilhamento cancelado. Sua personalização continua aqui.',
+  failed:
+    'Não foi possível compartilhar. Você pode baixar a imagem e enviá-la pelo WhatsApp da TAAVI.',
 } as const;

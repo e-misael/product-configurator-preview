@@ -1,6 +1,6 @@
-# Taavi Configurator
+# TAAVI Configurator
 
-Visual configurator for Taavi's handmade ceramics: the customer picks a model (Modelo: Placa cerâmica, Quadro, Bandeja ondulada M and G; in code a `Plate`; the Quadro is one complete product, plate plus wooden frame, photographed assembled) and text; sees a real-time preview; exports an image. The ceramic color is fixed per model and read-only. Static client-side app, independent from Nuvemshop. Internal business tool, **not** SaaS.
+Visual configurator for TAAVI's handmade ceramics: the customer picks a model (Modelo: Placa cerâmica, Quadro, Bandeja ondulada M and G; in code a `Plate`; the Quadro is one complete product, plate plus wooden frame, photographed assembled) and text; sees a real-time preview; exports an image. The ceramic color is fixed per model and read-only. Static client-side app, independent from Nuvemshop. Internal business tool, **not** SaaS.
 
 ## Read first
 
@@ -16,8 +16,8 @@ Visual configurator for Taavi's handmade ceramics: the customer picks a model (M
 
 ## MVP boundaries
 
-In scope: model (fixed shape classification: square, rectangle, circle, scalloped), fixed read-only ceramic color, text with font family, up to two lettering colors, position presets that also set the alignment (M4.1b, M4.2), live preview, PNG image export (M4).
-Out of scope: a separately chosen frame (Moldura) or frame layers (D-046), customer image uploads of any kind (file picker, drag-and-drop, image URLs, image storage or upload APIs; images are curated by Taavi in the catalog only, FR-09, D-045), Nuvemshop integration, cart, checkout, orders, payments, accounts, auth, database, backend, cloud storage, inventory, pricing, AI previews, 3D, admin, analytics. Do not add these or abstractions for them.
+In scope: model (fixed shape classification: square, rectangle, circle, scalloped), fixed read-only ceramic color, text with font family, up to two lettering colors, position presets that also set the alignment (M4.1b, M4.2), live preview, PNG image export (M4), sharing the PNG and an order request through the device's share sheet or a WhatsApp link (M5.1, D-076).
+Out of scope: a separately chosen frame (Moldura) or frame layers (D-046), customer image uploads of any kind (file picker, drag-and-drop, image URLs, image storage or upload APIs; images are curated by TAAVI in the catalog only, FR-09, D-045), Nuvemshop integration, cart, checkout, orders, payments, accounts, auth, database, backend, cloud storage, inventory, pricing, AI previews, 3D, admin, analytics. Do not add these or abstractions for them.
 
 ## Stack
 
@@ -29,7 +29,8 @@ React 19, TypeScript strict (`~6.0`), Vite 8, ESLint 9 + jsx-a11y, Prettier, Vit
 src/domain/    pure types + validation (no React/DOM)
 src/catalog/   catalog data (data.ts) + getCatalog() entry point — deep-frozen source of truth
 src/components/ configurator form + canvas preview
-src/hooks/     useConfiguration, useImages
+src/config/    contact.ts: TAAVI's WhatsApp number (pending, P-16; never a placeholder)
+src/hooks/     useConfiguration, useImages, useLetteringFont, usePreparedPng
 src/preview/   pure composition + scene layout + text fit; canvas painting
 src/demo/      demo-mode catalog, banner, and public/ synthetic images (never in production builds, D-028, D-036)
 src/App.tsx    app shell
@@ -50,7 +51,7 @@ Future folders (`services`, `public/catalog/plates/{owner-id}/` — real images 
 - Validation reports `valid` / `incomplete` / `invalid`; it never replaces a selection.
 - Text is stored exactly as typed.
 - There is no frame entity, field, or layer: the Quadro's frame is part of the product and of its one photograph (D-046). Do not reintroduce frames without a new approved decision.
-- The ceramic color is a catalog property of the model (`ceramicColor`), never a configuration field. Size labels are display text as supplied; `dimensions` holds only sizes confirmed by Taavi (P-01).
+- The ceramic color is a catalog property of the model (`ceramicColor`), never a configuration field. Size labels are display text as supplied; `dimensions` holds only sizes confirmed by TAAVI (P-01).
 - Preview and export must represent the same configuration, composed from the same **real product images** (D-027). No CSS tinting of photos to fake ceramic colors; vector/synthetic visuals are demo-only.
 
 ## Architecture principles

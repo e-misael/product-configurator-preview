@@ -7,7 +7,7 @@ describe('App shell', () => {
 
     expect(screen.getByRole('main')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { level: 1, name: 'Taavi Configurator' }),
+      screen.getByRole('heading', { level: 1, name: 'TAAVI Configurator' }),
     ).toBeInTheDocument();
   });
 
@@ -42,7 +42,7 @@ describe('App shell', () => {
       screen.queryByText('As cores do texto ainda não foram definidas.'),
     ).not.toBeInTheDocument();
     expect(screen.getByRole('switch', { name: 'Destacar parte(s) do texto' })).not.toBeChecked();
-    expect(screen.getByText(/sujeitas à análise e aprovação da Taavi/)).toBeVisible();
+    expect(screen.getByText(/sujeitas à análise e aprovação da TAAVI/)).toBeVisible();
   });
 
   it('handles an empty catalog', () => {

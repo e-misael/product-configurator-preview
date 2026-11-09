@@ -29,12 +29,12 @@ export default defineConfig({
     // Demo build (synthetic catalog) for functional flows (D-028).
     {
       name: 'demo-desktop-chromium',
-      testMatch: ['configurator.spec.ts', 'preview.spec.ts', 'export.spec.ts'],
+      testMatch: ['configurator.spec.ts', 'preview.spec.ts', 'export.spec.ts', 'share.spec.ts'],
       use: { ...devices['Desktop Chrome'], baseURL: demo },
     },
     {
       name: 'demo-mobile-chromium',
-      testMatch: ['configurator.spec.ts', 'preview.spec.ts', 'export.spec.ts'],
+      testMatch: ['configurator.spec.ts', 'preview.spec.ts', 'export.spec.ts', 'share.spec.ts'],
       use: { ...devices['Pixel 7'], baseURL: demo },
     },
     // Mobile-first layout at phone widths, by touch, in both engines (D-058).
@@ -62,7 +62,7 @@ export default defineConfig({
     // Lightweight WebKit coverage: smoke tests only.
     {
       name: 'demo-mobile-webkit',
-      testMatch: ['configurator.spec.ts', 'preview.spec.ts', 'export.spec.ts'],
+      testMatch: ['configurator.spec.ts', 'preview.spec.ts', 'export.spec.ts', 'share.spec.ts'],
       grep: /@smoke/,
       use: { ...devices['iPhone 14'], baseURL: demo },
     },

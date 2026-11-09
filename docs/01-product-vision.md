@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Taavi Configurator is a visual product customization tool for Taavi, an existing handmade ceramics store that operates on Nuvemshop. It lets a customer compose a personalized ceramic piece, see an accurate real-time preview, and export an image of the result.
+TAAVI Configurator is a visual product customization tool for TAAVI, an existing handmade ceramics store that operates on Nuvemshop. It lets a customer compose a personalized ceramic piece, see an accurate real-time preview, and export an image of the result.
 
 It is an internal business tool with a customer-facing interface. It is **not** a commercial SaaS product.
 
@@ -32,13 +32,13 @@ Customers cannot currently see what their personalized piece will look like befo
 | Real-time preview         | —                                                            |
 | Image export              | —                                                            |
 
-The text has a font family, up to two lettering colors, alignment, and position (M4.1b). Images are curated by Taavi only; customers never upload images (FR-09).
+The text has a font family, up to two lettering colors, alignment, and position (M4.1b). Images are curated by TAAVI only; customers never upload images (FR-09).
 
 Details and acceptance criteria: [02-requirements.md](02-requirements.md).
 
 ## Out of scope
 
-Customer image uploads (file picker, drag-and-drop, image URLs, image storage or upload APIs), Nuvemshop integration, shopping cart, checkout, order management, payments, customer accounts, authentication, database, backend API, cloud storage, inventory, dynamic pricing, AI-generated previews, 3D rendering, admin dashboard, analytics, multi-tenancy, and any commercial SaaS functionality.
+Customer image uploads (file picker, drag-and-drop, image URLs, image storage or upload APIs), sending orders on the customer's behalf (sharing hands the image and a request to the customer's own share sheet or WhatsApp, D-076; no WhatsApp Business API), Nuvemshop integration, shopping cart, checkout, order management, payments, customer accounts, authentication, database, backend API, cloud storage, inventory, dynamic pricing, AI-generated previews, 3D rendering, admin dashboard, analytics, multi-tenancy, and any commercial SaaS functionality.
 
 The long-term goal is to integrate with the existing store **without rebuilding its e-commerce infrastructure**. Future integration must not drive complexity into the current architecture.
 

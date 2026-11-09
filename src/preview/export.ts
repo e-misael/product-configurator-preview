@@ -7,7 +7,7 @@
  * preview notice means something is pending, failed, or would be left out.
  */
 
-import type { ValidationIssue, ValidationResult } from '../domain';
+import type { Configuration, ValidationIssue, ValidationResult } from '../domain';
 import type { PreviewNoticeCode } from './composition';
 import { drawScene } from './draw';
 import type { ImageSize, Scene } from './scene';
@@ -40,6 +40,17 @@ export function exportBlockers<I extends ImageSize>(
   for (const code of new Set(scene.notices)) blockers.push({ kind: 'preview', code });
   if (blockers.length === 0 && scene.layers.length === 0) blockers.push({ kind: 'empty' });
   return blockers;
+}
+
+/**
+ * Identifies what the exported image shows: every configuration field but the
+ * note, which is never drawn (D-062). Equal revisions of an exportable
+ * configuration give the same PNG, so a PNG prepared for one is reused only
+ * while it is unchanged (D-076).
+ */
+export function exportRevision(config: Configuration): string {
+  // JSON leaves out undefined fields.
+  return JSON.stringify({ ...config, note: undefined });
 }
 
 export interface ExportSize {

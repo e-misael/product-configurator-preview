@@ -374,7 +374,7 @@ describe('Configurator', () => {
       for (const paragraph of [
         'A pré-visualização é ilustrativa. Como nossas peças são produzidas artesanalmente, o produto final pode apresentar pequenas variações de formato, textura, acabamento, posicionamento das letras e tonalidade das cores em relação à imagem exibida na tela.',
         'As cores também podem variar conforme a iluminação, as características da cerâmica e as configurações de cada dispositivo.',
-        'Todas as solicitações de personalização estão sujeitas à análise e aprovação da Taavi.',
+        'Todas as solicitações de personalização estão sujeitas à análise e aprovação da TAAVI.',
       ]) {
         expect(screen.getByText(paragraph).tagName).toBe('P');
       }
@@ -417,7 +417,7 @@ describe('Configurator', () => {
     it('is an optional field in the review, before export, kept exactly as typed', async () => {
       const { user } = setup();
       const note = within(review()).getByRole('textbox', { name: 'Observação' });
-      const exportButton = within(review()).getByRole('button', { name: 'Exportar imagem' });
+      const exportButton = within(review()).getByRole('button', { name: 'Baixar imagem' });
 
       expect(note).toHaveValue('');
       expect(note).toHaveAccessibleDescription('Opcional. Não aparece na imagem exportada.');

@@ -35,7 +35,7 @@ describe('Reiniciar configurações', () => {
   it('is offered in the review, under the summary and before export (D-058)', () => {
     setup();
     const summary = within(review()).getByText('Alinhamento:');
-    const exportButton = within(review()).getByRole('button', { name: 'Exportar imagem' });
+    const exportButton = within(review()).getByRole('button', { name: 'Baixar imagem' });
     expect(
       summary.compareDocumentPosition(restart()) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();

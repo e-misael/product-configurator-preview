@@ -52,11 +52,11 @@ function settle() {
 
 /**
  * Painted layers: photographs by source, text by content, the deboss shading
- * layer as 'deboss', and the Taavi signature (mark and "© Taavi") as 'signature'.
+ * layer as 'deboss', and the Taavi signature (mark and "© TAAVI") as 'signature'.
  */
 function painted(ctx: FakeContext) {
   return ctx.drawn.map((call) => {
-    if (call.op === 'fillText') return call.text === '© Taavi' ? 'signature' : `text:${call.text}`;
+    if (call.op === 'fillText') return call.text === '© TAAVI' ? 'signature' : `text:${call.text}`;
     if (call.image instanceof HTMLCanvasElement) return 'deboss';
     const { src } = call.image as { src: string };
     return src === WATERMARK_SRC ? 'signature' : src;
@@ -249,7 +249,7 @@ describe('Preview', () => {
         expect(document.getElementById('text-overflow')).toHaveClass('field__error--alert');
         expect(within(preview()).getByText(message)).toHaveClass('preview__notice--error');
         expect(review().querySelector('#export-reasons')).toHaveTextContent(message);
-        expect(within(review()).getByRole('button', { name: 'Exportar imagem' })).toHaveAttribute(
+        expect(within(review()).getByRole('button', { name: 'Baixar imagem' })).toHaveAttribute(
           'aria-disabled',
           'true',
         );
@@ -341,7 +341,7 @@ describe('Preview', () => {
       expect(painted(currentContext()).some((entry) => entry.startsWith('text:'))).toBe(false);
       expect(summaryText()).toHaveTextContent('ANA');
       // A complete configuration still cannot be exported without an approved size.
-      const exportButton = within(review()).getByRole('button', { name: 'Exportar imagem' });
+      const exportButton = within(review()).getByRole('button', { name: 'Baixar imagem' });
       expect(exportButton).toHaveAttribute('aria-disabled', 'true');
       // The reason is named in the export list, not only in the preview (D-063).
       expect(review().querySelector('#export-reasons')).toHaveTextContent(message);
@@ -393,7 +393,7 @@ describe('Preview', () => {
      */
     const lineEdges = () =>
       currentContext()
-        .drawn.filter((entry) => entry.op === 'fillText' && entry.text !== '© Taavi')
+        .drawn.filter((entry) => entry.op === 'fillText' && entry.text !== '© TAAVI')
         .map((entry) => {
           if (entry.op !== 'fillText') return [];
           const width = [...entry.text].length * fontSizeOf(entry.font) * 0.5;
@@ -580,7 +580,7 @@ describe('Preview', () => {
   });
 
   describe('export (D-008)', () => {
-    const exportButton = () => within(review()).getByRole('button', { name: 'Exportar imagem' });
+    const exportButton = () => within(review()).getByRole('button', { name: 'Baixar imagem' });
     const reasons = () => review().querySelector('#export-reasons');
     let clicked: HTMLAnchorElement[];
 

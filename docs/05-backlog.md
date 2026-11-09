@@ -98,7 +98,7 @@ Status: **Done** for the four current models: photographs, calibration, dimensio
 
 Status: **Done** (technical implementation, committed in 6d8cbb2, 2026-11-08). Crop, calibration, centered default, and photo presentation approved (D-053). Delivered: the Placa photograph (640 × 640 crop) in `public/catalog/plates/placa-ceramica-10/bege.png` with its calibration in the production catalog; debossed lettering (D-052) in the shared Canvas renderer, so preview and PNG export match; the six proposed colors in the demo catalog only. Production still has no lettering colors, so production export stays blocked. Checks: 446 unit tests; Playwright 91 passed, 3 skipped, including Chromium and WebKit pixel tests (no pixel outside the glyphs changes; stroke centers keep their color) and a throttled drag test. Production-readiness dependencies (tracked here, not reopening M1.3b-1):
 
-- Lettering palette (P-02): Taavi's production `#rrggbb` values. Marrom, Azul, Verde, and Vermelho escuro are visually acceptable to the product owner; Amarelo and Laranja remain proposals with a legibility concern. Until then production export stays blocked.
+- Lettering palette (P-02): TAAVI's production `#rrggbb` values. Marrom, Azul, Verde, and Vermelho escuro are visually acceptable to the product owner; Amarelo and Laranja remain proposals with a legibility concern. Until then production export stays blocked.
 - Typography (P-04, P-14): typefaces resolved by D-072 (M4.8); text limits still open.
 - Deboss look (D-052): resolved by treatment B (D-072).
 - Mobile rendering: about 40 fps while dragging under 4× CPU throttling; optimize only with evidence from real devices.
@@ -237,7 +237,7 @@ Status: **Done** (accepted 2026-11-08, D-046, D-047). Evidence: typecheck, lint,
 
 ## M4.3 — Fixed lettering size
 
-Status: **Done** (2026-11-08, commits 798ec6b and 2290544). Taavi's lettering molds have one size (D-055).
+Status: **Done** (2026-11-08, commits 798ec6b and 2290544). TAAVI's lettering molds have one size (D-055).
 
 - [x] `TextLayout.fontSize`: fixed size per model as a fraction of the image width; validated in (0, 1]; optional, so pending models keep the catalog valid
 - [x] Placa: 0.0837 (53.6 px on 640 px), for capitals about 7 mm tall on the 100 mm plate; a provisional estimate from the lettered reference photograph, not a mold measurement (first set at 0.08625, about 7.2 mm)
@@ -280,7 +280,7 @@ Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decisio
 - [x] Identity tokens and self-hosted Red Hat Display; lettering fonts and sizes unchanged
 - [x] Independent line alignment (icon-only, named radios); presets and reset keep it; overflow placement independent of it
 - [x] Position modes "Escolher posição" / "Ajustar manualmente"; "Mover texto" removed; keyboard instructions visually hidden
-- [x] Taavi signature (arch + "© Taavi") in every preview and PNG, 0.0825 high, no background, ink opacity 0.72 (D-065); export blocked and `renderPng` refusing without it
+- [x] TAAVI signature (arch + "© TAAVI") in every preview and PNG, 0.0825 high, no background, ink opacity 0.72 (D-065); export blocked and `renderPng` refusing without it
 - [x] Bandeja ondulada: shared photograph before the size, no lettering, export blocked until M or G
 - [x] "Cor do texto": only the selected swatch shows its name (others are chips with accessible names); "Alinhamento das linhas" after "Posição do bloco"
 - [x] Optional "Observação" before export, stored as typed, never drawn (D-062)
@@ -308,7 +308,7 @@ Status: **Implemented** (2026-11-08), awaiting product-owner acceptance. Decisio
 
 ## M4.8 — Lettering fonts and deboss treatment B
 
-Status: **Implemented** (2026-11-08), awaiting product-owner acceptance and a real-phone check beside a Taavi piece. Decision D-072.
+Status: **Implemented** (2026-11-08), awaiting product-owner acceptance and a real-phone check beside a TAAVI piece. Decision D-072.
 
 - [x] One `lettering-fonts` configuration: Quicksand Bold 700 (0.05 em spacing, uppercase) and Gelasio Regular 400, self-hosted from `@fontsource` (OFL 1.1), Latin and Latin Extended
 - [x] Fonts loaded before measuring or drawing (Font Loading API); scene waits; `font-error` draws the fallback and blocks export
@@ -319,11 +319,28 @@ Status: **Implemented** (2026-11-08), awaiting product-owner acceptance and a re
 - [x] Bandeja ondulada G lettering 0.053 (about 4.4 mm capitals): "PROSPERIDADE" in one row, as on the real piece (D-073)
 - [x] Bandeja ondulada M lettering 0.0805 (about 4.8 mm capitals): "AMIZADES" in one row, as on the real piece (D-074)
 - [x] Placa cerâmica lettering 0.0753 (−10%, about 6.3 mm capitals) and a larger text area about 5 mm from the edges, extended downwards: 8 lines, about 16 capitals per line (D-075)
-- Remaining: final visual check on a real iPhone or Android phone, preferably beside a real Taavi piece.
+- Remaining: final visual check on a real iPhone or Android phone, preferably beside a real TAAVI piece.
 
 ## M5 — Quality and usability
 
-Status: Planned.
+Status: In progress.
+
+### M5.1 — Sharing the customization (D-076, FR-10)
+
+Status: **Implemented** (2026-11-09), awaiting manual device checks and TAAVI's WhatsApp number (P-16).
+
+- [x] "Compartilhar personalização": Web Share API with the watermarked PNG and the order message; hidden without file sharing
+- [x] PNG prepared in the background (300 ms, per export revision, never stale), shared from the tap itself
+- [x] "Baixar imagem" (formerly "Exportar imagem"), unchanged PNG with the TAAVI signature
+- [x] "Abrir WhatsApp da TAAVI": `wa.me` link with the order message and steps to attach the downloaded image; shown only with a configured number
+- [x] Order message from the review's values; status messages that never claim a sent request
+- [x] Export blockers on every action; configuration kept on cancel and failure
+- [x] TAAVI in capitals in the UI, messages, and documentation
+- [x] Tests: share helpers, order message, prepared PNG (debounce, invalidation, stale results), component flows, Playwright with a stubbed share sheet (Chromium desktop and mobile, WebKit mobile): same bytes as the download, user activation, stale prevention, cancel and failure, unsupported browser, loading photograph, no WhatsApp link without a number
+- Remaining (manual): on a real iPhone (Safari) and Android phone (Chrome), share to WhatsApp and choose the TAAVI chat; note whether the text arrives as the image caption, as a separate message, or not at all; image quality after WhatsApp compression; the `wa.me` link opening the app (once P-16 is supplied); no activation refusal on a slow phone.
+- Remaining (data): TAAVI's WhatsApp number (P-16).
+
+### Later
 
 - Broader mobile/browser testing.
 - Accessibility audit.

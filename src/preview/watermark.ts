@@ -1,7 +1,7 @@
 /**
- * Taavi signature (D-060): the official arch symbol and "© Taavi", with no
+ * TAAVI signature (D-060): the official arch symbol and "© TAAVI", with no
  * background (D-065), at the bottom-right of every composition, preview and PNG alike. It
- * identifies Taavi's images and discourages their reuse by other stores; it
+ * identifies TAAVI's images and discourages their reuse by other stores; it
  * does not prevent copying. Drawn by `drawScene` from the scene's
  * `signature` layer, so every canvas size gets the same relative geometry.
  * There is no way to turn it off or move it.
@@ -24,7 +24,7 @@ export const MARK_INK = { x: 349, y: 223, width: 558, height: 734 } as const;
  * Quadro's frame, never on the lettering.
  */
 export const SIGNATURE = {
-  text: '© Taavi',
+  text: '© TAAVI',
   // 0.05 × 1.1 (M4.6 refinement) × 1.5 (D-065).
   height: 0.0825,
   margin: 0.022,

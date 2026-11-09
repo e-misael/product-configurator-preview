@@ -60,7 +60,7 @@ describe('layout (D-058)', () => {
     const review = region('Revisar personalização');
     // The review step is closed at first: include hidden controls.
     const exportButton = within(review).getByRole('button', {
-      name: 'Exportar imagem',
+      name: 'Baixar imagem',
       hidden: true,
     });
     const controls = screen.getAllByRole('button', { hidden: true });
@@ -144,7 +144,7 @@ describe('layout (D-058)', () => {
       'Concluído · pronta para exportar',
     );
     expect(
-      within(region('Revisar personalização')).getByRole('button', { name: 'Exportar imagem' }),
+      within(region('Revisar personalização')).getByRole('button', { name: 'Baixar imagem' }),
     ).toHaveAttribute('aria-disabled', 'false');
   });
 

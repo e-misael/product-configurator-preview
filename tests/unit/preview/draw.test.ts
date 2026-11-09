@@ -298,7 +298,7 @@ describe('drawScene: Taavi signature (D-060)', () => {
     expect(shading).toBeGreaterThan(-1);
     expect(mark).toBeGreaterThan(shading);
     expect(calls.at(-1)).toEqual({ op: 'restore' });
-    expect(ctx.drawn.at(-1)).toMatchObject({ op: 'fillText', text: '© Taavi' });
+    expect(ctx.drawn.at(-1)).toMatchObject({ op: 'fillText', text: '© TAAVI' });
   });
 
   it('sits at the bottom-right corner, sized from the scene, not on the text area', () => {

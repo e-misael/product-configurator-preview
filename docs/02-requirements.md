@@ -19,7 +19,7 @@ Acceptance criteria:
 5. An empty catalog is a supported state; no model data is invented.
 6. Each model has exactly one fixed shape classification (`square`, `rectangle`, `circle`, `scalloped`); the Quadro is a model that includes its frame (D-023, D-046).
 7. Only available models are offered. A selected model that is unknown or unavailable stays visible and marked invalid (D-030).
-8. Options show the supplied name and size label as given, as `displayName — sizeLabel` ("Placa cerâmica — 10 × 10 cm"). Size labels are nominal product dimensions; handmade pieces vary, as the disclaimer says. Physical dimensions are recorded only as confirmed by Taavi (P-01).
+8. Options show the supplied name and size label as given, as `displayName — sizeLabel` ("Placa cerâmica — 10 × 10 cm"). Size labels are nominal product dimensions; handmade pieces vary, as the disclaimer says. Physical dimensions are recorded only as confirmed by TAAVI (P-01).
 9. Bandeja ondulada M and G are one option, "Bandeja ondulada" ("Disponível em dois tamanhos"), with a required "Tamanho" choice, "M — 8 × 8 cm" or "G — 11 × 11 cm", never preselected (D-057). The configuration stores the chosen size's own model ID. Until a size is chosen no model is selected, and the status and export reasons say "Falta escolher: Tamanho.". Changing the size keeps the text, colors, and position.
 10. The summary shows "Modelo" and "Tamanho" as separate rows.
 
@@ -117,7 +117,7 @@ Acceptance criteria:
 7. Each reason an image is not shown — model not selected or invalid, image not yet registered, loading, file failed to load, text area not calibrated, lettering size not yet defined, text too long — is stated in text and distinct from the others; nothing else is substituted. With no model chosen, the empty preview says only "Selecione um modelo" (no separate notice).
 8. Text keeps its line breaks, is never altered, truncated, or silently clipped, and is drawn at the model's fixed lettering size whatever its length, wrapping, alignment, or position (D-055); text that does not fit shows a visible warning and cannot be exported. While it overflows, the preview (never the export) outlines the calibrated text area with a dashed line, and for vertical overflow the warning states how many lines are over ("1 linha a mais", "2 linhas a mais"; D-057). A model without an approved lettering size shows no text on the image, says so, and cannot be exported with text.
 
-9. Every composition ends with the Taavi signature at the bottom-right (D-060), identical in the preview and the export: the arch and "© Taavi" with no background, 0.0825 of the shorter side high (D-065).
+9. Every composition ends with the TAAVI signature at the bottom-right (D-060), identical in the preview and the export: the arch and "© TAAVI" with no background, 0.0825 of the shorter side high (D-065).
 10. Before a model group's size is chosen, the group's shared photograph is shown without lettering, with "Selecione o tamanho para visualizar a personalização." (D-061).
 11. On phones the preview comes first and stays at the top once a model is chosen, compact, reduced while editing text, and larger while positioning text (D-058).
 
@@ -127,7 +127,7 @@ Status: UI (M3.1) — implemented and verified with synthetic demonstration imag
 
 Acceptance criteria:
 
-1. "Exportar imagem" downloads the current composition as a PNG.
+1. "Baixar imagem" (named "Exportar imagem" until D-076) downloads the current composition as a PNG.
 2. The exported image is the preview's own scene painted by the same `drawScene` (D-008, D-009): same images, font, colored ranges, alignment, and position.
 3. Size: the model photograph's native pixel size, never upscaled, longest edge capped at 4000 px, aspect ratio preserved; unusable dimensions are reported, not allocated. Background: opaque white (`#ffffff`), the same as the live preview. Filename: `taavi-{plateId}.png`, reduced to `[a-z0-9-]` and at most 60 ID characters; never the customer's text.
 4. The exported image renders the same font family, lettering colors (M4.1b-1), and text alignment and position (M4.1b-2) as the preview, from the same scene (D-039).
@@ -135,8 +135,8 @@ Acceptance criteria:
 6. Export is blocked while the scene reports any preview notice: an image pending, loading, or failed; a pending text area; the provisional text color; or `text-overflow` (D-044). Selected elements are never silently left out.
 7. While blocked, the button stays focusable (`aria-disabled="true"`) and click or keyboard activation does nothing; the reasons are listed above it ("Para exportar a imagem:") and form the button's accessible description. Every reason is named, preview problems in the preview's own words (e.g. "O texto não cabe na área do modelo: 1 linha a mais…"); notices that only restate a missing choice are not repeated (D-063). The blocked button looks inactive (dashed border, muted text).
 8. Failures (canvas allocation, 2D context, drawing, encoding, object URL, download start) show "Não foi possível gerar a imagem. Tente novamente." (or the dimension message) and leave the button usable; success announces "Imagem exportada: {filename}".
-9. "Exportar imagem" is the last action of "Revisar personalização", after the summary, the status, and the disclaimer (D-058). Export is also blocked while the Taavi signature cannot be loaded, and no PNG is ever written without it (D-060), or while a model group's size is not chosen (D-061).
-10. An optional "Observação" textarea sits just before "Exportar imagem". It is stored exactly as typed, never validated, never required, and never drawn on the preview or the PNG; its hint says so ("Opcional. Não aparece na imagem exportada.", D-062).
+9. "Baixar imagem" is the last button of "Revisar personalização", after the summary, the status, and the disclaimer (D-058). Export is also blocked while the TAAVI signature cannot be loaded, and no PNG is ever written without it (D-060), or while a model group's size is not chosen (D-061).
+10. An optional "Observação" textarea sits just before the sharing and export actions (D-076). It is stored exactly as typed, never validated, never required, and never drawn on the preview or the PNG; its hint says so ("Opcional. Não aparece na imagem exportada.", D-062).
 
 Status: Done (M4), verified with synthetic demonstration images and the four production photographs. Production export is available with the approved palette (D-056), verified end to end in Chromium and mobile WebKit.
 
@@ -161,7 +161,7 @@ Status: Pending. M2: preview slot. M1.3a: catalog contract (one image per model,
 
 ### FR-09 — Curated imagery; no customer uploads
 
-Approved product requirement (clarification of existing scope, 2026-11-08). All product photographs and visual assets are curated, prepared, and registered exclusively by Taavi through the version-controlled catalog.
+Approved product requirement (clarification of existing scope, 2026-11-08). All product photographs and visual assets are curated, prepared, and registered exclusively by TAAVI through the version-controlled catalog.
 
 Acceptance criteria:
 
@@ -171,6 +171,21 @@ Acceptance criteria:
 4. Images are only same-origin catalog assets (FR-08.8, D-031); arbitrary external image URLs are never loaded.
 
 Status: Done — enforced by the catalog-driven image architecture and asset-path integrity; nothing in the UI accepts images.
+
+### FR-10 — Sharing the customization (M5.1, D-076)
+
+Acceptance criteria:
+
+1. "Revisar personalização" ends with "Compartilhar personalização", "Baixar imagem", and, once TAAVI's number is configured (P-16), "Prefere enviar pelo WhatsApp?" with two steps and "Abrir WhatsApp da TAAVI".
+2. "Compartilhar personalização" is shown only where `navigator.share` and `navigator.canShare` exist and a PNG file can be shared; otherwise "Baixar imagem" is the main action.
+3. It shares the same watermarked PNG "Baixar imagem" saves, as `taavi-{plateId}.png`, and the order message where the browser accepts text with the file. `navigator.share()` is called directly from the tap; it is never retried automatically, and never followed by WhatsApp.
+4. The PNG is prepared 300 ms after the last change while the configuration is exportable and the section is open, for one export revision (every field but the note); any other change withdraws it at once, "Preparando imagem para compartilhar…" is shown, and the button does nothing until the new PNG is ready. A stale image is never shared.
+5. Order message, plain text: "Olá, TAAVI!", the request line, "Modelo: {model} — {size}", "Texto:" with the lettered text (capitals for "Sem serifa", as typed for "Com serifa") and its line breaks, "Fonte", "Cor principal", and, only when they apply, "Destaque: {color} ({words})", "Alinhamento" and "Posição" (not for the Bandejas, whose lettering is fixed), and "Observação"; then "Preparei uma imagem da personalização como referência." and "Podem confirmar o valor, a disponibilidade e o prazo de produção?". Values are the review's (FR-07 summary). No customer data, no confirmation.
+6. Status messages: completed "Confira no WhatsApp se a imagem e os detalhes foram enviados para a TAAVI."; cancelled "Compartilhamento cancelado. Sua personalização continua aqui."; failed "Não foi possível compartilhar. Você pode baixar a imagem e enviá-la pelo WhatsApp da TAAVI.". Nothing claims that a request was sent, received, or confirmed. The configuration is unchanged after any outcome.
+7. "Abrir WhatsApp da TAAVI" opens `https://wa.me/{number}?text={encoded order message}` in a new tab; no file is attached through the URL; the steps tell the customer to download the image and attach it. Without a valid configured number it is not shown.
+8. The export blockers (FR-07.5–7) apply to all three actions: buttons stay focusable with `aria-disabled` and the reasons as their description; the WhatsApp action is not a link while blocked.
+
+Status: Implemented (M5.1), verified with a stubbed share sheet in Chromium and WebKit; pending manual checks on a real iPhone (Safari) and Android phone (Chrome), and TAAVI's number (P-16).
 
 ## Non-functional requirements
 

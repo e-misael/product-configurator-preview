@@ -67,7 +67,7 @@ A product model. Placa cerâmica, Quadro, Bandeja ondulada M, and Bandeja ondula
 
 The option label shown to customers is `displayName — sizeLabel`, e.g. "Bandeja ondulada M — 8 × 8 cm" (D-046).
 
-The current production IDs are **provisional** until Taavi confirms them: `placa-ceramica-10`, `quadro-20`, `bandeja-ondulada-m-8`, `bandeja-ondulada-g-11`. An ID must not be renamed without a migration note in [06-decisions.md](06-decisions.md); `bandeja-ondulada-m-11` → `bandeja-ondulada-g-11` is recorded in D-046 (nothing persisted the old ID).
+The current production IDs are **provisional** until TAAVI confirms them: `placa-ceramica-10`, `quadro-20`, `bandeja-ondulada-m-8`, `bandeja-ondulada-g-11`. An ID must not be renamed without a migration note in [06-decisions.md](06-decisions.md); `bandeja-ondulada-m-11` → `bandeja-ondulada-g-11` is recorded in D-046 (nothing persisted the old ID).
 
 ### `TextColor` (`type: 'text-color'`)
 
@@ -75,9 +75,9 @@ A lettering color offered for the text. Common component fields plus:
 
 | Field | Required | Notes                                                    |
 | ----- | -------- | -------------------------------------------------------- |
-| `hex` | yes      | `#rrggbb`, as supplied by Taavi. Never derived or tuned. |
+| `hex` | yes      | `#rrggbb`, as supplied by TAAVI. Never derived or tuned. |
 
-The production palette is empty until Taavi supplies it (P-02); the demo catalog has three clearly labeled synthetic colors (`demo-letra-*`).
+The production palette is empty until TAAVI supplies it (P-02); the demo catalog has three clearly labeled synthetic colors (`demo-letra-*`).
 
 ### `TextRange`
 

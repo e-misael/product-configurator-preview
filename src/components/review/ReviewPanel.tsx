@@ -1,18 +1,12 @@
-import {
-  findTextColor,
-  letteringText,
-  placementFor,
-  type Catalog,
-  type Configuration,
-  type Plate,
-  type ValidationResult,
-} from '../../domain';
+import type { Catalog, Configuration, Plate, ValidationResult } from '../../domain';
+import { exportRevision } from '../../preview/export';
 import type { Scene } from '../../preview/scene';
 import { ConfigurationStatus } from '../configurator/ConfigurationStatus';
-import { sizeLabel, type ModelGroup } from '../configurator/model-groups';
+import type { ModelGroup } from '../configurator/model-groups';
 import { ExportControls } from '../preview/ExportControls';
+import { orderMessage } from './order-message';
 import { RestartControl } from './RestartControl';
-import { ALIGNMENT_LABELS, presetLabel, presetOf } from '../preview/messages';
+import { reviewSummary } from './review-summary';
 
 interface ReviewPanelProps {
   readonly catalog: Catalog;
@@ -23,20 +17,19 @@ interface ReviewPanelProps {
   readonly sizePending: boolean;
   readonly validation: ValidationResult;
   readonly scene: Scene;
+  /** The section is open (or every step is, on wide screens). */
+  readonly active: boolean;
   readonly onNote: (note: string) => void;
   /** Starts over with no choices ("Reiniciar configurações"). */
   readonly onRestart: () => void;
 }
 
-function colorName(catalog: Catalog, id: string | null, none = '—'): string {
-  return id === null ? none : (findTextColor(catalog, id)?.displayName ?? id);
-}
-
 /**
  * "Revisar personalização" (D-058): the full selection, what is still missing,
- * the approved disclaimer (D-056, wording unchanged), and export as the last
- * action with its blockers beside it. The summary is also the canvas's
- * accessible description.
+ * the approved disclaimer (D-056, wording unchanged but TAAVI in capitals), and
+ * the sharing and export actions last, with their blockers beside them
+ * (D-076). The summary is also the canvas's accessible description, and the
+ * order message repeats it.
  */
 export function ReviewPanel({
   catalog,
@@ -47,48 +40,36 @@ export function ReviewPanel({
   sizePending,
   validation,
   scene,
+  active,
   onNote,
   onRestart,
 }: ReviewPanelProps) {
-  // What the canvas uses: a fixed model's centered default, or the stored placement (D-068).
-  const placement = placementFor(config.textLayout, plate);
-  const preset = presetOf(placement);
-  const text = letteringText(config.text, config.fontFamily);
+  const summary = reviewSummary(catalog, config, plate, groups, group, sizePending);
   return (
     <div className="review">
       <dl className="review__summary" id="review-summary">
         <dt>Modelo:</dt>
-        <dd>{group?.name ?? plate?.displayName ?? '—'}</dd>
+        <dd>{summary.model}</dd>
         <dt>Tamanho:</dt>
-        <dd>{plate ? sizeLabel(groups, plate) : sizePending ? 'Não escolhido' : '—'}</dd>
+        <dd>{summary.size}</dd>
         <dt>Cor da peça:</dt>
-        <dd>{plate?.ceramicColor ?? '—'}</dd>
+        <dd>{summary.ceramicColor}</dd>
         <dt>Fonte:</dt>
-        <dd>{config.fontFamily === 'serif' ? 'Com serifa' : 'Sem serifa'}</dd>
+        <dd>{summary.font}</dd>
         <dt>Cor do texto:</dt>
-        <dd>{colorName(catalog, config.textColorId, 'Não escolhida')}</dd>
-        {/* What the preview draws: no highlight while it is off or has no word (D-071). */}
+        <dd>{summary.textColor}</dd>
         <dt>Destaque:</dt>
         <dd>
-          {!config.highlightEnabled || config.secondaryRanges.length === 0
+          {summary.highlight === null
             ? '—'
-            : `${colorName(catalog, config.secondaryColorId, 'Cor não escolhida')}: ${config.secondaryRanges
-                .map(({ start, end }) => text.slice(start, end))
-                .join(', ')}`}
+            : `${summary.highlight.color}: ${summary.highlight.words.join(', ')}`}
         </dd>
         <dt>Alinhamento:</dt>
-        <dd>{ALIGNMENT_LABELS[placement.align]}</dd>
+        <dd>{summary.alignment}</dd>
         <dt>Posição:</dt>
-        <dd>
-          {preset
-            ? presetLabel(preset.row, preset.column)
-            : `Personalizada (horizontal ${Math.round(placement.x * 100)}%, vertical ${Math.round(
-                placement.y * 100,
-              )}%)`}
-        </dd>
+        <dd>{summary.position}</dd>
         <dt>Texto:</dt>
-        {/* As lettered: capitals for "Sem serifa" (D-068). */}
-        <dd className="review__text">{text === '' ? '—' : text}</dd>
+        <dd className="review__text">{summary.text === '' ? '—' : summary.text}</dd>
       </dl>
       {/* Starting over belongs to the summary; export stays the last action (D-058). */}
       <RestartControl onRestart={onRestart} />
@@ -105,7 +86,7 @@ export function ReviewPanel({
           configurações de cada dispositivo.
         </p>
         <p>
-          Todas as solicitações de personalização estão sujeitas à análise e aprovação da Taavi.
+          Todas as solicitações de personalização estão sujeitas à análise e aprovação da TAAVI.
         </p>
       </div>
       {/* Optional note (D-062): stored as typed, never drawn on the image. */}
@@ -130,6 +111,9 @@ export function ReviewPanel({
         validation={validation}
         plateId={config.plateId}
         sizePending={sizePending}
+        revision={exportRevision(config)}
+        active={active}
+        orderMessage={orderMessage(summary, config.note)}
       />
     </div>
   );
