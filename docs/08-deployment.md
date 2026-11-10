@@ -124,9 +124,13 @@ The pilot site is the production build in `dist/`, uploaded to Cloudflare Pages 
      - `assets/print/qr-code/taavi-pilot-qr.svg`: the standalone vector QR Code (80 mm).
      - `assets/print/qr-code/taavi-pilot-signage-draft.svg`: the A5 signage proof, with the "RASCUNHO — NÃO IMPRIMIR NEM DISTRIBUIR" band.
      - `assets/print/qr-code/taavi-pilot-signage-draft.pdf`: the same proof as PDF, for printing the test copy.
+     - `assets/print/qr-code/taavi-pilot-signage-final.svg`: **the final A5 signage**: the draft SVG with only the warning band removed.
+     - `assets/print/qr-code/taavi-pilot-signage-final.pdf`: **the final print file**: exported from the final SVG (fonts embedded, the QR Code as vector paths; the only raster is the TAAVI arch mark), page exactly A5 (419.53 × 595.28 pt), for printing at 100% (no "fit to page").
+   - The draft files are kept unchanged for reference; never print them.
    - Automated check (2026-11-09, repeated on the repository copies): the standalone SVG, the signage SVG, and the PDF rasterized by macOS all decode to exactly `https://crie-com-a-taavi.pages.dev`.
    - **The draft band stays until the physical scan below passes on both phones.** Removing it, or producing the final printable file, needs the product owner's approval after that scan; never print or distribute the draft.
-   - **[Product owner] Acceptance, pending:** print the proof at its final size; scan it with the iPhone camera and the Android camera (and Google Lens) at arm's length and in the store's lighting; each opens the production configurator, not beta; record phone, distance, lighting, and result here. Only then remove the draft band, and print and place the signage.
+   - **[Product owner] Acceptance: passed** on iPhone and Android, as confirmed by the product owner on 2026-11-09. Procedure: print the proof at its final size; scan it with the iPhone camera and the Android camera (and Google Lens) at arm's length and in the store's lighting; each opens the production configurator, not beta. Details **pending** (not supplied; never to be filled in without the tester's records): phone models, OS and camera app versions, scan date, tester, distance, lighting.
+   - **Final signage (2026-11-09):** printing the final A5 signage is approved by the product owner. Checks on the final files: both the SVG and the PDF decode to exactly `https://crie-com-a-taavi.pages.dev`; neither contains the warning text; at 300 dpi the final matches the draft pixel for pixel outside the removed band (QR Code, quiet zone, text, and mark unchanged), apart from the page's outer edge, where the draft's sub-millimetre white hairline is now the page background.
 
 ## E. Rollback
 
