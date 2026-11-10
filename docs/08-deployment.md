@@ -124,7 +124,7 @@ The pilot site is the production build in `dist/`, uploaded to Cloudflare Pages 
      - `assets/print/qr-code/taavi-pilot-qr.svg`: the standalone vector QR Code (80 mm).
      - `assets/print/qr-code/taavi-pilot-signage-draft.svg`: the A5 signage proof, with the "RASCUNHO — NÃO IMPRIMIR NEM DISTRIBUIR" band.
      - `assets/print/qr-code/taavi-pilot-signage-draft.pdf`: the same proof as PDF, for printing the test copy.
-     - `assets/print/qr-code/taavi-pilot-signage-final.svg`: **the final A5 signage**: the draft SVG with only the warning band removed.
+     - `assets/print/qr-code/taavi-pilot-signage-final.svg`: **the final A5 signage**: the draft SVG with the warning band removed and the TAAVI arch mark enlarged by 75% (18 → 31.5 mm box, same centre).
      - `assets/print/qr-code/taavi-pilot-signage-final.pdf`: **the final print file**: exported from the final SVG (fonts embedded, the QR Code as vector paths; the only raster is the TAAVI arch mark), page exactly A5 (419.53 × 595.28 pt), for printing at 100% (no "fit to page").
    - The draft files are kept unchanged for reference; never print them.
    - Automated check (2026-11-09, repeated on the repository copies): the standalone SVG, the signage SVG, and the PDF rasterized by macOS all decode to exactly `https://crie-com-a-taavi.pages.dev`.
