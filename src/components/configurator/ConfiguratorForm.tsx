@@ -245,7 +245,8 @@ export function ConfiguratorForm({
         onToggle={() => undefined}
         title="Finalize seu pedido"
         summary=""
-        complete={ready}
+        // No state: it holds the actions, which the page cannot mark done (D-080).
+        complete={null}
       >
         <FinalizePanel
           config={config}

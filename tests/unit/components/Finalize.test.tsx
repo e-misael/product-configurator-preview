@@ -88,8 +88,9 @@ describe('Finalize seu pedido: the order (D-080)', () => {
     expect(
       within(finalize()).getByText('Frete não incluso. Valor sujeito à confirmação da TAAVI.'),
     ).toBeVisible();
-    // No second heading inside the section.
+    // No second heading inside the section, and no state on its own: nothing is done yet.
     expect(within(finalize()).getAllByRole('heading')).toHaveLength(1);
+    expect(within(finalize()).getByRole('heading')).toHaveTextContent(/^Finalize seu pedido$/);
   });
 
   it('is not shown while the configuration is incomplete; one concise list of reasons is', async () => {
@@ -97,7 +98,7 @@ describe('Finalize seu pedido: the order (D-080)', () => {
 
     expect(within(finalize()).queryByText('Valor unitário')).toBeNull();
     expect(within(finalize()).queryByRole('textbox', { name: 'Quantidade' })).toBeNull();
-    expect(finalize()).not.toHaveTextContent(/completa|pronta/i);
+    expect(finalize()).not.toHaveTextContent(/completa|pronta|Concluído|Pendente/i);
     const reasons = finalize().querySelector('#export-reasons');
     expect(reasons).toHaveTextContent('Para finalizar:Falta escolher: Cor do texto.');
     expect(within(finalize()).getAllByText(/Falta escolher/)).toHaveLength(1);

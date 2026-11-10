@@ -5,8 +5,11 @@ interface StepProps {
   readonly title: string;
   /** One line describing the current choice, shown beside the title. */
   readonly summary: string;
-  /** Undefined for an optional step, shown as "Opcional". */
-  readonly complete: boolean | undefined;
+  /**
+   * Undefined for an optional step, shown as "Opcional"; null for a step with
+   * no state of its own, such as "Finalize seu pedido" (D-080).
+   */
+  readonly complete: boolean | undefined | null;
   /** Collapsible on narrow screens; always open, with a plain heading, otherwise. */
   readonly collapsible: boolean;
   readonly open: boolean;
@@ -30,7 +33,14 @@ export function Step({
   children,
 }: StepProps) {
   const expanded = !collapsible || open;
-  const state = complete === undefined ? 'Opcional' : complete ? 'Concluído' : 'Pendente';
+  const state =
+    complete === null
+      ? ''
+      : complete === undefined
+        ? 'Opcional'
+        : complete
+          ? 'Concluído'
+          : 'Pendente';
   return (
     <section
       className={`step${expanded ? ' step--open' : ''}`}
@@ -82,10 +92,12 @@ function StepLabel({
       <span className="step__title" id={`${id}-title`}>
         {title}
       </span>
-      <span className="step__summary" id={`${id}-summary`}>
-        <span className="step__state">{state}</span>
-        {summary !== '' && ` · ${summary}`}
-      </span>
+      {(state !== '' || summary !== '') && (
+        <span className="step__summary" id={`${id}-summary`}>
+          {state !== '' && <span className="step__state">{state}</span>}
+          {summary !== '' && (state === '' ? summary : ` · ${summary}`)}
+        </span>
+      )}
     </span>
   );
 }
