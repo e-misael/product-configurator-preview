@@ -120,7 +120,12 @@ The pilot site is the production build in `dist/`, uploaded to Cloudflare Pages 
    **[Product owner]** Scan the printed proof with both phones before printing in quantity.
 
 7. **QR Code (pilot).** Encodes exactly `https://crie-com-a-taavi.pages.dev` (no query parameters, no tracking or redirect service); phones open it as `…pages.dev/`. Version 3, error correction M, a 4-module quiet zone, dark modules (`#302a26`) on white, nothing over the modules. Generated outside the repository with a temporary tool; the configurator has no QR dependency. A draft signage proof (A5) carries a "RASCUNHO" band until accepted.
-   - Automated check (done 2026-11-09): the standalone SVG, the signage at print and small sizes, and the PDF rasterized by macOS all decode to exactly `https://crie-com-a-taavi.pages.dev`.
+   - Files, kept in the repository (outside the app; Vite builds only `index.html`, its imports, and `public/`, so none of them reaches `dist/` or the site):
+     - `assets/print/qr-code/taavi-pilot-qr.svg`: the standalone vector QR Code (80 mm).
+     - `assets/print/qr-code/taavi-pilot-signage-draft.svg`: the A5 signage proof, with the "RASCUNHO — NÃO IMPRIMIR NEM DISTRIBUIR" band.
+     - `assets/print/qr-code/taavi-pilot-signage-draft.pdf`: the same proof as PDF, for printing the test copy.
+   - Automated check (2026-11-09, repeated on the repository copies): the standalone SVG, the signage SVG, and the PDF rasterized by macOS all decode to exactly `https://crie-com-a-taavi.pages.dev`.
+   - **The draft band stays until the physical scan below passes on both phones.** Removing it, or producing the final printable file, needs the product owner's approval after that scan; never print or distribute the draft.
    - **[Product owner] Acceptance, pending:** print the proof at its final size; scan it with the iPhone camera and the Android camera (and Google Lens) at arm's length and in the store's lighting; each opens the production configurator, not beta; record phone, distance, lighting, and result here. Only then remove the draft band, and print and place the signage.
 
 ## E. Rollback
